@@ -1,21 +1,17 @@
 import m from 'mithril';
-import { Chrome } from './component/layout';
-import {Home} from './screen/home';
-import {LoginPreTenant} from './screen/login-pre-tenant';
-
-function wrap(screen: m.Component, needsUser = false): m.RouteResolver {
-  return {
-    // onmatch: () => (needsUser && !session.user ? auth.signIn() : undefined),
-    render: () => m(Chrome, m(screen)),
-  };
-}
+import { Login } from './screen/login';
 
 const routes: m.RouteDefs = {
-  '/'     : wrap(Home)
-  '/login': wrap(LoginPreTenant)
+  '/realms/:realm/login': {
+    render: (vnode) => m(Login, { realm: (vnode.attrs as any).realm }),
+  },
+  '/login': {
+    render: () => m(Login, {}),
+  },
+  '/': {
+    onmatch: () => m.route.set('/login'),
+  },
 };
 
-m.route.prefix = '#!';
-m.route(document.body, '/', routes);
-
-console.log('hi');
+m.route.prefix = '';
+m.route(document.body, '/login', routes);

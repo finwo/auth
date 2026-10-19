@@ -76,17 +76,11 @@ esbuild
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=0">
-    <title>conductor</title>
-    <link rel="icon" type="image/svg+xml" href="assets/icon.svg">
-    <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
-    <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32-dark.png" media="(prefers-color-scheme: dark)">
-    <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
-    <link rel="manifest" href="assets/manifest.json"/>
-    <!-- <link rel="stylesheet" href="/assets/fonts/karla/karla.css"/> -->
-    ${styles.map(name => `<link rel="stylesheet" href="${name}"/>`).join('\n    ')}
+    <title>auth</title>
+    ${styles.map(name => `<link rel="stylesheet" href="/${name}"/>`).join('\n    ')}
   </head>
   <body>
-    ${buildList.map(name => `<script src="${name}" defer></script>`).join('\n    ')}
+    ${buildList.map(name => `<script src="/${name}" defer></script>`).join('\n    ')}
   </body>
 </html>
 `);

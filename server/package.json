@@ -1,10 +1,16 @@
 {
+  "type": "module",
   "scripts": {
+    "build": "web/esbuild.cjs",
+    "assets:hex": "node scripts/generate-hex-grid.js",
+    "prestart": "npm run build",
     "start": "node src/index.js",
-    "build": "web/esbuild.cjs"
+    "seed:demo": "node scripts/seed-demo.js",
+    "test": "node --test \"test/**/*.test.js\""
   },
   "dependencies": {
     "@finwo/scandir": "^0.0.3",
+    "body-parser": "^2.3.0",
     "cors": "^2.8.6",
     "mithril": "^2.3.8",
     "morgan": "^1.12.1",

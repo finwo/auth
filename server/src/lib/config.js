@@ -5,13 +5,20 @@
 //   2. YAML file, from ./auth.yaml when present
 //   3. environment variables (see ENV_MAP)
 
-const fs = require('fs');
-const YAML = require('yaml');
+import fs from 'node:fs';
+import YAML from 'yaml';
+
+const SUPPORTED_DIALECTS = ['sqlite'];
 
 const DEFAULTS = {
   server: {
     host: '0.0.0.0',
     port: 3000,
+  },
+  database: {
+    dialect: 'sqlite',
+    path: './data/system.sqlite',
+    realms: './data/realms',
   },
 };
 
@@ -19,7 +26,14 @@ const DEFAULTS = {
 const ENV_MAP = [
   ['AUTH_HOST', 'server.host', String],
   ['AUTH_PORT', 'server.port', toInt],
+  ['AUTH_DATABASE_DIALECT', 'database.dialect', lower],
+  ['AUTH_DATABASE_PATH', 'database.path', String],
+  ['AUTH_REALMS_PATH', 'database.realms', String],
 ];
+
+function lower(v) {
+  return String(v).trim().toLowerCase();
+}
 
 function toInt(v) {
   const n = parseInt(v, 10);
@@ -66,12 +80,29 @@ function validate(cfg) {
     errors.push(`server.port must be between 0 and 65535, got ${port}`);
   }
 
+  if (!SUPPORTED_DIALECTS.includes(cfg.database.dialect)) {
+    errors.push(
+      `database.dialect must be one of ${SUPPORTED_DIALECTS.join(', ')}, got ${JSON.stringify(cfg.database.dialect)}`
+    );
+  }
+
+  if (cfg.database.dialect === 'sqlite') {
+    if (!cfg.database.path) {
+      errors.push('database.path is required for sqlite (set database.path or AUTH_DATABASE_PATH)');
+    }
+    if (!cfg.database.realms) {
+      errors.push('database.realms is required for sqlite (set database.realms or AUTH_REALMS_PATH)');
+    }
+  }
+
+
+
   if (errors.length > 0) {
     throw new Error(`invalid configuration:\n  - ${errors.join('\n  - ')}`);
   }
 }
 
-function loadConfig(explicitPath) {
+export function loadConfig(explicitPath) {
   const file = explicitPath || 'auth.yaml';
   let cfg = structuredClone(DEFAULTS);
   let source = null;
@@ -103,11 +134,9 @@ function loadConfig(explicitPath) {
     }
   }
 
-  validate(cfg);
-
   cfg.source = source;
+
+  validate(cfg);
 
   return deepFreeze(cfg);
 }
-
-module.exports = { loadConfig };

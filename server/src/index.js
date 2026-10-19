@@ -1,104 +1,139 @@
+import bodyParser from 'body-parser';
+import cors from 'cors';
+import fs from 'node:fs';
+import http from 'node:http';
+import path from 'node:path';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+import morgan from 'morgan';
+import scandir from '@finwo/scandir';
+import serveStatic from 'serve-static';
 
+import { app } from './app.js';
+import { loadConfig } from './lib/config.js';
+import { closeRealms, initRealms } from './lib/realm.js';
 
-// const bodyParser  = require('body-parser');
-const cors        = require('cors');
-const fs          = require('fs');
-const http        = require('http');
-const morgan      = require('morgan');
-const scandir     = require('@finwo/scandir');
-// const Sequelize   = require('sequelize');
-const serveStatic = require('serve-static');
-
-const { loadConfig } = require('./lib/config');
+const here = path.dirname(fileURLToPath(import.meta.url));
+const dist = path.join(here, '..', 'web', 'dist');
 
 const cfg = loadConfig();
+app.config = cfg;
 
-// // Initialize app
-const Router     = require('router');
-global.app       = new Router();
-// app.manifest     = [];
-// app.history      = [];
-// app.config       = require('rc')('fauth', require('./config'));
+async function loadModules(dir) {
+  const files = [];
+  scandir.sync(dir, (file) => files.push(file), ['js'], false);
+  files.sort();
+  const modules = [];
+  for (const file of files) {
+    modules.push(await import(pathToFileURL(file).href));
+  }
+  return modules;
+}
 
-// Pre-compile regexes
-app.regex = {
-  email: /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/,
-};
+for (const mod of await loadModules(path.join(here, 'lib', 'http'))) {
+  Object.assign(app, mod);
+}
 
-// // Initialize common responses
-// scandir.sync(`${__dirname}/lib/http`, response => Object.assign(app,response), ['js'], true);
-
-// // Initialize database
-// app.db = new Sequelize(app.config.db);
-// scandir.sync(`${__dirname}/model`, factory => factory(app.db), ['js'], true);
-// app.db.sync({ alter: true });
-
-// Load middleware
 app.use(morgan('tiny'));
 app.use(cors());
-// app.use(bodyParser.json());
+app.use(bodyParser.json({ limit: '16kb' }));
 
-// Fetch all routes
 const routes = [];
-// scandir.sync(`${__dirname}/controller`, function logRoute(route) {
-//   if (Array.isArray(route)) return route.map(logRoute);
-//   if (route.name) {
-//     app.manifest.push({
-//       method: route.method,
-//       path  : route.path,
-//       name  : route.name,
-//     });
-//   }
-//   routes.push(route);
-// }, ['js'], true);
+for (const mod of await loadModules(path.join(here, 'controller'))) {
+  const exported = mod.default ?? mod.route ?? mod;
+  for (const route of Array.isArray(exported) ? exported : [exported]) {
+    if (!route || !route.method || !route.path) continue;
+    if (route.name) {
+      app.manifest.push({
+        method: route.method,
+        path: route.path,
+        name: route.name,
+      });
+    }
+    routes.push(route);
+  }
+}
 
-// // Order routes by specificness (matters in our router)
-// routes.sort((A, B) => {
-//   const aparts = A.path.split('/');
-//   const bparts = B.path.split('/');
-//   for(let i=0; i<Math.min(aparts.length,bparts.length); i++) {
-//     if (
-//       (aparts[i].substr(0,1) === ':') &&
-//       (bparts[i].substr(0,1) !== ':')
-//     ) {
-//       return 1;
-//     }
-//     if (
-//       (aparts[i].substr(0,1) !== ':') &&
-//       (bparts[i].substr(0,1) === ':')
-//     ) {
-//       return -1;
-//     }
-//   }
-//   return bparts.length - aparts.length;
-// });
-
-// // Register all routes
-// for(const route of routes) {
-//   app[route.method](route.path, async (req, res, ...args) => {
-//     const result = await route.handler(req, res, ...args);
-//     if (result instanceof app.HttpResponse) result.send(req, res);
-//   });
-// }
-
-// Setup static router
-const serve = serveStatic(`${__dirname}/../web/dist`, {
-  index: [
-    'index.htm',
-    'index.html',
-  ],
+routes.sort((A, B) => {
+  const aparts = A.path.split('/');
+  const bparts = B.path.split('/');
+  for (let i = 0; i < Math.min(aparts.length, bparts.length); i += 1) {
+    if (aparts[i].startsWith(':') && !bparts[i].startsWith(':')) return 1;
+    if (!aparts[i].startsWith(':') && bparts[i].startsWith(':')) return -1;
+  }
+  return bparts.length - aparts.length;
 });
 
-// Setup server & start listening
-http.createServer((req, res) => {
-  const indexContent = fs.readFileSync(`${__dirname}/../web/dist/index.html`);
-  app(req, res, () => {
+for (const route of routes) {
+  app[route.method](route.path, async (req, res, ...args) => {
+    try {
+      const result = await route.handler(req, res, ...args);
+      if (result instanceof app.HttpResponse) result.send(res);
+    } catch (e) {
+      if (res.headersSent) {
+        res.end();
+        return;
+      }
+      if (e instanceof app.HttpError) {
+        e.toResponse().send(res);
+        return;
+      }
+      console.error(e);
+      new app.HttpError(500, 'internal_error', 'Internal server error').toResponse().send(res);
+    }
+  });
+}
+
+const serve = serveStatic(dist, {
+  index: ['index.htm', 'index.html'],
+});
+
+let indexContent = null;
+try {
+  indexContent = fs.readFileSync(path.join(dist, 'index.html'));
+} catch {
+  indexContent = null;
+}
+
+await initRealms(cfg);
+
+const server = http.createServer((req, res) => {
+  app(req, res, (err) => {
+    if (err) {
+      const status = err.status || err.statusCode || 500;
+      const code = err.type === 'entity.parse.failed' ? 'invalid_json' : 'internal_error';
+      res.writeHead(status, { 'content-type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify({ error: { code, message: err.message || 'Request failed' } }));
+      return;
+    }
+
     serve(req, res, () => {
-      res.setHeader('content-type', 'text/html');
+      if (!indexContent) {
+        res.writeHead(500, { 'content-type': 'text/plain; charset=utf-8' });
+        res.end('frontend build missing');
+        return;
+      }
+      res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
       res.end(indexContent);
     });
   });
-}).listen(cfg.server.port, cfg.server.host, err => {
-  if (err) throw err;
+});
+
+server.listen(cfg.server.port, cfg.server.host, () => {
   console.log(`Listening on ${cfg.server.host}:${cfg.server.port}`);
 });
+
+let shuttingDown = false;
+
+async function shutdown(signal) {
+  if (shuttingDown) return;
+  shuttingDown = true;
+  console.log(`${signal} received, shutting down`);
+  server.close();
+  await closeRealms();
+}
+
+for (const signal of ['SIGINT', 'SIGTERM']) {
+  process.once(signal, () => {
+    shutdown(signal).finally(() => process.exit(0));
+  });
+}
