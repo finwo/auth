@@ -1,0 +1,19 @@
+{
+  "scripts": {
+    "start": "node src/index.js",
+    "build": "web/esbuild.cjs"
+  },
+  "dependencies": {
+    "@finwo/scandir": "^0.0.3",
+    "cors": "^2.8.6",
+    "mithril": "^2.3.8",
+    "morgan": "^1.12.1",
+    "router": "^2.2.0",
+    "serve-static": "^2.2.1",
+    "yaml": "^2.9.1"
+  },
+  "devDependencies": {
+    "cpy": "^13.2.3",
+    "esbuild": "^0.28.2"
+  }
+}
