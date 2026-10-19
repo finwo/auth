@@ -27,6 +27,6 @@ docs:
 
 .PHONY: dev
 dev:
-	concurrently \
-		"nodemon --ext css,hbs,js,json,md --exec 'bash -c' --delay 1 --verbose --watch src make" \
-		"browser-sync start --server docs/ --files docs/"
+	npx -y concurrently \
+		"npx -y nodemon --ext css,hbs,js,json,md --exec 'bash -c' --delay 1 --verbose --watch src make" \
+		"npx -y browser-sync start --server docs/ --files docs/"
