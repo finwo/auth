@@ -36,12 +36,18 @@ for (const mod of await loadModules(path.join(here, 'lib', 'http'))) {
 app.use(morgan('tiny'));
 app.use(cors());
 app.use(bodyParser.json({ limit: '16kb' }));
+app.use(bodyParser.urlencoded({ extended: false, limit: '16kb' }));
 
 const routes = [];
 for (const mod of await loadModules(path.join(here, 'controller'))) {
   const exported = mod.default ?? mod.route ?? mod;
   for (const route of Array.isArray(exported) ? exported : [exported]) {
-    if (!route || !route.method || !route.path) continue;
+    if (!route) continue;
+    if (route.mount) {
+      app.use(route.mount, route.handler);
+      continue;
+    }
+    if (!route.method || !route.path) continue;
     if (route.name) {
       app.manifest.push({
         method: route.method,

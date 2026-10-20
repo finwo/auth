@@ -5,6 +5,19 @@ export interface RealmInfo {
   allow_session_duration_choice: boolean;
 }
 
+export interface ClientDiscovery {
+  issuer: string;
+  client_id: string;
+  client_name: string;
+  realm: string;
+  display_name: string;
+  branding: Record<string, string>;
+  access_mode: string;
+  virtual: boolean;
+  require_pkce: boolean;
+  allow_session_duration_choice: boolean;
+}
+
 export interface LoginResolution {
   realm: RealmInfo;
   next: 'password' | 'oidc';
@@ -12,6 +25,17 @@ export interface LoginResolution {
     slug: string;
     display_name: string;
   };
+}
+
+export interface PasswordLoginResult {
+  realm: RealmInfo;
+  user: {
+    id: string;
+    username: string;
+    display_name: string | null;
+  };
+  expires_at: number;
+  pending_auth_request: boolean;
 }
 
 export interface SessionInfo {
@@ -61,23 +85,44 @@ export function getRealm(realm?: string | null): Promise<RealmInfo> {
   return request<RealmInfo>(`/api/v1/realm${query}`);
 }
 
-export function resolveLogin(realm: string | null, identifier: string): Promise<LoginResolution> {
+export function getClientDiscovery(
+  realm?: string | null,
+  clientId?: string | null
+): Promise<ClientDiscovery> {
+  if (realm && clientId) {
+    return request<ClientDiscovery>(
+      `/oidc/${encodeURIComponent(realm)}/${encodeURIComponent(clientId)}/openid-configuration`
+    );
+  }
+  if (clientId) {
+    return request<ClientDiscovery>(`/oidc/${encodeURIComponent(clientId)}/openid-configuration`);
+  }
+  return request<ClientDiscovery>('/oidc/openid-configuration');
+}
+
+export function resolveLogin(
+  realm: string | null,
+  clientId: string,
+  identifier: string
+): Promise<LoginResolution> {
   return request<LoginResolution>('/api/v1/login/resolve', {
     method: 'POST',
-    body: JSON.stringify({ realm: realm || undefined, identifier }),
+    body: JSON.stringify({ realm: realm || undefined, client_id: clientId, identifier }),
   });
 }
 
 export function signInPassword(
   realm: string | null,
+  clientId: string,
   identifier: string,
   password: string,
   longSession: boolean
-): Promise<SessionInfo> {
-  return request<SessionInfo>('/api/v1/login/password', {
+): Promise<PasswordLoginResult> {
+  return request<PasswordLoginResult>('/api/v1/login/password', {
     method: 'POST',
     body: JSON.stringify({
       realm: realm || undefined,
+      client_id: clientId,
       identifier,
       password,
       long_session: longSession,

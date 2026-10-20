@@ -152,11 +152,6 @@ export async function authenticateRequest({
   }
 
   const membership = await getMembership(realmDb, user.id);
-  if (!membership || membership.status !== 'active') {
-    await destroySession(realmDb, token);
-    clearSessionCookie(res, req, realm);
-    return null;
-  }
 
   if (now - session.last_seen_at >= TOUCH_INTERVAL_MS) {
     const expiresAt = now + session.ttl * 1000;

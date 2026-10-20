@@ -1,7 +1,10 @@
 import { app } from '../../app.js';
 import { HttpError } from '../../lib/http/http-error.js';
 import { findManagedProviderForUser, resolveLogin } from '../../lib/login.js';
+import { getClient } from '../../lib/oidc/clients.js';
+import { getAuthRequest, readAuthRequestId } from '../../lib/oidc/requests.js';
 import { verifyDummyPassword, verifyPassword } from '../../lib/password.js';
+import { canUseClient } from '../../lib/policy.js';
 import { getSystemDatabase, openRealmDatabase, realmMetadata, resolveRealm } from '../../lib/realm.js';
 import {
   LONG_SESSION_TTL,
@@ -15,6 +18,7 @@ import {
   findUserByIdentifier,
   getMembership,
   getPasswordCredential,
+  getUserRoles,
   updateLastLogin,
 } from '../../lib/users.js';
 
@@ -33,6 +37,9 @@ export default {
     if (body.password.length > 1024) {
       throw new HttpError(400, 'invalid_request', 'password is too long');
     }
+    if (typeof body.client_id !== 'string') {
+      throw new HttpError(400, 'invalid_request', 'client_id is required');
+    }
     if (body.realm != null && typeof body.realm !== 'string') {
       throw new HttpError(400, 'invalid_request', 'realm must be a string');
     }
@@ -47,6 +54,10 @@ export default {
     const metadata = await realmMetadata(realm);
     const realmDb = await openRealmDatabase(realm);
     const systemDb = getSystemDatabase();
+    const client = await getClient(realmDb, body.client_id);
+    if (!client || !client.enabled) {
+      throw new HttpError(404, 'unknown_client', 'Unknown client');
+    }
 
     if (body.identifier.includes('@')) {
       const resolution = await resolveLogin({ identifier: body.identifier });
@@ -58,21 +69,39 @@ export default {
     const user = await findUserByIdentifier(systemDb, body.identifier);
     const credential = user ? await getPasswordCredential(systemDb, user.id) : null;
     const membership = user ? await getMembership(realmDb, user.id) : null;
+    const roles = user ? await getUserRoles(realmDb, user.id) : [];
+    const pendingId = readAuthRequestId(req, realm);
+    const pending = pendingId ? await getAuthRequest(realmDb, pendingId) : null;
+    const pendingClient = pending && !pending.completed_at && pending.client_id === client.client_id;
 
-    const canCheckPassword =
-      user &&
-      user.status === 'active' &&
-      credential &&
-      membership &&
-      membership.status === 'active';
-
-    if (!canCheckPassword) {
+    if (!credential) {
       await verifyDummyPassword(body.password);
       throw new HttpError(401, 'invalid_credentials', 'Invalid credentials');
     }
 
     const valid = await verifyPassword(body.password, credential.secret_hash);
     if (!valid) {
+      throw new HttpError(401, 'invalid_credentials', 'Invalid credentials');
+    }
+
+    if (!user || user.status !== 'active') {
+      throw new HttpError(401, 'invalid_credentials', 'Invalid credentials');
+    }
+
+    const allowedByPolicy = canUseClient({
+      user,
+      membership,
+      roles,
+      client,
+      realm,
+    });
+    const member = membership && membership.status === 'active';
+    const publicNonMember = client.access_mode === 'public' && !client.virtual && pendingClient;
+    const allowed =
+      allowedByPolicy &&
+      (member || client.virtual || publicNonMember || user.is_system_admin);
+
+    if (!allowed) {
       throw new HttpError(401, 'invalid_credentials', 'Invalid credentials');
     }
 
@@ -107,6 +136,7 @@ export default {
         display_name: user.display_name,
       },
       expires_at: session.expires_at,
+      pending_auth_request: Boolean(pendingClient),
     });
   },
 };

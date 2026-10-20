@@ -23,7 +23,6 @@ async function migrateRealm(db, label) {
 }
 
 async function migrateSystem(db) {
-  await migrateRealm(db, 'system');
   return runMigrations(db, {
     dir: migrationDir(db.dialect, 'system'),
     namespace: 'system',
@@ -51,54 +50,9 @@ async function ensureRole(db, slug, name, now) {
   return id;
 }
 
-async function ensureClientRole(db, clientId, roleSlug) {
-  const role = await db.get('SELECT id FROM roles WHERE slug = {slug}', { slug: roleSlug });
-  if (!role) return;
-  const existing = await db.get(
-    'SELECT client_id FROM oidc_client_roles WHERE client_id = {clientId} AND role_id = {roleId}',
-    { clientId, roleId: role.id }
-  );
-  if (existing) return;
-  await db.run(
-    'INSERT INTO oidc_client_roles (client_id, role_id) VALUES ({clientId}, {roleId})',
-    { clientId, roleId: role.id }
-  );
-}
-
-async function ensureAdminClient(db, now) {
-  let client = await db.get('SELECT id FROM oidc_clients WHERE client_id = {clientId}', {
-    clientId: 'admin-ui',
-  });
-  if (!client) {
-    client = { id: crypto.randomUUID() };
-    await db.run(
-      `INSERT INTO oidc_clients
-        (id, client_id, name, redirect_uris, scopes, access_mode, enabled, created_at, updated_at)
-       VALUES
-        ({id}, {clientId}, {name}, {redirectUris}, {scopes}, 'members', 1, {createdAt}, {updatedAt})`,
-      {
-        id: client.id,
-        clientId: 'admin-ui',
-        name: 'Admin UI',
-        redirectUris: '[]',
-        scopes: 'openid profile email',
-        createdAt: now,
-        updatedAt: now,
-      }
-    );
-  }
-
-  await ensureClientRole(db, client.id, 'realm-admin');
-  await ensureClientRole(db, client.id, 'system-admin');
-}
-
-async function seedRealmDefaults(db, kind) {
+async function seedRealmDefaults(db) {
   const now = Date.now();
   await ensureRole(db, 'realm-admin', 'Realm administrator', now);
-  if (kind === 'system') {
-    await ensureRole(db, 'system-admin', 'System administrator', now);
-  }
-  await ensureAdminClient(db, now);
 }
 
 async function writeRealmSettings(db, settings) {
@@ -118,39 +72,6 @@ async function writeRealmSettings(db, settings) {
       updatedAt: now,
     }
   );
-}
-
-async function ensureSystemRealm() {
-  const settings = await systemDb.get('SELECT id FROM realm_settings WHERE id = 1');
-  if (!settings) {
-    await writeRealmSettings(systemDb, {
-      slug: 'system',
-      displayName: 'System',
-      kind: 'system',
-    });
-  }
-
-  const registry = await systemDb.get('SELECT id FROM realms WHERE id = {id}', { id: 'system' });
-  if (!registry) {
-    await systemDb.run(
-      `INSERT INTO realms (id, slug, db_file, owner_user_id, created_at)
-       VALUES ({id}, {slug}, NULL, NULL, {createdAt})`,
-      { id: 'system', slug: 'system', createdAt: Date.now() }
-    );
-  }
-
-  await seedRealmDefaults(systemDb, 'system');
-
-  const hosts = await systemDb.get('SELECT COUNT(*) AS count FROM realm_hosts');
-  if (Number(hosts.count) === 0) {
-    const now = Date.now();
-    for (const host of ['localhost', '127.0.0.1', '[::1]']) {
-      await systemDb.run(
-        'INSERT INTO realm_hosts (host, realm_id, created_at) VALUES ({host}, {realmId}, {createdAt})',
-        { host, realmId: 'system', createdAt: now }
-      );
-    }
-  }
 }
 
 export function normalizeHost(host) {
@@ -186,7 +107,6 @@ export async function initRealms(cfg) {
 
   systemDb = await openDatabase({ dialect, path: systemPath });
   await migrateSystem(systemDb);
-  await ensureSystemRealm();
 }
 
 export async function closeRealms() {
@@ -207,11 +127,6 @@ export function getSystemDatabase() {
 }
 
 export async function openRealmDatabase(realm) {
-  if (realm.id === 'system') {
-    if (!systemDb) throw new Error('realm registry is not initialized');
-    return systemDb;
-  }
-
   const cached = realmDbs.get(realm.id);
   if (cached) return cached;
 
@@ -225,7 +140,7 @@ export async function openRealmDatabase(realm) {
 
   const db = await openDatabase({ dialect, path: fullPath });
   await migrateRealm(db, `realm ${realm.slug}`);
-  await seedRealmDefaults(db, 'realm');
+  await seedRealmDefaults(db);
   realmDbs.set(realm.id, db);
   return db;
 }
@@ -255,6 +170,20 @@ export async function resolveRealm({ host, slug } = {}) {
 
   const normalizedHost = normalizeHost(host);
   if (normalizedHost) {
+    const byClientHost = await systemDb.get(
+      `SELECT r.id, r.slug, r.db_file, r.owner_user_id
+         FROM oidc_client_hosts h
+         JOIN realms r ON r.id = h.realm_id
+        WHERE h.host = {host}`,
+      { host: normalizedHost }
+    );
+    if (byClientHost) {
+      if (slug && slug !== byClientHost.slug) {
+        throw new HttpError(404, 'unknown_realm', 'Unknown realm');
+      }
+      return byClientHost;
+    }
+
     const byHost = await systemDb.get(
       `SELECT r.id, r.slug, r.db_file, r.owner_user_id
          FROM realm_hosts h
@@ -311,7 +240,7 @@ export async function createRealm({
       branding,
       allowSessionDurationChoice,
     });
-    await seedRealmDefaults(db, 'realm');
+    await seedRealmDefaults(db);
   } catch (e) {
     await db.close();
     fs.rmSync(fullPath, { force: true });
@@ -348,6 +277,45 @@ export async function addRealmHost(realmId, host) {
   await systemDb.run(
     'INSERT INTO realm_hosts (host, realm_id, created_at) VALUES ({host}, {realmId}, {createdAt})',
     { host: normalized, realmId, createdAt: Date.now() }
+  );
+}
+
+export async function addOidcClientHost(realmId, clientId, host) {
+  if (!systemDb) throw new Error('realm registry is not initialized');
+  const normalized = normalizeHost(host);
+  if (!normalized || normalized !== String(host).trim().toLowerCase()) {
+    throw new Error(`invalid client hostname: ${JSON.stringify(host)}`);
+  }
+  await systemDb.run(
+    `INSERT INTO oidc_client_hosts (host, realm_id, client_id, created_at)
+     VALUES ({host}, {realmId}, {clientId}, {createdAt})`,
+    { host: normalized, realmId, clientId, createdAt: Date.now() }
+  );
+}
+
+export async function findOidcClientHost(host) {
+  if (!systemDb) throw new Error('realm registry is not initialized');
+  const normalized = normalizeHost(host);
+  if (!normalized) return null;
+  return systemDb.get(
+    `SELECT h.host, h.realm_id, h.client_id, r.slug, r.db_file, r.owner_user_id
+       FROM oidc_client_hosts h
+       JOIN realms r ON r.id = h.realm_id
+      WHERE h.host = {host}`,
+    { host: normalized }
+  );
+}
+
+export async function findRealmHost(host) {
+  if (!systemDb) throw new Error('realm registry is not initialized');
+  const normalized = normalizeHost(host);
+  if (!normalized) return null;
+  return systemDb.get(
+    `SELECT r.id, r.slug, r.db_file, r.owner_user_id
+       FROM realm_hosts h
+       JOIN realms r ON r.id = h.realm_id
+      WHERE h.host = {host}`,
+    { host: normalized }
   );
 }
 

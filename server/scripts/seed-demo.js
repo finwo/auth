@@ -1,7 +1,9 @@
 import crypto from 'node:crypto';
 import { loadConfig } from '../src/lib/config.js';
 import { hashPassword } from '../src/lib/password.js';
+import { hashClientSecret } from '../src/lib/oidc/clients.js';
 import {
+  addOidcClientHost,
   addRealmEmailDomain,
   closeRealms,
   createRealm,
@@ -19,6 +21,7 @@ import {
   findUserByEmail,
   findUserByUsername,
   setPasswordCredential,
+  setSystemAdmin,
 } from '../src/lib/users.js';
 
 const DEMO_PASSWORD = 'demo';
@@ -57,16 +60,23 @@ async function ensureRealmUser(realmSlug, userId, roles = []) {
   }
 }
 
-async function ensureUser({ username, email, displayName, password = DEMO_PASSWORD }) {
+async function ensureUser({
+  username,
+  email,
+  displayName,
+  password = DEMO_PASSWORD,
+  isSystemAdmin = false,
+}) {
   const systemDb = getSystemDatabase();
   const existing =
     (await findUserByEmail(systemDb, email)) || (await findUserByUsername(systemDb, username));
   if (existing) {
     await setPasswordCredential(systemDb, existing.id, await hashPassword(password));
+    if (isSystemAdmin) await setSystemAdmin(systemDb, existing.id, true);
     return existing.id;
   }
 
-  const id = await createUser(systemDb, { username, displayName });
+  const id = await createUser(systemDb, { username, displayName, isSystemAdmin });
   await addUserEmail(systemDb, id, email, { verified: true, primary: true });
   await assignHomeRealmForEmail(systemDb, id, email);
   await setPasswordCredential(systemDb, id, await hashPassword(password));
@@ -108,21 +118,45 @@ async function ensureProviderDomain(db, domain, providerId) {
   );
 }
 
-async function ensureClient(db, { clientId, name, accessMode, roles = [] }) {
+async function ensureClient(
+  db,
+  {
+    clientId,
+    name,
+    accessMode,
+    roles = [],
+    redirectUris = [],
+    postLogoutRedirectUris = [],
+    tokenEndpointAuthMethod = 'none',
+    clientSecret = null,
+    branding = {},
+    requirePkce = true,
+  }
+) {
   let client = await db.get('SELECT id FROM oidc_clients WHERE client_id = {clientId}', { clientId });
   if (!client) {
     const now = Date.now();
     client = { id: crypto.randomUUID() };
     await db.run(
       `INSERT INTO oidc_clients
-        (id, client_id, name, redirect_uris, scopes, access_mode, enabled, created_at, updated_at)
+        (id, client_id, name, redirect_uris, scopes, access_mode, enabled, branding,
+         client_secret_hash, token_endpoint_auth_method, require_pkce,
+         post_logout_redirect_uris, created_at, updated_at)
        VALUES
-        ({id}, {clientId}, {name}, '[]', 'openid profile email', {accessMode}, 1, {createdAt}, {updatedAt})`,
+        ({id}, {clientId}, {name}, {redirectUris}, 'openid profile email', {accessMode}, 1, {branding},
+         {clientSecretHash}, {tokenEndpointAuthMethod}, {requirePkce},
+         {postLogoutRedirectUris}, {createdAt}, {updatedAt})`,
       {
         id: client.id,
         clientId,
         name,
+        redirectUris: JSON.stringify(redirectUris),
         accessMode,
+        branding: JSON.stringify(branding),
+        clientSecretHash: clientSecret ? hashClientSecret(clientSecret) : null,
+        tokenEndpointAuthMethod,
+        requirePkce: requirePkce ? 1 : 0,
+        postLogoutRedirectUris: JSON.stringify(postLogoutRedirectUris),
         createdAt: now,
         updatedAt: now,
       }
@@ -145,6 +179,10 @@ async function ensureClient(db, { clientId, name, accessMode, roles = [] }) {
 }
 
 const cfg = loadConfig();
+const publicUrl = new URL(cfg.server.public_url);
+const portSuffix = publicUrl.port ? `:${publicUrl.port}` : '';
+const clientOrigin = (host) => `${publicUrl.protocol}//${host}${portSuffix}`;
+
 await initRealms(cfg);
 
 const acme = await ensureRealm({
@@ -159,12 +197,10 @@ const globex = await ensureRealm({
   hosts: ['globex.localhost'],
   branding: { primary_color: '#25A' },
 });
-const system = await findRealmBySlug('system');
 
 await ensureRealmDomain(acme.id, 'acme.test');
 await ensureRealmDomain(acme.id, 'sso.acme.test');
 await ensureRealmDomain(globex.id, 'globex.test');
-await ensureRealmDomain(system.id, 'system.test');
 
 const alice = await ensureUser({
   username: 'alice',
@@ -190,6 +226,7 @@ const systemAdmin = await ensureUser({
   username: 'admin',
   email: 'admin@system.test',
   displayName: 'System Admin',
+  isSystemAdmin: true,
 });
 
 await ensureRealmUser('acme', alice);
@@ -197,7 +234,6 @@ await ensureRealmUser('globex', alice);
 await ensureRealmUser('acme', acmeAdmin, ['realm-admin']);
 await ensureRealmUser('acme', guest);
 await ensureRealmUser('globex', contractor, ['realm-admin']);
-await ensureRealmUser('system', systemAdmin, ['system-admin']);
 
 const acmeDb = await openRealmDatabase(acme);
 const providerId = await ensureProvider(acmeDb, {
@@ -209,15 +245,57 @@ const providerId = await ensureProvider(acmeDb, {
 });
 await ensureProviderDomain(acmeDb, 'sso.acme.test', providerId);
 
-await ensureClient(acmeDb, { clientId: 'internal-app', name: 'Internal App', accessMode: 'internal' });
-await ensureClient(acmeDb, { clientId: 'members-app', name: 'Members App', accessMode: 'members' });
-await ensureClient(acmeDb, { clientId: 'public-app', name: 'Public App', accessMode: 'public' });
+await ensureClient(acmeDb, {
+  clientId: 'internal-app',
+  name: 'Internal App',
+  accessMode: 'internal',
+  redirectUris: [`${clientOrigin('app.acme.localhost')}/callback`],
+  postLogoutRedirectUris: [`${clientOrigin('app.acme.localhost')}/`],
+});
+await ensureClient(acmeDb, {
+  clientId: 'members-app',
+  name: 'Members App',
+  accessMode: 'members',
+  redirectUris: [`${clientOrigin('members.localhost')}/callback`],
+});
+await ensureClient(acmeDb, {
+  clientId: 'public-app',
+  name: 'Public App',
+  accessMode: 'public',
+  redirectUris: [`${clientOrigin('public.localhost')}/callback`],
+});
+await ensureClient(acmeDb, {
+  clientId: 'confidential-app',
+  name: 'Confidential App',
+  accessMode: 'members',
+  redirectUris: [`${clientOrigin('confidential.localhost')}/callback`],
+  tokenEndpointAuthMethod: 'client_secret_basic',
+  clientSecret: 'demo-secret',
+});
 
-console.log('seeded realms acme, globex and system');
+const globexDb = await openRealmDatabase(globex);
+await ensureClient(globexDb, {
+  clientId: 'members-app',
+  name: 'Members App',
+  accessMode: 'members',
+  redirectUris: [`${clientOrigin('members.localhost')}/callback`],
+});
+await ensureClient(globexDb, {
+  clientId: 'public-app',
+  name: 'Public App',
+  accessMode: 'public',
+  redirectUris: [`${clientOrigin('public.localhost')}/callback`],
+});
+
+await addOidcClientHost(acme.id, 'internal-app', 'app.acme.localhost');
+
+console.log('seeded realms acme and globex');
 console.log('password for all demo users: demo');
-console.log('home users: alice@acme.test, it@acme.test, admin@system.test');
+console.log('home users: alice@acme.test, it@acme.test, admin@system.test (system admin)');
 console.log('guest users: guest@personal.test (acme), contractor@personal.test (globex realm-admin)');
 console.log('upstream mapping: sso.acme.test -> Example SSO');
-console.log('clients: admin-ui, internal-app, members-app, public-app');
+console.log('clients: internal-app, members-app, public-app, confidential-app');
+console.log('client host: app.acme.localhost -> acme/internal-app');
+console.log('virtual clients: admin, account');
 
 await closeRealms();

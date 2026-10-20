@@ -129,7 +129,7 @@ test('expired sessions are rejected and removed', async () => {
   }
 });
 
-test('disabled users and suspended memberships lose access', async () => {
+test('disabled users lose access and suspended memberships are returned', async () => {
   const { dir, realm, realmDb, systemDb, userId } = await setup();
   try {
     const { token } = await createSession(realmDb, { userId, ttl: SHORT_SESSION_TTL });
@@ -152,10 +152,15 @@ test('disabled users and suspended memberships lose access', async () => {
       status: 'suspended',
       id: userId,
     });
-    assert.equal(
-      await authenticateRequest({ systemDb, realmDb, req, res: mockResponse(), realm }),
-      null
-    );
+    const fresh = await createSession(realmDb, { userId, ttl: SHORT_SESSION_TTL });
+    const auth = await authenticateRequest({
+      systemDb,
+      realmDb,
+      req: mockRequest(`${sessionCookieName(realm)}=${fresh.token}`),
+      res: mockResponse(),
+      realm,
+    });
+    assert.equal(auth.membership.status, 'suspended');
   } finally {
     await closeRealms();
     await fs.rm(dir, { recursive: true, force: true });

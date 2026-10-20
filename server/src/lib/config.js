@@ -14,6 +14,7 @@ const DEFAULTS = {
   server: {
     host: '0.0.0.0',
     port: 3000,
+    public_url: 'http://localhost:3000',
   },
   database: {
     dialect: 'sqlite',
@@ -26,6 +27,7 @@ const DEFAULTS = {
 const ENV_MAP = [
   ['AUTH_HOST', 'server.host', String],
   ['AUTH_PORT', 'server.port', toInt],
+  ['AUTH_PUBLIC_URL', 'server.public_url', String],
   ['AUTH_DATABASE_DIALECT', 'database.dialect', lower],
   ['AUTH_DATABASE_PATH', 'database.path', String],
   ['AUTH_REALMS_PATH', 'database.realms', String],
@@ -78,6 +80,15 @@ function validate(cfg) {
   const port = cfg.server.port;
   if (!Number.isInteger(port) || port < 0 || port > 65535) {
     errors.push(`server.port must be between 0 and 65535, got ${port}`);
+  }
+
+  try {
+    const publicUrl = new URL(cfg.server.public_url);
+    if (publicUrl.protocol !== 'http:' && publicUrl.protocol !== 'https:') {
+      errors.push('server.public_url must use http or https');
+    }
+  } catch {
+    errors.push('server.public_url must be an absolute URL');
   }
 
   if (!SUPPORTED_DIALECTS.includes(cfg.database.dialect)) {

@@ -1,6 +1,7 @@
 import { app } from '../../app.js';
 import { HttpError } from '../../lib/http/http-error.js';
 import { getSystemDatabase, openRealmDatabase, realmMetadata, resolveRealm } from '../../lib/realm.js';
+import { isSystemAdmin } from '../../lib/policy.js';
 import { authenticateRequest } from '../../lib/session.js';
 
 export default {
@@ -23,7 +24,7 @@ export default {
       realm,
     });
 
-    if (!auth) {
+    if (!auth || (!isSystemAdmin(auth.user) && (!auth.membership || auth.membership.status !== 'active'))) {
       throw new HttpError(401, 'not_authenticated', 'Not signed in');
     }
 

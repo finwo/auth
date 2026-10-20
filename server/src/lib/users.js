@@ -15,7 +15,7 @@ export function emailDomain(email) {
   return at > 0 && at < normalized.length - 1 ? normalized.slice(at + 1) : null;
 }
 
-export async function createUser(db, { username, displayName = null, homeRealmId = null }) {
+export async function createUser(db, { username, displayName = null, homeRealmId = null, isSystemAdmin = false }) {
   const normalized = normalizeUsername(username);
   if (!normalized) throw new Error('username is required');
   const existing = await db.get(
@@ -28,15 +28,16 @@ export async function createUser(db, { username, displayName = null, homeRealmId
   const now = Date.now();
   await db.run(
     `INSERT INTO users
-      (id, username, username_normalized, display_name, status, home_realm_id, profile, created_at, updated_at)
+      (id, username, username_normalized, display_name, status, home_realm_id, is_system_admin, profile, created_at, updated_at)
      VALUES
-      ({id}, {username}, {normalized}, {displayName}, 'active', {homeRealmId}, '{}', {createdAt}, {updatedAt})`,
+      ({id}, {username}, {normalized}, {displayName}, 'active', {homeRealmId}, {isSystemAdmin}, '{}', {createdAt}, {updatedAt})`,
     {
       id,
       username,
       normalized,
       displayName: displayName || username,
       homeRealmId,
+      isSystemAdmin: isSystemAdmin ? 1 : 0,
       createdAt: now,
       updatedAt: now,
     }
@@ -47,7 +48,7 @@ export async function createUser(db, { username, displayName = null, homeRealmId
 export async function findUserById(db, id) {
   return db.get(
     `SELECT id, username, username_normalized, display_name, status, home_realm_id,
-            profile, last_login_at, created_at, updated_at
+            is_system_admin, profile, last_login_at, created_at, updated_at
        FROM users
       WHERE id = {id}`,
     { id }
@@ -58,7 +59,7 @@ export async function findUserByEmail(db, email) {
   const normalized = normalizeEmail(email);
   return db.get(
     `SELECT u.id, u.username, u.username_normalized, u.display_name, u.status,
-            u.home_realm_id, u.profile, u.last_login_at,
+            u.home_realm_id, u.is_system_admin, u.profile, u.last_login_at,
             e.email, e.email_normalized
        FROM users u
        JOIN user_emails e ON e.user_id = u.id
@@ -71,7 +72,7 @@ export async function findUserByUsername(db, username) {
   const normalized = normalizeUsername(username);
   return db.get(
     `SELECT id, username, username_normalized, display_name, status,
-            home_realm_id, profile, last_login_at
+            home_realm_id, is_system_admin, profile, last_login_at
        FROM users
       WHERE username_normalized = {username}`,
     { username: normalized }
@@ -173,6 +174,13 @@ export async function getPasswordCredential(db, userId) {
        FROM credentials
       WHERE user_id = {userId} AND type = 'password'`,
     { userId }
+  );
+}
+
+export async function setSystemAdmin(db, userId, value = true) {
+  await db.run(
+    'UPDATE users SET is_system_admin = {value}, updated_at = {now} WHERE id = {userId}',
+    { value: value ? 1 : 0, now: Date.now(), userId }
   );
 }
 

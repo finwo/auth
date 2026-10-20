@@ -1,7 +1,14 @@
 import m from 'mithril';
-import { getRealm, resolveLogin, signInPassword, type LoginResolution, type RealmInfo } from '../util/api';
+import {
+  getClientDiscovery,
+  resolveLogin,
+  signInPassword,
+  type ClientDiscovery,
+  type LoginResolution,
+  type PasswordLoginResult,
+} from '../util/api';
 
-type Step = 'identifier' | 'password' | 'oidc';
+type Step = 'identifier' | 'password' | 'oidc' | 'done';
 
 interface TextFieldAttrs {
   id: string;
@@ -35,28 +42,33 @@ const TextField: m.Component<TextFieldAttrs> = {
   },
 };
 
-export const Login: m.Component<{ realm?: string }> = {
+export const Login: m.Component<{ realm?: string; clientId?: string }> = {
   realmSlug: null as string | null,
-  realm: null as RealmInfo | null,
+  clientId: null as string | null,
+  discovery: null as ClientDiscovery | null,
   step: 'identifier' as Step,
   identifier: '',
   password: '',
   longSession: false,
   provider: null as LoginResolution['provider'] | null,
+  signedIn: null as PasswordLoginResult['user'] | null,
   error: null as Error | null,
   pending: false,
 
   oninit(this: any, vnode: any) {
     this.realmSlug = vnode.attrs.realm ?? null;
-    this.loadRealm();
+    this.clientId = vnode.attrs.clientId ?? null;
+    this.loadClient();
   },
 
-  async loadRealm(this: any) {
+  async loadClient(this: any) {
     this.error = null;
     try {
-      const realm = await getRealm(this.realmSlug);
-      this.realm = realm;
-      document.title = realm.display_name;
+      const discovery = await getClientDiscovery(this.realmSlug, this.clientId);
+      this.discovery = discovery;
+      this.realmSlug = discovery.realm;
+      this.clientId = discovery.client_id;
+      document.title = discovery.display_name;
     } catch (e) {
       this.error = e as Error;
     }
@@ -67,9 +79,7 @@ export const Login: m.Component<{ realm?: string }> = {
     this.pending = true;
     this.error = null;
     try {
-      const result = await resolveLogin(this.realmSlug, this.identifier);
-      this.realm = result.realm;
-      document.title = result.realm.display_name;
+      const result = await resolveLogin(this.realmSlug, this.clientId, this.identifier);
       if (result.next === 'oidc' && result.provider) {
         this.provider = result.provider;
         this.step = 'oidc';
@@ -87,8 +97,29 @@ export const Login: m.Component<{ realm?: string }> = {
     this.pending = true;
     this.error = null;
     try {
-      await signInPassword(this.realmSlug, this.identifier, this.password, this.longSession);
-      m.route.set(this.realmSlug ? `/realms/${this.realmSlug}/admin` : '/admin');
+      const result = await signInPassword(
+        this.realmSlug,
+        this.clientId,
+        this.identifier,
+        this.password,
+        this.longSession
+      );
+
+      if (result.pending_auth_request) {
+        const current = m.route.get() || '';
+        m.route.set(current.replace(/\/login$/, '/authorize'));
+        return;
+      }
+
+      if (this.clientId === 'admin') {
+        m.route.set(this.realmSlug ? `/realms/${this.realmSlug}/admin` : '/admin');
+        return;
+      }
+
+      this.signedIn = result.user;
+      this.step = 'done';
+      this.pending = false;
+      m.redraw();
     } catch (e) {
       this.error = e as Error;
       this.pending = false;
@@ -106,11 +137,11 @@ export const Login: m.Component<{ realm?: string }> = {
   },
 
   view(this: any) {
-    const branding = this.realm?.branding || {};
+    const branding = this.discovery?.branding || {};
     const primary = typeof branding.primary_color === 'string' ? branding.primary_color : '#25A';
     const style = { '--realm-primary': primary } as any;
 
-    if (!this.realm && this.error) {
+    if (!this.discovery && this.error) {
       return (
         <div class="auth-page" style={style}>
           <div class="auth-card">
@@ -121,7 +152,7 @@ export const Login: m.Component<{ realm?: string }> = {
       );
     }
 
-    const title = this.realm?.display_name || 'Sign in';
+    const title = this.discovery?.display_name || 'Sign in';
 
     return (
       <div class="auth-page" style={style}>
@@ -131,15 +162,16 @@ export const Login: m.Component<{ realm?: string }> = {
           ) : null}
           <h1>{title}</h1>
 
-          {this.step === 'identifier' ? this.renderIdentifier(title) : null}
+          {this.step === 'identifier' ? this.renderIdentifier() : null}
           {this.step === 'password' ? this.renderPassword() : null}
           {this.step === 'oidc' ? this.renderProvider() : null}
+          {this.step === 'done' ? this.renderDone() : null}
         </div>
       </div>
     );
   },
 
-  renderIdentifier(this: any, title: string) {
+  renderIdentifier(this: any) {
     return (
       <form
         onsubmit={(e: Event) => {
@@ -189,7 +221,7 @@ export const Login: m.Component<{ realm?: string }> = {
             this.password = value;
           }}
         />
-        {this.realm?.allow_session_duration_choice ? (
+        {this.discovery?.allow_session_duration_choice !== false ? (
           <label class="auth-choice">
             <input
               type="checkbox"
@@ -221,7 +253,9 @@ export const Login: m.Component<{ realm?: string }> = {
       <div>
         <p class="auth-identifier">{this.identifier}</p>
         <p class="auth-note">
-          {provider ? `This account signs in with ${provider.display_name}.` : 'This account signs in with an identity provider.'}
+          {provider
+            ? `This account signs in with ${provider.display_name}.`
+            : 'This account signs in with an identity provider.'}
         </p>
         <div class="auth-actions">
           <button class="auth-link" type="button" onclick={() => this.back()}>
@@ -231,6 +265,15 @@ export const Login: m.Component<{ realm?: string }> = {
             Continue
           </button>
         </div>
+      </div>
+    );
+  },
+
+  renderDone(this: any) {
+    const user = this.signedIn;
+    return (
+      <div>
+        <p class="auth-note">Signed in as {user?.display_name || user?.username}</p>
       </div>
     );
   },
