@@ -12,14 +12,27 @@ import {
   openRealmDatabase,
 } from '../src/lib/realm.js';
 import {
+  SESSION_COOKIE,
   SHORT_SESSION_TTL,
   authenticateRequest,
-  createSession,
+  bindSessionRealm,
+  createHostSession,
   destroySession,
   getSessionByToken,
-  sessionCookieName,
 } from '../src/lib/session.js';
 import { createUser, ensureMembership } from '../src/lib/users.js';
+
+function realmContext(realm, host = 'acme.localhost') {
+  return { mode: 'realm', host, realm };
+}
+
+function clientContext(realm, host = 'app.acme.localhost', clientId = 'internal-app') {
+  return { mode: 'client', host, realm, clientId };
+}
+
+function canonicalContext(host = 'identity.test') {
+  return { mode: 'canonical', host };
+}
 
 async function setup() {
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'auth-session-'));
@@ -59,10 +72,12 @@ function mockResponse() {
   };
 }
 
-test('sessions store only the token hash and authenticate the user', async () => {
+test('sessions store only the group token hash and authenticate the user', async () => {
   const { dir, realm, realmDb, systemDb, userId } = await setup();
   try {
-    const { token } = await createSession(realmDb, {
+    const context = realmContext(realm);
+    const { token, group, session } = await createHostSession(systemDb, {
+      context,
       userId,
       ttl: SHORT_SESSION_TTL,
       userAgent: 'test',
@@ -70,15 +85,50 @@ test('sessions store only the token hash and authenticate the user', async () =>
     });
     const id = crypto.createHash('sha256').update(token).digest('hex');
 
-    const session = await getSessionByToken(realmDb, token);
-    assert.equal(session.id, id);
-    assert.notEqual(session.id, token);
+    assert.equal(group.id, id);
+    assert.notEqual(session.public_id, token);
 
-    const req = mockRequest(`${sessionCookieName(realm)}=${token}`);
+    const found = await getSessionByToken(systemDb, token);
+    assert.equal(found.session.id, session.id);
+
+    const req = mockRequest(`${SESSION_COOKIE}=${token}`);
     const res = mockResponse();
-    const auth = await authenticateRequest({ systemDb, realmDb, req, res, realm });
+    const auth = await authenticateRequest({
+      systemDb,
+      realmDb,
+      req,
+      res,
+      context,
+    });
     assert.equal(auth.user.id, userId);
     assert.equal(auth.membership.status, 'active');
+  } finally {
+    await closeRealms();
+    await fs.rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('host scopes are stored from the request context', async () => {
+  const { dir, realm, systemDb, userId } = await setup();
+  try {
+    const global = await createHostSession(systemDb, {
+      context: canonicalContext(),
+      userId,
+      ttl: SHORT_SESSION_TTL,
+    });
+    assert.equal(global.session.scope_type, 'global');
+    assert.equal(global.session.scope_host, 'identity.test');
+    assert.equal(global.session.realm_id, null);
+
+    const client = await createHostSession(systemDb, {
+      context: clientContext(realm),
+      userId,
+      ttl: SHORT_SESSION_TTL,
+    });
+    assert.equal(client.session.scope_type, 'client');
+    assert.equal(client.session.scope_host, 'app.acme.localhost');
+    assert.equal(client.session.realm_id, realm.id);
+    assert.equal(client.session.client_id, 'internal-app');
   } finally {
     await closeRealms();
     await fs.rm(dir, { recursive: true, force: true });
@@ -88,12 +138,13 @@ test('sessions store only the token hash and authenticate the user', async () =>
 test('sliding sessions extend expiry and reissue the cookie', async () => {
   const { dir, realm, realmDb, systemDb, userId } = await setup();
   try {
-    const { token, session } = await createSession(
-      realmDb,
-      { userId, ttl: SHORT_SESSION_TTL },
+    const context = realmContext(realm);
+    const { token, session } = await createHostSession(
+      systemDb,
+      { context, userId, ttl: SHORT_SESSION_TTL },
       1000
     );
-    const req = mockRequest(`${sessionCookieName(realm)}=${token}`);
+    const req = mockRequest(`${SESSION_COOKIE}=${token}`);
     const res = mockResponse();
 
     await authenticateRequest({
@@ -101,13 +152,14 @@ test('sliding sessions extend expiry and reissue the cookie', async () => {
       realmDb,
       req,
       res,
-      realm,
+      context,
       now: 1000 + 61_000,
     });
 
-    const updated = await realmDb.get('SELECT expires_at, last_seen_at FROM sessions WHERE id = {id}', {
-      id: session.id,
-    });
+    const updated = await systemDb.get(
+      'SELECT expires_at, last_seen_at FROM sessions WHERE id = {id}',
+      { id: session.id }
+    );
     assert.equal(updated.expires_at, 1000 + 61_000 + SHORT_SESSION_TTL * 1000);
     assert.ok(res.getHeader('set-cookie'));
   } finally {
@@ -116,12 +168,28 @@ test('sliding sessions extend expiry and reissue the cookie', async () => {
   }
 });
 
-test('expired sessions are rejected and removed', async () => {
-  const { dir, realmDb, userId } = await setup();
+test('expired sessions are rejected and their group is removed', async () => {
+  const { dir, realm, realmDb, systemDb, userId } = await setup();
   try {
-    const { token, session } = await createSession(realmDb, { userId, ttl: 1 }, 1000);
-    assert.equal(await getSessionByToken(realmDb, token, 3000), null);
-    const row = await realmDb.get('SELECT id FROM sessions WHERE id = {id}', { id: session.id });
+    const context = realmContext(realm);
+    const { token, group } = await createHostSession(
+      systemDb,
+      { context, userId, ttl: 1 },
+      1000
+    );
+
+    assert.equal(await getSessionByToken(systemDb, token, 3000), null);
+    await authenticateRequest({
+      systemDb,
+      realmDb,
+      req: mockRequest(`${SESSION_COOKIE}=${token}`),
+      res: mockResponse(),
+      context,
+      now: 3000,
+    });
+    const row = await systemDb.get('SELECT id FROM session_groups WHERE id = {id}', {
+      id: group.id,
+    });
     assert.equal(row, undefined);
   } finally {
     await closeRealms();
@@ -129,50 +197,153 @@ test('expired sessions are rejected and removed', async () => {
   }
 });
 
-test('disabled users lose access and suspended memberships are returned', async () => {
+test('disabled users lose access and their session group is removed', async () => {
   const { dir, realm, realmDb, systemDb, userId } = await setup();
   try {
-    const { token } = await createSession(realmDb, { userId, ttl: SHORT_SESSION_TTL });
-    const req = mockRequest(`${sessionCookieName(realm)}=${token}`);
+    const context = realmContext(realm);
+    const { token, group } = await createHostSession(systemDb, {
+      context,
+      userId,
+      ttl: SHORT_SESSION_TTL,
+    });
 
     await systemDb.run('UPDATE users SET status = {status} WHERE id = {id}', {
       status: 'disabled',
       id: userId,
     });
     assert.equal(
-      await authenticateRequest({ systemDb, realmDb, req, res: mockResponse(), realm }),
+      await authenticateRequest({
+        systemDb,
+        realmDb,
+        req: mockRequest(`${SESSION_COOKIE}=${token}`),
+        res: mockResponse(),
+        context,
+      }),
       null
     );
 
-    await systemDb.run('UPDATE users SET status = {status} WHERE id = {id}', {
-      status: 'active',
-      id: userId,
+    const row = await systemDb.get('SELECT id FROM session_groups WHERE id = {id}', {
+      id: group.id,
     });
-    await realmDb.run('UPDATE realm_memberships SET status = {status} WHERE user_id = {id}', {
-      status: 'suspended',
-      id: userId,
-    });
-    const fresh = await createSession(realmDb, { userId, ttl: SHORT_SESSION_TTL });
-    const auth = await authenticateRequest({
-      systemDb,
-      realmDb,
-      req: mockRequest(`${sessionCookieName(realm)}=${fresh.token}`),
-      res: mockResponse(),
-      realm,
-    });
-    assert.equal(auth.membership.status, 'suspended');
+    assert.equal(row, undefined);
   } finally {
     await closeRealms();
     await fs.rm(dir, { recursive: true, force: true });
   }
 });
 
-test('logout deletes the session', async () => {
-  const { dir, realmDb, userId } = await setup();
+test('a session is rejected on a different host scope', async () => {
+  const { dir, realm, realmDb, systemDb, userId } = await setup();
   try {
-    const { token } = await createSession(realmDb, { userId, ttl: SHORT_SESSION_TTL });
-    await destroySession(realmDb, token);
-    assert.equal(await getSessionByToken(realmDb, token), null);
+    const context = realmContext(realm);
+    const { token, group } = await createHostSession(systemDb, {
+      context,
+      userId,
+      ttl: SHORT_SESSION_TTL,
+    });
+
+    assert.equal(
+      await authenticateRequest({
+        systemDb,
+        realmDb,
+        req: mockRequest(`${SESSION_COOKIE}=${token}`),
+        res: mockResponse(),
+        context: clientContext(realm),
+      }),
+      null
+    );
+
+    const row = await systemDb.get('SELECT id FROM session_groups WHERE id = {id}', {
+      id: group.id,
+    });
+    assert.equal(row.id, group.id);
+  } finally {
+    await closeRealms();
+    await fs.rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('the same user reuses a group and a different user replaces it', async () => {
+  const { dir, realm, systemDb, userId } = await setup();
+  try {
+    const context = realmContext(realm);
+    const first = await createHostSession(systemDb, {
+      context,
+      userId,
+      ttl: SHORT_SESSION_TTL,
+    });
+    const second = await createHostSession(systemDb, {
+      context,
+      token: first.token,
+      userId,
+      ttl: SHORT_SESSION_TTL,
+    });
+    assert.equal(second.group.id, first.group.id);
+    assert.equal(second.session.id, first.session.id);
+
+    const otherId = await createUser(systemDb, { username: 'bob', displayName: 'Bob' });
+    const third = await createHostSession(systemDb, {
+      context,
+      token: first.token,
+      userId: otherId,
+      ttl: SHORT_SESSION_TTL,
+    });
+    assert.notEqual(third.group.id, first.group.id);
+    assert.equal(third.session.user_id, otherId);
+
+    const old = await systemDb.get('SELECT id FROM sessions WHERE id = {id}', {
+      id: first.session.id,
+    });
+    assert.equal(old, undefined);
+  } finally {
+    await closeRealms();
+    await fs.rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('logout deletes the active session and group', async () => {
+  const { dir, realm, systemDb, userId } = await setup();
+  try {
+    const { token, group } = await createHostSession(systemDb, {
+      context: realmContext(realm),
+      userId,
+      ttl: SHORT_SESSION_TTL,
+    });
+
+    const result = await destroySession(systemDb, token);
+    assert.equal(result.groupDeleted, true);
+    assert.equal(await getSessionByToken(systemDb, token), null);
+
+    const row = await systemDb.get('SELECT id FROM session_groups WHERE id = {id}', {
+      id: group.id,
+    });
+    assert.equal(row, undefined);
+  } finally {
+    await closeRealms();
+    await fs.rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('realm bindings are inserted once and updated on repeat', async () => {
+  const { dir, realm, systemDb, userId } = await setup();
+  try {
+    const { session } = await createHostSession(systemDb, {
+      context: canonicalContext(),
+      userId,
+      ttl: SHORT_SESSION_TTL,
+    });
+
+    await bindSessionRealm(systemDb, session.id, realm.id, 1000);
+    await bindSessionRealm(systemDb, session.id, realm.id, 2000);
+
+    const rows = await systemDb.all(
+      `SELECT session_id, realm_id, last_seen_at
+         FROM session_realms
+        WHERE session_id = {sessionId}`,
+      { sessionId: session.id }
+    );
+    assert.equal(rows.length, 1);
+    assert.equal(rows[0].last_seen_at, 2000);
   } finally {
     await closeRealms();
     await fs.rm(dir, { recursive: true, force: true });

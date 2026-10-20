@@ -33,6 +33,7 @@ import {
 } from '../lib/realm.js';
 import {
   authenticateRequest,
+  bindSessionRealm,
   clearSessionCookie,
   destroySession,
   requestToken,
@@ -193,7 +194,7 @@ async function authorize(context, client, req, res) {
     realmDb: db,
     req,
     res,
-    realm: context.realm,
+    context,
   });
 
   const allowed = auth
@@ -238,11 +239,11 @@ async function authorize(context, client, req, res) {
     return redirect(res, endpointUrls(context).login);
   }
 
-  const authTime = Math.floor(auth.session.created_at / 1000);
+  await bindSessionRealm(systemDb, auth.session.id, context.realm.id);
   await completeAuthRequest(db, pending.id, {
     userId: auth.user.id,
     sessionId: auth.session.id,
-    authTime,
+    authTime: auth.session.auth_time,
   });
 
   const request = await getAuthRequest(db, pending.id);
@@ -446,8 +447,8 @@ async function logout(context, client, req, res) {
     }
   }
 
-  await destroySession(db, requestToken(req, context.realm));
-  clearSessionCookie(res, req, context.realm);
+  const result = await destroySession(getSystemDatabase(), requestToken(req));
+  if (result.groupDeleted) clearSessionCookie(res, req);
   clearAuthRequestCookie(res, req, context.realm);
 
   if (postLogoutUri) {

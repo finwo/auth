@@ -79,7 +79,7 @@ export const Login: m.Component<{ realm?: string; clientId?: string }> = {
     this.pending = true;
     this.error = null;
     try {
-      const result = await resolveLogin(this.realmSlug, this.clientId, this.identifier);
+      const result = await resolveLogin(this.clientId, this.identifier);
       if (result.next === 'oidc' && result.provider) {
         this.provider = result.provider;
         this.step = 'oidc';
@@ -98,7 +98,6 @@ export const Login: m.Component<{ realm?: string; clientId?: string }> = {
     this.error = null;
     try {
       const result = await signInPassword(
-        this.realmSlug,
         this.clientId,
         this.identifier,
         this.password,

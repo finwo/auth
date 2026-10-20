@@ -1,7 +1,9 @@
 import { app } from '../../app.js';
+import { resolveClientForHost, resolveHostContext } from '../../lib/host-context.js';
 import { resolveLogin } from '../../lib/login.js';
+import { getClient } from '../../lib/oidc/clients.js';
 import { HttpError } from '../../lib/http/http-error.js';
-import { realmMetadata, resolveRealm } from '../../lib/realm.js';
+import { openRealmDatabase, realmMetadata } from '../../lib/realm.js';
 
 export default {
   method: 'post',
@@ -12,14 +14,20 @@ export default {
     if (typeof body.identifier !== 'string') {
       throw new HttpError(400, 'invalid_request', 'identifier is required');
     }
-    if (body.realm != null && typeof body.realm !== 'string') {
-      throw new HttpError(400, 'invalid_request', 'realm must be a string');
+    if (typeof body.client_id !== 'string') {
+      throw new HttpError(400, 'invalid_request', 'client_id is required');
     }
 
-    const realm = await resolveRealm({
-      host: req.headers.host,
-      slug: body.realm || undefined,
+    const hostContext = await resolveHostContext(req, {
+      publicUrl: app.config.server.public_url,
     });
+    const { realm, clientId } = await resolveClientForHost(hostContext, body.client_id);
+    const realmDb = await openRealmDatabase(realm);
+    const client = await getClient(realmDb, clientId);
+    if (!client || !client.enabled) {
+      throw new HttpError(404, 'unknown_client', 'Unknown client');
+    }
+
     const metadata = await realmMetadata(realm);
     const result = await resolveLogin({ identifier: body.identifier });
 

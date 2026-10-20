@@ -1,17 +1,19 @@
 import { app } from '../../app.js';
+import { resolveClientForHost, resolveHostContext } from '../../lib/host-context.js';
 import { HttpError } from '../../lib/http/http-error.js';
 import { findManagedProviderForUser, resolveLogin } from '../../lib/login.js';
 import { getClient } from '../../lib/oidc/clients.js';
 import { getAuthRequest, readAuthRequestId } from '../../lib/oidc/requests.js';
 import { verifyDummyPassword, verifyPassword } from '../../lib/password.js';
 import { canUseClient } from '../../lib/policy.js';
-import { getSystemDatabase, openRealmDatabase, realmMetadata, resolveRealm } from '../../lib/realm.js';
+import { getSystemDatabase, openRealmDatabase, realmMetadata } from '../../lib/realm.js';
 import {
   LONG_SESSION_TTL,
   SHORT_SESSION_TTL,
-  createSession,
+  createHostSession,
   purgeExpiredSessions,
   requestIp,
+  requestToken,
   setSessionCookie,
 } from '../../lib/session.js';
 import {
@@ -40,21 +42,18 @@ export default {
     if (typeof body.client_id !== 'string') {
       throw new HttpError(400, 'invalid_request', 'client_id is required');
     }
-    if (body.realm != null && typeof body.realm !== 'string') {
-      throw new HttpError(400, 'invalid_request', 'realm must be a string');
-    }
     if (body.long_session != null && typeof body.long_session !== 'boolean') {
       throw new HttpError(400, 'invalid_request', 'long_session must be a boolean');
     }
 
-    const realm = await resolveRealm({
-      host: req.headers.host,
-      slug: body.realm || undefined,
+    const hostContext = await resolveHostContext(req, {
+      publicUrl: app.config.server.public_url,
     });
+    const { realm, clientId } = await resolveClientForHost(hostContext, body.client_id);
     const metadata = await realmMetadata(realm);
     const realmDb = await openRealmDatabase(realm);
     const systemDb = getSystemDatabase();
-    const client = await getClient(realmDb, body.client_id);
+    const client = await getClient(realmDb, clientId);
     if (!client || !client.enabled) {
       throw new HttpError(404, 'unknown_client', 'Unknown client');
     }
@@ -118,14 +117,16 @@ export default {
     const longSession = body.long_session === true && metadata.allow_session_duration_choice;
     const ttl = longSession ? LONG_SESSION_TTL : SHORT_SESSION_TTL;
 
-    await purgeExpiredSessions(realmDb);
-    const { token, session } = await createSession(realmDb, {
+    await purgeExpiredSessions(systemDb);
+    const { token, session } = await createHostSession(systemDb, {
+      context: hostContext,
+      token: requestToken(req),
       userId: user.id,
       ttl,
       userAgent: req.headers['user-agent'] || null,
       ip: requestIp(req),
     });
-    setSessionCookie(res, req, realm, token, ttl);
+    setSessionCookie(res, req, token, session.ttl);
     await updateLastLogin(systemDb, user.id);
 
     return new app.HttpOk({

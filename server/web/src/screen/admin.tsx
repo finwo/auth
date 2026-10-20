@@ -1,25 +1,23 @@
 import m from 'mithril';
 import { getSession, signOut, type ApiError, type SessionInfo } from '../util/api';
 
-export const Admin: m.Component<{ realm?: string }> = {
-  realmSlug: null as string | null,
+export const Admin: m.Component = {
   session: null as SessionInfo | null,
   error: null as Error | null,
   pending: false,
 
-  oninit(this: any, vnode: any) {
-    this.realmSlug = vnode.attrs.realm ?? null;
+  oninit(this: any) {
     this.load();
   },
 
   async load(this: any) {
     try {
-      this.session = await getSession(this.realmSlug);
-      document.title = this.session.realm.display_name;
+      this.session = await getSession();
+      document.title = this.session.realm?.display_name || 'Identity';
     } catch (e) {
       const error = e as ApiError;
       if (error.status === 401) {
-        m.route.set(this.realmSlug ? `/realms/${this.realmSlug}/login` : '/login');
+        m.route.set('/oidc/admin/login');
         return;
       }
       this.error = error;
@@ -31,8 +29,8 @@ export const Admin: m.Component<{ realm?: string }> = {
     this.pending = true;
     this.error = null;
     try {
-      await signOut(this.realmSlug);
-      m.route.set(this.realmSlug ? `/realms/${this.realmSlug}/login` : '/login');
+      await signOut();
+      m.route.set('/oidc/admin/login');
     } catch (e) {
       this.error = e as Error;
       this.pending = false;
@@ -42,7 +40,7 @@ export const Admin: m.Component<{ realm?: string }> = {
 
   view(this: any) {
     const session = this.session;
-    const branding = session?.realm.branding || {};
+    const branding = session?.realm?.branding || {};
     const primary = typeof branding.primary_color === 'string' ? branding.primary_color : '#25A';
     const style = { '--realm-primary': primary } as any;
 
@@ -60,7 +58,7 @@ export const Admin: m.Component<{ realm?: string }> = {
     return (
       <div class="auth-page" style={style}>
         <div class="auth-card">
-          <h1>{session.realm.display_name}</h1>
+          <h1>{session.realm?.display_name || 'Identity'}</h1>
           <p class="auth-identifier">
             Signed in as {session.user.display_name || session.user.username}
           </p>

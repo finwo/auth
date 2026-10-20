@@ -1,22 +1,22 @@
 import { app } from '../../app.js';
-import { openRealmDatabase, resolveRealm } from '../../lib/realm.js';
-import { clearSessionCookie, destroySession, requestToken } from '../../lib/session.js';
+import { resolveHostContext } from '../../lib/host-context.js';
+import { getSystemDatabase } from '../../lib/realm.js';
+import {
+  clearSessionCookie,
+  destroySession,
+  requestToken,
+} from '../../lib/session.js';
 
 export default {
   method: 'post',
   path: '/api/v1/logout',
   name: 'login.logout',
   async handler(req, res) {
-    const body = req.body || {};
-    const realm = await resolveRealm({
-      host: req.headers.host,
-      slug: body.realm || undefined,
-    });
-    const realmDb = await openRealmDatabase(realm);
-    const token = requestToken(req, realm);
+    await resolveHostContext(req, { publicUrl: app.config.server.public_url });
 
-    await destroySession(realmDb, token);
-    clearSessionCookie(res, req, realm);
+    const systemDb = getSystemDatabase();
+    const result = await destroySession(systemDb, requestToken(req));
+    if (result.groupDeleted) clearSessionCookie(res, req);
 
     return new app.HttpOk({ ok: true });
   },

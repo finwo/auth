@@ -38,14 +38,23 @@ export interface PasswordLoginResult {
   pending_auth_request: boolean;
 }
 
+export interface SessionScope {
+  type: 'global' | 'realm' | 'client';
+  host: string;
+  realm_id: string | null;
+  client_id: string | null;
+}
+
 export interface SessionInfo {
-  realm: RealmInfo;
+  scope: SessionScope;
+  realm: RealmInfo | null;
   user: {
     id: string;
     username: string;
     display_name: string | null;
   };
   roles: string[];
+  is_system_admin: boolean;
   expires_at: number;
 }
 
@@ -93,18 +102,16 @@ export function getClientDiscovery(clientId?: string | null): Promise<ClientDisc
 }
 
 export function resolveLogin(
-  realm: string | null,
   clientId: string,
   identifier: string
 ): Promise<LoginResolution> {
   return request<LoginResolution>('/api/v1/login/resolve', {
     method: 'POST',
-    body: JSON.stringify({ realm: realm || undefined, client_id: clientId, identifier }),
+    body: JSON.stringify({ client_id: clientId, identifier }),
   });
 }
 
 export function signInPassword(
-  realm: string | null,
   clientId: string,
   identifier: string,
   password: string,
@@ -113,7 +120,6 @@ export function signInPassword(
   return request<PasswordLoginResult>('/api/v1/login/password', {
     method: 'POST',
     body: JSON.stringify({
-      realm: realm || undefined,
       client_id: clientId,
       identifier,
       password,
@@ -122,14 +128,10 @@ export function signInPassword(
   });
 }
 
-export function getSession(realm?: string | null): Promise<SessionInfo> {
-  const query = realm ? `?realm=${encodeURIComponent(realm)}` : '';
-  return request<SessionInfo>(`/api/v1/session${query}`);
+export function getSession(): Promise<SessionInfo> {
+  return request<SessionInfo>('/api/v1/session');
 }
 
-export function signOut(realm?: string | null): Promise<{ ok: boolean }> {
-  return request('/api/v1/logout', {
-    method: 'POST',
-    body: JSON.stringify({ realm: realm || undefined }),
-  });
+export function signOut(): Promise<{ ok: boolean }> {
+  return request('/api/v1/logout', { method: 'POST' });
 }

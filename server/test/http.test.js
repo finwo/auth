@@ -7,6 +7,7 @@ import http from 'node:http';
 import net from 'node:net';
 import os from 'node:os';
 import path from 'node:path';
+import { DatabaseSync } from 'node:sqlite';
 import { fileURLToPath } from 'node:url';
 import { createLocalJWKSet, jwtVerify } from 'jose';
 
@@ -268,7 +269,7 @@ test('HTTP realm, login, OIDC and logout flows', async (t) => {
       const password = await acme({
         method: 'POST',
         path: '/api/v1/login/resolve',
-        body: { identifier: 'alice@acme.test' },
+        body: { client_id: 'internal-app', identifier: 'alice@acme.test' },
       });
       assert.equal(password.status, 200);
       assert.equal(password.json.next, 'password');
@@ -276,7 +277,7 @@ test('HTTP realm, login, OIDC and logout flows', async (t) => {
       const upstream = await acme({
         method: 'POST',
         path: '/api/v1/login/resolve',
-        body: { identifier: 'someone@sso.acme.test' },
+        body: { client_id: 'internal-app', identifier: 'someone@sso.acme.test' },
       });
       assert.equal(upstream.status, 200);
       assert.equal(upstream.json.next, 'oidc');
@@ -292,11 +293,81 @@ test('HTTP realm, login, OIDC and logout flows', async (t) => {
       assert.equal(response.status, 200);
       assert.equal(response.json.user.username, 'alice');
       assert.equal(maxAge(response), 12 * 60 * 60);
+      assert.ok(responseCookies(response)[0].startsWith('auth_session='));
 
       const cookie = mergeCookies('', response);
       const session = await acme({ path: '/api/v1/session', cookie });
       assert.equal(session.status, 200);
       assert.equal(session.json.user.username, 'alice');
+      assert.equal(session.json.scope.type, 'realm');
+      assert.equal(session.json.scope.host, 'acme.localhost');
+      assert.equal(session.json.realm.slug, 'acme');
+    });
+
+    await t.test('canonical and client hosts create their own session scopes', async () => {
+      const canonical = await identity({
+        method: 'POST',
+        path: '/api/v1/login/password',
+        body: { client_id: 'internal-app', identifier: 'alice@acme.test', password: 'demo' },
+      });
+      assert.equal(canonical.status, 200);
+      const canonicalCookie = mergeCookies('', canonical);
+      const canonicalSession = await identity({
+        path: '/api/v1/session',
+        cookie: canonicalCookie,
+      });
+      assert.equal(canonicalSession.status, 200);
+      assert.equal(canonicalSession.json.scope.type, 'global');
+      assert.equal(canonicalSession.json.scope.host, 'identity.test');
+      assert.equal(canonicalSession.json.realm, null);
+
+      const client = await app({
+        method: 'POST',
+        path: '/api/v1/login/password',
+        body: { client_id: 'internal-app', identifier: 'alice@acme.test', password: 'demo' },
+      });
+      assert.equal(client.status, 200);
+      const clientSession = await app({
+        path: '/api/v1/session',
+        cookie: mergeCookies('', client),
+      });
+      assert.equal(clientSession.status, 200);
+      assert.equal(clientSession.json.scope.type, 'client');
+      assert.equal(clientSession.json.scope.host, 'app.acme.localhost');
+      assert.equal(clientSession.json.scope.client_id, 'internal-app');
+      assert.equal(clientSession.json.realm.slug, 'acme');
+    });
+
+    await t.test('sessions are scoped to their host and old cookies are rejected', async () => {
+      const login = await acme({
+        method: 'POST',
+        path: '/api/v1/login/password',
+        body: { client_id: 'internal-app', identifier: 'alice@acme.test', password: 'demo' },
+      });
+      const cookie = mergeCookies('', login);
+      const token = cookie.slice('auth_session='.length);
+
+      const wrongHost = await globex({ path: '/api/v1/session', cookie });
+      assert.equal(wrongHost.status, 401);
+
+      const oldCookie = `auth_session_acme=${token}`;
+      const oldStyle = await acme({ path: '/api/v1/session', cookie: oldCookie });
+      assert.equal(oldStyle.status, 401);
+    });
+
+    await t.test('unknown hosts are rejected by auth and session APIs', async () => {
+      const unknown = (options = {}) =>
+        request(port, { host: `unknown.test:${port}`, ...options });
+
+      const login = await unknown({
+        method: 'POST',
+        path: '/api/v1/login/password',
+        body: { client_id: 'internal-app', identifier: 'alice@acme.test', password: 'demo' },
+      });
+      assert.equal(login.status, 404);
+
+      const session = await unknown({ path: '/api/v1/session' });
+      assert.equal(session.status, 404);
     });
 
     await t.test('long sessions are only issued when requested', async () => {
@@ -472,7 +543,6 @@ test('HTTP realm, login, OIDC and logout flows', async (t) => {
         method: 'POST',
         path: '/api/v1/login/password',
         body: {
-          realm: 'acme',
           client_id: 'internal-app',
           identifier: 'alice@acme.test',
           password: 'demo',
@@ -502,6 +572,22 @@ test('HTTP realm, login, OIDC and logout flows', async (t) => {
         },
       });
       assert.equal(tokenResponse.status, 200);
+
+      const database = new DatabaseSync(env.AUTH_DATABASE_PATH, { readOnly: true });
+      try {
+        const binding = database
+          .prepare(
+            `SELECT COUNT(*) AS count
+               FROM session_realms sr
+               JOIN sessions s ON s.id = sr.session_id
+               JOIN realms r ON r.id = sr.realm_id
+              WHERE r.slug = 'acme' AND s.scope_type = 'global'`
+          )
+          .get();
+        assert.equal(binding.count, 1);
+      } finally {
+        database.close();
+      }
     });
 
     await t.test('public clients allow non-members through authorize', async () => {
@@ -625,7 +711,7 @@ test('HTTP realm, login, OIDC and logout flows', async (t) => {
       assert.equal(tokenResponse.status, 200);
     });
 
-    await t.test('logout removes only the current realm session', async () => {
+    await t.test('logout removes only the current host session', async () => {
       const acmeLogin = await acme({
         method: 'POST',
         path: '/api/v1/login/password',

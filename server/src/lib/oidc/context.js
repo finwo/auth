@@ -1,17 +1,12 @@
 import { HttpError } from '../http/http-error.js';
+import { resolveClientForHost, resolveHostContext } from '../host-context.js';
 import { isVirtualClient } from './clients.js';
-import {
-  findClientRealm,
-  findOidcClientHost,
-  findRealmHost,
-  normalizeHost,
-} from '../realm.js';
 
 export function requestOrigin(req) {
-  const proto = String(req.headers['x-forwarded-proto'] || '')
+  const forwarded = String(req.headers['x-forwarded-proto'] || '')
     .split(',')[0]
-    .trim()
-    .toLowerCase() || (req.socket?.encrypted ? 'https' : 'http');
+    .trim();
+  const proto = forwarded || (req.socket?.encrypted ? 'https' : 'http');
   return `${proto}://${req.headers.host}`;
 }
 
@@ -31,69 +26,46 @@ function pathSegments(req) {
 export async function resolveOidcContext(req, { publicUrl } = {}) {
   const segments = pathSegments(req);
   const origin = requestOrigin(req);
+  const hostContext = await resolveHostContext(req, { publicUrl });
 
-  const clientHost = await findOidcClientHost(req.headers.host);
-  if (clientHost) {
+  if (hostContext.mode === 'client') {
     if (segments.length !== 1) throw new HttpError(404, 'not_found', 'Not found');
     return {
       mode: 'client',
+      host: hostContext.host,
       origin,
-      realm: {
-        id: clientHost.realm_id,
-        slug: clientHost.slug,
-        db_file: clientHost.db_file,
-        owner_user_id: clientHost.owner_user_id,
-      },
-      clientId: clientHost.client_id,
+      realm: hostContext.realm,
+      clientId: hostContext.clientId,
       action: segments[0],
     };
   }
 
-  const realmHost = await findRealmHost(req.headers.host);
-  if (realmHost) {
-    if (segments.length !== 2) throw new HttpError(404, 'not_found', 'Not found');
-    const clientId = segments[0];
-    if (!isVirtualClient(clientId)) {
-      const mapping = await findClientRealm(clientId);
-      if (!mapping || mapping.realm_id !== realmHost.id) {
-        throw new HttpError(404, 'unknown_client', 'Unknown client');
-      }
-    }
+  if (segments.length !== 2) throw new HttpError(404, 'not_found', 'Not found');
+  const clientId = segments[0];
+  const action = segments[1];
+
+  if (hostContext.mode === 'realm') {
+    const resolved = isVirtualClient(clientId)
+      ? { realm: hostContext.realm, clientId }
+      : await resolveClientForHost(hostContext, clientId);
     return {
       mode: 'realm',
+      host: hostContext.host,
       origin,
-      realm: realmHost,
-      clientId,
-      action: segments[1],
+      realm: resolved.realm,
+      clientId: resolved.clientId,
+      action,
     };
   }
 
-  if (segments.length !== 2) throw new HttpError(404, 'not_found', 'Not found');
-
-  if (publicUrl) {
-    const canonicalHost = normalizeHost(new URL(publicUrl).host);
-    if (normalizeHost(req.headers.host) !== canonicalHost) {
-      throw new HttpError(404, 'not_found', 'Not found');
-    }
-  }
-
-  const clientId = segments[0];
-  const mapping = await findClientRealm(clientId);
-  if (!mapping || !mapping.realm_id) {
-    throw new HttpError(404, 'unknown_client', 'Unknown client');
-  }
-
+  const resolved = await resolveClientForHost(hostContext, clientId);
   return {
     mode: 'canonical',
+    host: hostContext.host,
     origin,
-    realm: {
-      id: mapping.realm_id,
-      slug: mapping.slug,
-      db_file: mapping.db_file,
-      owner_user_id: mapping.owner_user_id,
-    },
-    clientId,
-    action: segments[1],
+    realm: resolved.realm,
+    clientId: resolved.clientId,
+    action,
   };
 }
 
