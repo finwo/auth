@@ -173,7 +173,8 @@ export async function resolveRealm({ host, slug } = {}) {
     const byClientHost = await systemDb.get(
       `SELECT r.id, r.slug, r.db_file, r.owner_user_id
          FROM oidc_client_hosts h
-         JOIN realms r ON r.id = h.realm_id
+         JOIN client_realms cr ON cr.client_id = h.client_id
+         JOIN realms r ON r.id = cr.realm_id
         WHERE h.host = {host}`,
       { host: normalizedHost }
     );
@@ -280,16 +281,49 @@ export async function addRealmHost(realmId, host) {
   );
 }
 
-export async function addOidcClientHost(realmId, clientId, host) {
+export async function addClientRealm(clientId, realmId) {
+  if (!systemDb) throw new Error('realm registry is not initialized');
+  const value = String(clientId || '').trim();
+  if (!/^[a-z0-9][a-z0-9-]*$/.test(value)) {
+    throw new Error(`invalid client id: ${JSON.stringify(clientId)}`);
+  }
+  const existing = await findClientRealm(value);
+  if (existing) {
+    if (existing.realm_id === realmId) return existing;
+    throw new Error(`client id is already assigned: ${value}`);
+  }
+  await systemDb.run(
+    'INSERT INTO client_realms (client_id, realm_id, created_at) VALUES ({clientId}, {realmId}, {createdAt})',
+    { clientId: value, realmId, createdAt: Date.now() }
+  );
+  return findClientRealm(value);
+}
+
+export async function findClientRealm(clientId) {
+  if (!systemDb) throw new Error('realm registry is not initialized');
+  return systemDb.get(
+    `SELECT cr.client_id, cr.realm_id, r.slug, r.db_file, r.owner_user_id
+       FROM client_realms cr
+       LEFT JOIN realms r ON r.id = cr.realm_id
+      WHERE cr.client_id = {clientId}`,
+    { clientId }
+  );
+}
+
+export async function addOidcClientHost(clientId, host) {
   if (!systemDb) throw new Error('realm registry is not initialized');
   const normalized = normalizeHost(host);
   if (!normalized || normalized !== String(host).trim().toLowerCase()) {
     throw new Error(`invalid client hostname: ${JSON.stringify(host)}`);
   }
+  const mapping = await findClientRealm(clientId);
+  if (!mapping || !mapping.realm_id) {
+    throw new Error(`unknown client: ${clientId}`);
+  }
   await systemDb.run(
-    `INSERT INTO oidc_client_hosts (host, realm_id, client_id, created_at)
-     VALUES ({host}, {realmId}, {clientId}, {createdAt})`,
-    { host: normalized, realmId, clientId, createdAt: Date.now() }
+    `INSERT INTO oidc_client_hosts (host, client_id, created_at)
+     VALUES ({host}, {clientId}, {createdAt})`,
+    { host: normalized, clientId, createdAt: Date.now() }
   );
 }
 
@@ -298,9 +332,10 @@ export async function findOidcClientHost(host) {
   const normalized = normalizeHost(host);
   if (!normalized) return null;
   return systemDb.get(
-    `SELECT h.host, h.realm_id, h.client_id, r.slug, r.db_file, r.owner_user_id
+    `SELECT h.host, h.client_id, cr.realm_id, r.slug, r.db_file, r.owner_user_id
        FROM oidc_client_hosts h
-       JOIN realms r ON r.id = h.realm_id
+       JOIN client_realms cr ON cr.client_id = h.client_id
+       JOIN realms r ON r.id = cr.realm_id
       WHERE h.host = {host}`,
     { host: normalized }
   );

@@ -85,15 +85,7 @@ export function getRealm(realm?: string | null): Promise<RealmInfo> {
   return request<RealmInfo>(`/api/v1/realm${query}`);
 }
 
-export function getClientDiscovery(
-  realm?: string | null,
-  clientId?: string | null
-): Promise<ClientDiscovery> {
-  if (realm && clientId) {
-    return request<ClientDiscovery>(
-      `/oidc/${encodeURIComponent(realm)}/${encodeURIComponent(clientId)}/openid-configuration`
-    );
-  }
+export function getClientDiscovery(clientId?: string | null): Promise<ClientDiscovery> {
   if (clientId) {
     return request<ClientDiscovery>(`/oidc/${encodeURIComponent(clientId)}/openid-configuration`);
   }

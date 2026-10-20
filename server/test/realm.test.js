@@ -6,9 +6,13 @@ import os from 'node:os';
 import path from 'node:path';
 import { findManagedProviderForUser, resolveLogin } from '../src/lib/login.js';
 import {
+  addClientRealm,
+  addOidcClientHost,
   addRealmEmailDomain,
   closeRealms,
   createRealm,
+  findClientRealm,
+  findOidcClientHost,
   findRealmByEmailDomain,
   getSystemDatabase,
   initRealms,
@@ -59,6 +63,43 @@ test('realm resolution prefers hostname and rejects a mismatched slug', async ()
     assert.equal(metadata.display_name, 'Acme');
     assert.equal(metadata.allow_session_duration_choice, true);
     assert.deepEqual(metadata.branding, {});
+  } finally {
+    await closeRealms();
+    await fs.rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('client IDs are globally unique and client hosts resolve through mappings', async () => {
+  const { dir, cfg } = await tempConfig();
+  try {
+    await initRealms(cfg);
+    const acme = await createRealm({ slug: 'acme', displayName: 'Acme' });
+    const globex = await createRealm({ slug: 'globex', displayName: 'Globex' });
+
+    await addClientRealm('shared-app', acme.id);
+    const mapping = await findClientRealm('shared-app');
+    assert.equal(mapping.realm_id, acme.id);
+    assert.equal(mapping.slug, 'acme');
+
+    await assert.rejects(
+      () => addClientRealm('shared-app', globex.id),
+      /already assigned/
+    );
+    await assert.rejects(() => addClientRealm('Bad App', acme.id), /invalid client id/);
+
+    await addOidcClientHost('shared-app', 'app.acme.localhost');
+    const clientHost = await findOidcClientHost('app.acme.localhost:3000');
+    assert.equal(clientHost.client_id, 'shared-app');
+    assert.equal(clientHost.realm_id, acme.id);
+    assert.equal(clientHost.slug, 'acme');
+
+    const realm = await resolveRealm({ host: 'app.acme.localhost' });
+    assert.equal(realm.id, acme.id);
+
+    await assert.rejects(
+      () => addOidcClientHost('missing-app', 'app.missing.localhost'),
+      /unknown client/
+    );
   } finally {
     await closeRealms();
     await fs.rm(dir, { recursive: true, force: true });

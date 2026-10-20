@@ -199,14 +199,14 @@ test('HTTP realm, login, OIDC and logout flows', async (t) => {
 
     await t.test('client discovery works on identity, realm and client hosts', async () => {
       const canonical = await identity({
-        path: '/oidc/acme/internal-app/openid-configuration',
+        path: '/oidc/internal-app/openid-configuration',
       });
       assert.equal(canonical.status, 200);
       assert.equal(canonical.json.client_id, 'internal-app');
       assert.equal(canonical.json.issuer, `${publicUrl}/oidc/acme`);
       assert.equal(
         canonical.json.authorization_endpoint,
-        `${origin('identity.test')}/oidc/acme/internal-app/authorize`
+        `${origin('identity.test')}/oidc/internal-app/authorize`
       );
 
       const realmHost = await acme({ path: '/oidc/internal-app/openid-configuration' });
@@ -220,6 +220,36 @@ test('HTTP realm, login, OIDC and logout flows', async (t) => {
       assert.equal(clientHost.status, 200);
       assert.equal(clientHost.json.client_id, 'internal-app');
       assert.equal(clientHost.json.token_endpoint, `${origin('app.acme.localhost')}/oidc/token`);
+    });
+
+    await t.test('realm slugs are not accepted in OIDC paths', async () => {
+      const oldCanonical = await identity({
+        path: '/oidc/acme/internal-app/openid-configuration',
+      });
+      assert.equal(oldCanonical.status, 404);
+
+      const oldRealmHost = await acme({
+        path: '/oidc/acme/internal-app/openid-configuration',
+      });
+      assert.equal(oldRealmHost.status, 404);
+    });
+
+    await t.test('client-to-realm mappings enforce host and canonical routing', async () => {
+      const mismatch = await globex({ path: '/oidc/internal-app/openid-configuration' });
+      assert.equal(mismatch.status, 404);
+      assert.equal(mismatch.json.error.code, 'unknown_client');
+
+      const unknownCanonicalHost = await request(port, {
+        host: `unknown.test:${port}`,
+        path: '/oidc/internal-app/openid-configuration',
+      });
+      assert.equal(unknownCanonicalHost.status, 404);
+
+      const otherRealm = await identity({
+        path: '/oidc/globex-members-app/openid-configuration',
+      });
+      assert.equal(otherRealm.status, 200);
+      assert.equal(otherRealm.json.issuer, `${publicUrl}/oidc/globex`);
     });
 
     await t.test('virtual clients are discoverable', async () => {
@@ -298,14 +328,22 @@ test('HTTP realm, login, OIDC and logout flows', async (t) => {
       const denied = await acme({
         method: 'POST',
         path: '/api/v1/login/password',
-        body: { client_id: 'members-app', identifier: 'contractor@personal.test', password: 'demo' },
+        body: {
+          client_id: 'acme-members-app',
+          identifier: 'contractor@personal.test',
+          password: 'demo',
+        },
       });
       assert.equal(denied.status, 401);
 
       const allowed = await acme({
         method: 'POST',
         path: '/api/v1/login/password',
-        body: { client_id: 'public-app', identifier: 'guest@personal.test', password: 'demo' },
+        body: {
+          client_id: 'acme-public-app',
+          identifier: 'guest@personal.test',
+          password: 'demo',
+        },
       });
       assert.equal(allowed.status, 200);
     });
@@ -324,7 +362,11 @@ test('HTTP realm, login, OIDC and logout flows', async (t) => {
       const response = await globex({
         method: 'POST',
         path: '/api/v1/login/password',
-        body: { client_id: 'members-app', identifier: 'contractor@personal.test', password: 'demo' },
+        body: {
+          client_id: 'globex-members-app',
+          identifier: 'contractor@personal.test',
+          password: 'demo',
+        },
       });
       assert.equal(response.status, 200);
       const session = await globex({
@@ -413,11 +455,60 @@ test('HTTP realm, login, OIDC and logout flows', async (t) => {
       assert.equal(reuse.json.error, 'invalid_grant');
     });
 
+    await t.test('canonical realm-client flow resolves the realm from its mapping', async () => {
+      const { verifier, challenge } = pkce();
+      const redirectUri = `${origin('app.acme.localhost')}/callback`;
+      const authorizePath =
+        `/oidc/internal-app/authorize?response_type=code&client_id=internal-app` +
+        `&redirect_uri=${encodeURIComponent(redirectUri)}&scope=openid%20email` +
+        `&state=state-canonical&code_challenge=${challenge}&code_challenge_method=S256`;
+
+      const first = await identity({ path: authorizePath });
+      assert.equal(first.status, 302);
+      assert.equal(locationQuery(first).pathname, '/oidc/internal-app/login');
+      let jar = mergeCookies('', first);
+
+      const login = await identity({
+        method: 'POST',
+        path: '/api/v1/login/password',
+        body: {
+          realm: 'acme',
+          client_id: 'internal-app',
+          identifier: 'alice@acme.test',
+          password: 'demo',
+        },
+        cookie: jar,
+      });
+      assert.equal(login.status, 200);
+      assert.equal(login.json.pending_auth_request, true);
+      jar = mergeCookies(jar, login);
+
+      const second = await identity({ path: authorizePath, cookie: jar });
+      assert.equal(second.status, 302);
+      const redirected = locationQuery(second);
+      assert.equal(redirected.searchParams.get('state'), 'state-canonical');
+      const code = redirected.searchParams.get('code');
+      assert.ok(code);
+
+      const tokenResponse = await identity({
+        method: 'POST',
+        path: '/oidc/internal-app/token',
+        form: {
+          grant_type: 'authorization_code',
+          code,
+          redirect_uri: redirectUri,
+          client_id: 'internal-app',
+          code_verifier: verifier,
+        },
+      });
+      assert.equal(tokenResponse.status, 200);
+    });
+
     await t.test('public clients allow non-members through authorize', async () => {
       const { verifier, challenge } = pkce();
       const redirectUri = `${origin('public.localhost')}/callback`;
       const authorizePath =
-        `/oidc/public-app/authorize?response_type=code&client_id=public-app` +
+        `/oidc/acme-public-app/authorize?response_type=code&client_id=acme-public-app` +
         `&redirect_uri=${encodeURIComponent(redirectUri)}&scope=openid%20email` +
         `&state=state-2&code_challenge=${challenge}&code_challenge_method=S256`;
 
@@ -428,7 +519,11 @@ test('HTTP realm, login, OIDC and logout flows', async (t) => {
       const login = await acme({
         method: 'POST',
         path: '/api/v1/login/password',
-        body: { client_id: 'public-app', identifier: 'contractor@personal.test', password: 'demo' },
+        body: {
+          client_id: 'acme-public-app',
+          identifier: 'contractor@personal.test',
+          password: 'demo',
+        },
         cookie: jar,
       });
       assert.equal(login.status, 200);
@@ -442,12 +537,12 @@ test('HTTP realm, login, OIDC and logout flows', async (t) => {
 
       const tokenResponse = await acme({
         method: 'POST',
-        path: '/oidc/public-app/token',
+        path: '/oidc/acme-public-app/token',
         form: {
           grant_type: 'authorization_code',
           code,
           redirect_uri: redirectUri,
-          client_id: 'public-app',
+          client_id: 'acme-public-app',
           code_verifier: verifier,
         },
       });
@@ -541,7 +636,11 @@ test('HTTP realm, login, OIDC and logout flows', async (t) => {
       const globexLogin = await globex({
         method: 'POST',
         path: '/api/v1/login/password',
-        body: { client_id: 'members-app', identifier: 'contractor@personal.test', password: 'demo' },
+        body: {
+          client_id: 'globex-members-app',
+          identifier: 'contractor@personal.test',
+          password: 'demo',
+        },
       });
       const globexCookie = mergeCookies('', globexLogin);
 

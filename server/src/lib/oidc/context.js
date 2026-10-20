@@ -1,8 +1,10 @@
 import { HttpError } from '../http/http-error.js';
+import { isVirtualClient } from './clients.js';
 import {
+  findClientRealm,
   findOidcClientHost,
-  findRealmBySlug,
   findRealmHost,
+  normalizeHost,
 } from '../realm.js';
 
 export function requestOrigin(req) {
@@ -26,7 +28,7 @@ function pathSegments(req) {
     .map((segment) => decodeURIComponent(segment));
 }
 
-export async function resolveOidcContext(req) {
+export async function resolveOidcContext(req, { publicUrl } = {}) {
   const segments = pathSegments(req);
   const origin = requestOrigin(req);
 
@@ -50,34 +52,54 @@ export async function resolveOidcContext(req) {
   const realmHost = await findRealmHost(req.headers.host);
   if (realmHost) {
     if (segments.length !== 2) throw new HttpError(404, 'not_found', 'Not found');
+    const clientId = segments[0];
+    if (!isVirtualClient(clientId)) {
+      const mapping = await findClientRealm(clientId);
+      if (!mapping || mapping.realm_id !== realmHost.id) {
+        throw new HttpError(404, 'unknown_client', 'Unknown client');
+      }
+    }
     return {
       mode: 'realm',
       origin,
       realm: realmHost,
-      clientId: segments[0],
+      clientId,
       action: segments[1],
     };
   }
 
-  if (segments.length !== 3) throw new HttpError(404, 'not_found', 'Not found');
-  const realm = await findRealmBySlug(segments[0]);
-  if (!realm) throw new HttpError(404, 'unknown_realm', 'Unknown realm');
+  if (segments.length !== 2) throw new HttpError(404, 'not_found', 'Not found');
+
+  if (publicUrl) {
+    const canonicalHost = normalizeHost(new URL(publicUrl).host);
+    if (normalizeHost(req.headers.host) !== canonicalHost) {
+      throw new HttpError(404, 'not_found', 'Not found');
+    }
+  }
+
+  const clientId = segments[0];
+  const mapping = await findClientRealm(clientId);
+  if (!mapping || !mapping.realm_id) {
+    throw new HttpError(404, 'unknown_client', 'Unknown client');
+  }
 
   return {
     mode: 'canonical',
     origin,
-    realm,
-    clientId: segments[1],
-    action: segments[2],
+    realm: {
+      id: mapping.realm_id,
+      slug: mapping.slug,
+      db_file: mapping.db_file,
+      owner_user_id: mapping.owner_user_id,
+    },
+    clientId,
+    action: segments[1],
   };
 }
 
 export function endpointBase(context) {
   if (context.mode === 'client') return `${context.origin}/oidc`;
-  if (context.mode === 'realm') return `${context.origin}/oidc/${encodeURIComponent(context.clientId)}`;
-  return `${context.origin}/oidc/${encodeURIComponent(context.realm.slug)}/${encodeURIComponent(
-    context.clientId
-  )}`;
+  return `${context.origin}/oidc/${encodeURIComponent(context.clientId)}`;
 }
 
 export function endpointUrls(context) {

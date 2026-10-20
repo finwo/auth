@@ -461,7 +461,9 @@ export default {
   name: 'oidc',
   async handler(req, res, next) {
     try {
-      const context = await resolveOidcContext(req);
+      const context = await resolveOidcContext(req, {
+        publicUrl: app.config.server.public_url,
+      });
       if (context.action === 'login' || context.action === 'callback') {
         next();
         return;

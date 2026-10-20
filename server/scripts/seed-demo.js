@@ -3,10 +3,12 @@ import { loadConfig } from '../src/lib/config.js';
 import { hashPassword } from '../src/lib/password.js';
 import { hashClientSecret } from '../src/lib/oidc/clients.js';
 import {
+  addClientRealm,
   addOidcClientHost,
   addRealmEmailDomain,
   closeRealms,
   createRealm,
+  findClientRealm,
   findRealmBySlug,
   getSystemDatabase,
   initRealms,
@@ -119,6 +121,7 @@ async function ensureProviderDomain(db, domain, providerId) {
 }
 
 async function ensureClient(
+  realm,
   db,
   {
     clientId,
@@ -133,6 +136,11 @@ async function ensureClient(
     requirePkce = true,
   }
 ) {
+  const mapping = await findClientRealm(clientId);
+  if (mapping && mapping.realm_id !== realm.id) {
+    throw new Error(`client id is already assigned: ${clientId}`);
+  }
+
   let client = await db.get('SELECT id FROM oidc_clients WHERE client_id = {clientId}', { clientId });
   if (!client) {
     const now = Date.now();
@@ -162,6 +170,8 @@ async function ensureClient(
       }
     );
   }
+
+  await addClientRealm(clientId, realm.id);
 
   for (const slug of roles) {
     const role = await db.get('SELECT id FROM roles WHERE slug = {slug}', { slug });
@@ -245,26 +255,26 @@ const providerId = await ensureProvider(acmeDb, {
 });
 await ensureProviderDomain(acmeDb, 'sso.acme.test', providerId);
 
-await ensureClient(acmeDb, {
+await ensureClient(acme, acmeDb, {
   clientId: 'internal-app',
   name: 'Internal App',
   accessMode: 'internal',
   redirectUris: [`${clientOrigin('app.acme.localhost')}/callback`],
   postLogoutRedirectUris: [`${clientOrigin('app.acme.localhost')}/`],
 });
-await ensureClient(acmeDb, {
-  clientId: 'members-app',
-  name: 'Members App',
+await ensureClient(acme, acmeDb, {
+  clientId: 'acme-members-app',
+  name: 'Acme Members App',
   accessMode: 'members',
   redirectUris: [`${clientOrigin('members.localhost')}/callback`],
 });
-await ensureClient(acmeDb, {
-  clientId: 'public-app',
-  name: 'Public App',
+await ensureClient(acme, acmeDb, {
+  clientId: 'acme-public-app',
+  name: 'Acme Public App',
   accessMode: 'public',
   redirectUris: [`${clientOrigin('public.localhost')}/callback`],
 });
-await ensureClient(acmeDb, {
+await ensureClient(acme, acmeDb, {
   clientId: 'confidential-app',
   name: 'Confidential App',
   accessMode: 'members',
@@ -274,27 +284,30 @@ await ensureClient(acmeDb, {
 });
 
 const globexDb = await openRealmDatabase(globex);
-await ensureClient(globexDb, {
-  clientId: 'members-app',
-  name: 'Members App',
+await ensureClient(globex, globexDb, {
+  clientId: 'globex-members-app',
+  name: 'Globex Members App',
   accessMode: 'members',
   redirectUris: [`${clientOrigin('members.localhost')}/callback`],
 });
-await ensureClient(globexDb, {
-  clientId: 'public-app',
-  name: 'Public App',
+await ensureClient(globex, globexDb, {
+  clientId: 'globex-public-app',
+  name: 'Globex Public App',
   accessMode: 'public',
   redirectUris: [`${clientOrigin('public.localhost')}/callback`],
 });
 
-await addOidcClientHost(acme.id, 'internal-app', 'app.acme.localhost');
+await addOidcClientHost('internal-app', 'app.acme.localhost');
 
 console.log('seeded realms acme and globex');
 console.log('password for all demo users: demo');
 console.log('home users: alice@acme.test, it@acme.test, admin@system.test (system admin)');
 console.log('guest users: guest@personal.test (acme), contractor@personal.test (globex realm-admin)');
 console.log('upstream mapping: sso.acme.test -> Example SSO');
-console.log('clients: internal-app, members-app, public-app, confidential-app');
+console.log(
+  'clients: internal-app, acme-members-app, acme-public-app, confidential-app, ' +
+    'globex-members-app, globex-public-app'
+);
 console.log('client host: app.acme.localhost -> acme/internal-app');
 console.log('virtual clients: admin, account');
 

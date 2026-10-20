@@ -64,7 +64,7 @@ export const Login: m.Component<{ realm?: string; clientId?: string }> = {
   async loadClient(this: any) {
     this.error = null;
     try {
-      const discovery = await getClientDiscovery(this.realmSlug, this.clientId);
+      const discovery = await getClientDiscovery(this.clientId);
       this.discovery = discovery;
       this.realmSlug = discovery.realm;
       this.clientId = discovery.client_id;
