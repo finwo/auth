@@ -2,6 +2,7 @@ export interface RealmInfo {
   slug: string;
   display_name: string;
   branding: Record<string, string>;
+  allow_session_duration_choice: boolean;
 }
 
 export interface LoginResolution {
@@ -13,6 +14,17 @@ export interface LoginResolution {
   };
 }
 
+export interface SessionInfo {
+  realm: RealmInfo;
+  user: {
+    id: string;
+    username: string;
+    display_name: string | null;
+  };
+  roles: string[];
+  expires_at: number;
+}
+
 export interface ApiError extends Error {
   code?: string;
   status?: number;
@@ -20,6 +32,7 @@ export interface ApiError extends Error {
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const response = await fetch(path, {
+    credentials: 'same-origin',
     headers: {
       'content-type': 'application/json',
     },
@@ -58,10 +71,28 @@ export function resolveLogin(realm: string | null, identifier: string): Promise<
 export function signInPassword(
   realm: string | null,
   identifier: string,
-  password: string
-): Promise<Record<string, unknown>> {
-  return request('/api/v1/login/password', {
+  password: string,
+  longSession: boolean
+): Promise<SessionInfo> {
+  return request<SessionInfo>('/api/v1/login/password', {
     method: 'POST',
-    body: JSON.stringify({ realm: realm || undefined, identifier, password }),
+    body: JSON.stringify({
+      realm: realm || undefined,
+      identifier,
+      password,
+      long_session: longSession,
+    }),
+  });
+}
+
+export function getSession(realm?: string | null): Promise<SessionInfo> {
+  const query = realm ? `?realm=${encodeURIComponent(realm)}` : '';
+  return request<SessionInfo>(`/api/v1/session${query}`);
+}
+
+export function signOut(realm?: string | null): Promise<{ ok: boolean }> {
+  return request('/api/v1/logout', {
+    method: 'POST',
+    body: JSON.stringify({ realm: realm || undefined }),
   });
 }

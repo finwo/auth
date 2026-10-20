@@ -1,7 +1,7 @@
 import { app } from '../../app.js';
 import { resolveLogin } from '../../lib/login.js';
 import { HttpError } from '../../lib/http/http-error.js';
-import { openRealmDatabase, realmMetadata, resolveRealm } from '../../lib/realm.js';
+import { realmMetadata, resolveRealm } from '../../lib/realm.js';
 
 export default {
   method: 'post',
@@ -21,8 +21,7 @@ export default {
       slug: body.realm || undefined,
     });
     const metadata = await realmMetadata(realm);
-    const db = await openRealmDatabase(realm);
-    const result = await resolveLogin(db, body.identifier);
+    const result = await resolveLogin({ identifier: body.identifier });
 
     return new app.HttpOk({
       realm: metadata,

@@ -41,6 +41,7 @@ export const Login: m.Component<{ realm?: string }> = {
   step: 'identifier' as Step,
   identifier: '',
   password: '',
+  longSession: false,
   provider: null as LoginResolution['provider'] | null,
   error: null as Error | null,
   pending: false,
@@ -86,17 +87,19 @@ export const Login: m.Component<{ realm?: string }> = {
     this.pending = true;
     this.error = null;
     try {
-      await signInPassword(this.realmSlug, this.identifier, this.password);
+      await signInPassword(this.realmSlug, this.identifier, this.password, this.longSession);
+      m.route.set(this.realmSlug ? `/realms/${this.realmSlug}/admin` : '/admin');
     } catch (e) {
       this.error = e as Error;
+      this.pending = false;
+      m.redraw();
     }
-    this.pending = false;
-    m.redraw();
   },
 
   back(this: any) {
     this.step = 'identifier';
     this.password = '';
+    this.longSession = false;
     this.provider = null;
     this.error = null;
     m.redraw();
@@ -186,6 +189,19 @@ export const Login: m.Component<{ realm?: string }> = {
             this.password = value;
           }}
         />
+        {this.realm?.allow_session_duration_choice ? (
+          <label class="auth-choice">
+            <input
+              type="checkbox"
+              checked={this.longSession}
+              disabled={this.pending}
+              onchange={(e: Event) => {
+                this.longSession = (e.target as HTMLInputElement).checked;
+              }}
+            />
+            <span>Keep me signed in</span>
+          </label>
+        ) : null}
         {this.error ? <p class="auth-error">{this.error.message}</p> : null}
         <div class="auth-actions">
           <button class="auth-link" type="button" onclick={() => this.back()}>

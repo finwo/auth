@@ -4,15 +4,24 @@ import crypto from 'node:crypto';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import { resolveLogin } from '../src/lib/login.js';
+import { findManagedProviderForUser, resolveLogin } from '../src/lib/login.js';
 import {
+  addRealmEmailDomain,
   closeRealms,
   createRealm,
+  findRealmByEmailDomain,
+  getSystemDatabase,
   initRealms,
   openRealmDatabase,
   realmMetadata,
   resolveRealm,
 } from '../src/lib/realm.js';
+import {
+  addUserEmail,
+  assignHomeRealmForEmail,
+  createUser,
+  findUserById,
+} from '../src/lib/users.js';
 
 async function tempConfig() {
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'auth-realm-'));
@@ -44,11 +53,11 @@ test('realm resolution prefers hostname and rejects a mismatched slug', async ()
       () => resolveRealm({ host: 'acme.localhost', slug: 'system' }),
       /Unknown realm/
     );
-
     await assert.rejects(() => resolveRealm({ host: 'main.test:3000', slug: 'nope' }), /Unknown realm/);
 
     const metadata = await realmMetadata(byHost);
     assert.equal(metadata.display_name, 'Acme');
+    assert.equal(metadata.allow_session_duration_choice, true);
     assert.deepEqual(metadata.branding, {});
   } finally {
     await closeRealms();
@@ -56,16 +65,17 @@ test('realm resolution prefers hostname and rejects a mismatched slug', async ()
   }
 });
 
-test('identifier resolution selects password, upstream provider or a disabled provider', async () => {
+test('owned email domains select their realm provider mapping', async () => {
   const { dir, cfg } = await tempConfig();
   try {
     await initRealms(cfg);
     const realm = await createRealm({ slug: 'acme', displayName: 'Acme' });
+    await addRealmEmailDomain(realm.id, 'example.com', { verified: true });
     const db = await openRealmDatabase(realm);
 
-    const local = await resolveLogin(db, 'alice@local.test');
+    const local = await resolveLogin({ identifier: 'alice@local.test' });
     assert.equal(local.next, 'password');
-    const username = await resolveLogin(db, 'alice');
+    const username = await resolveLogin({ identifier: 'alice' });
     assert.equal(username.next, 'password');
 
     const providerId = crypto.randomUUID();
@@ -78,16 +88,46 @@ test('identifier resolution selects password, upstream provider or a disabled pr
       { id: providerId, now }
     );
     await db.run(
-      'INSERT INTO email_domains (domain, provider_id, created_at) VALUES ({domain}, {providerId}, {now})',
+      'INSERT INTO email_domain_providers (domain, provider_id, created_at) VALUES ({domain}, {providerId}, {now})',
       { domain: 'example.com', providerId, now }
     );
 
-    const upstream = await resolveLogin(db, 'someone@example.com');
+    const owner = await findRealmByEmailDomain('example.com');
+    assert.equal(owner.id, realm.id);
+
+    const upstream = await resolveLogin({ identifier: 'someone@example.com' });
     assert.equal(upstream.next, 'oidc');
     assert.equal(upstream.provider.display_name, 'Example SSO');
 
+    const systemDb = getSystemDatabase();
+    const userId = await createUser(systemDb, { username: 'someone' });
+    await addUserEmail(systemDb, userId, 'someone@example.com', { verified: true, primary: true });
+    await assignHomeRealmForEmail(systemDb, userId, 'someone@example.com');
+    const user = await findUserById(systemDb, userId);
+    assert.equal(user.home_realm_id, realm.id);
+
+    const managed = await findManagedProviderForUser(systemDb, user);
+    assert.equal(managed.display_name, 'Example SSO');
+
     await db.run('UPDATE identity_providers SET enabled = 0 WHERE id = {id}', { id: providerId });
-    await assert.rejects(() => resolveLogin(db, 'someone@example.com'), /unavailable/);
+    await assert.rejects(() => resolveLogin({ identifier: 'someone@example.com' }), /unavailable/);
+  } finally {
+    await closeRealms();
+    await fs.rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('a realm can disable the long-session choice', async () => {
+  const { dir, cfg } = await tempConfig();
+  try {
+    await initRealms(cfg);
+    const realm = await createRealm({
+      slug: 'acme',
+      displayName: 'Acme',
+      allowSessionDurationChoice: false,
+    });
+    const metadata = await realmMetadata(realm);
+    assert.equal(metadata.allow_session_duration_choice, false);
   } finally {
     await closeRealms();
     await fs.rm(dir, { recursive: true, force: true });

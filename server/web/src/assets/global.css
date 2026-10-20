@@ -99,6 +99,22 @@ body {
   line-height: 1.5;
 }
 
+.auth-choice {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  cursor: pointer;
+}
+
+.auth-choice input {
+  width: 1rem;
+  height: 1rem;
+  accent-color: var(--realm-primary);
+}
+
 .auth-error {
   margin: 1rem 0 0;
   color: #d93025;

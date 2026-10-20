@@ -141,7 +141,8 @@ function checksum(sql) {
 export async function runMigrations(db, options = {}) {
   const dir = options.dir || path.join(MIGRATIONS_ROOT, db.dialect);
   const namespace = options.namespace || path.basename(dir);
-  const log = options.logger || ((m) => console.log(`[migrate] ${m}`));
+  const label = options.label ? `${options.label}: ` : '';
+  const log = options.logger || ((m) => console.log(`[migrate] ${label}${m}`));
 
   await db.exec(DDL[db.dialect]);
 
@@ -187,13 +188,13 @@ export async function runMigrations(db, options = {}) {
   }
 
   if (pending.length === 0) {
-    log(`up to date (${files.length} applied)`);
+    log(`up to date (${files.length} applied in ${namespace})`);
     return { applied: [], total: files.length };
   }
 
   const done = [];
   for (const { file, sql, sum } of pending) {
-    log(`applying ${file}`);
+    log(`applying ${namespace}/${file}`);
     const statements = splitStatements(sql, db.dialect);
     if (statements.length === 0) throw new Error(`migration ${file} contains no statements`);
     await db.transaction(async (tx) => {
@@ -203,7 +204,7 @@ export async function runMigrations(db, options = {}) {
         { file: `${namespace}/${file}`, sum, at: Date.now() }
       );
     });
-    done.push(file);
+    done.push(`${namespace}/${file}`);
   }
 
   log(`applied ${done.length} migration(s)`);

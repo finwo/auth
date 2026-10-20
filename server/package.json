@@ -11,6 +11,7 @@
   "dependencies": {
     "@finwo/scandir": "^0.0.3",
     "body-parser": "^2.3.0",
+    "cookie": "^2.0.1",
     "cors": "^2.8.6",
     "mithril": "^2.3.8",
     "morgan": "^1.12.1",
