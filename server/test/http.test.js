@@ -1097,6 +1097,49 @@ test('HTTP realm, login, OIDC and logout flows', async (t) => {
       assert.equal(revoked.status, 400);
     });
 
+    await t.test('a new authorization request replaces a stale pending request', async () => {
+      const redirectUri = `${origin('identity.test')}/app/admin/callback`;
+      const stale = pkce();
+      const fresh = pkce();
+      const authorizePath = (state, challenge) =>
+        `/oidc/admin/authorize?response_type=code&client_id=admin` +
+        `&redirect_uri=${encodeURIComponent(redirectUri)}&scope=openid%20profile` +
+        `&state=${state}&code_challenge=${challenge}&code_challenge_method=S256`;
+
+      const first = await identity({ path: authorizePath('stale', stale.challenge) });
+      assert.equal(first.status, 302);
+      let jar = mergeCookies('', first);
+
+      const second = await identity({
+        path: authorizePath('fresh', fresh.challenge),
+        cookie: jar,
+      });
+      assert.equal(second.status, 302);
+      const loginRedirect = locationQuery(second);
+      assert.equal(loginRedirect.pathname, '/oidc/admin/login');
+      assert.equal(loginRedirect.searchParams.get('error'), null);
+      jar = mergeCookies(jar, second);
+
+      const login = await identity({
+        method: 'POST',
+        path: '/api/v1/login/password',
+        body: { client_id: 'admin', identifier: 'admin@system.test', password: 'demo' },
+        cookie: jar,
+      });
+      assert.equal(login.status, 200);
+      assert.equal(login.json.pending_auth_request, true);
+      jar = mergeCookies(jar, login);
+
+      const third = await identity({
+        path: authorizePath('fresh', fresh.challenge).split('?')[0],
+        cookie: jar,
+      });
+      assert.equal(third.status, 302);
+      const redirected = locationQuery(third);
+      assert.equal(redirected.searchParams.get('state'), 'fresh');
+      assert.ok(redirected.searchParams.get('code'));
+    });
+
     await t.test('configured static app callbacks are accepted', async () => {
       const admin = await accessToken(identity, {
         clientId: 'admin',

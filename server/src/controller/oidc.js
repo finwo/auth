@@ -220,16 +220,18 @@ async function authorize(context, client, req, res) {
     if (mismatch) {
       await deleteAuthRequest(store, pending.id);
       clearAuthRequestCookie(res, req, context);
-      return fail('invalid_request', 'The authorization request changed during login');
+      pending = null;
+    } else {
+      redirectUri = pending.redirect_uri;
+      state = pending.state;
+      scope = pending.scope;
+      nonce = pending.nonce;
+      codeChallenge = pending.code_challenge;
+      codeChallengeMethod = pending.code_challenge_method;
     }
+  }
 
-    redirectUri = pending.redirect_uri;
-    state = pending.state;
-    scope = pending.scope;
-    nonce = pending.nonce;
-    codeChallenge = pending.code_challenge;
-    codeChallengeMethod = pending.code_challenge_method;
-  } else {
+  if (!pending) {
     if (!redirectUri) {
       return oidcError(400, 'invalid_request', 'redirect_uri is required');
     }

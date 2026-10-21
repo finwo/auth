@@ -6,6 +6,7 @@
     "build": "node esbuild.cjs"
   },
   "dependencies": {
+    "lucide": "^1.61.0",
     "mithril": "^2.3.8"
   },
   "devDependencies": {

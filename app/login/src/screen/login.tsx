@@ -34,6 +34,10 @@ function authorizeRoute() {
   return path.replace(/\/login$/, '/authorize');
 }
 
+function continueAuthorization() {
+  window.location.assign(authorizeRoute());
+}
+
 const TextField: m.Component<TextFieldAttrs> = {
   view({ attrs }) {
     return (
@@ -135,7 +139,7 @@ export const Login: m.Component<{ clientId?: string }> = {
       );
 
       if (result.pending_auth_request) {
-        m.route.set(authorizeRoute());
+        continueAuthorization();
         return;
       }
 
@@ -156,7 +160,7 @@ export const Login: m.Component<{ clientId?: string }> = {
     try {
       const result = await selectSession(account.public_id, this.clientId);
       if (result.pending_auth_request) {
-        m.route.set(authorizeRoute());
+        continueAuthorization();
         return;
       }
 

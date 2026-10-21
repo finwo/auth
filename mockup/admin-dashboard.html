@@ -1,0 +1,599 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Admin dashboard mockup</title>
+    <style>
+      :root {
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+        --canvas: #f3f3f3;
+        --surface: #fff;
+        --sidebar: #000;
+        --sidebar-active: #333;
+        --topbar: #000;
+        --text: #1b1b1b;
+        --muted: #656a70;
+        --accent: #25a;
+        --accent-hover: #2a66cc;
+        --accent-active: #1b468c;
+        --on-accent: #fff;
+        --menu-hover: #8884;
+        --shadow: 0 0.125em 0.25em #0008;
+      }
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        background: var(--canvas);
+        color: var(--text);
+        -webkit-font-smoothing: antialiased;
+      }
+
+      .topbar {
+        position: sticky;
+        top: 0;
+        z-index: 20;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        min-height: 3.5rem;
+        padding: 0 1.5rem;
+        background: var(--topbar);
+        color: rgba(255, 255, 255, 0.76);
+        font-size: 0.875rem;
+      }
+
+      .app {
+        display: grid;
+        grid-template-columns: 15rem minmax(0, 1fr);
+        min-height: calc(100vh - 3.5rem);
+      }
+
+      .sidebar {
+        display: flex;
+        flex-direction: column;
+        min-height: calc(100vh - 3.5rem);
+        background: var(--sidebar);
+        color: #fff;
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+      }
+
+      .brand-icon {
+        flex: none;
+        width: 1.125rem;
+        height: 1.125rem;
+        color: var(--accent);
+      }
+
+      .brand-name {
+        font-size: 1.125rem;
+        font-weight: 500;
+        line-height: 1.3;
+      }
+
+      .nav {
+        display: flex;
+        flex: 1;
+        flex-direction: column;
+        padding: 0.75rem 0;
+      }
+
+      .nav-label {
+        margin: 0;
+        padding: 0.5rem 1.5rem;
+        color: rgba(255, 255, 255, 0.46);
+        font-size: 0.6875rem;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .nav-item {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        width: 100%;
+        padding: 0.6875rem 1.5rem;
+        color: rgba(255, 255, 255, 0.82);
+        font-size: 0.875rem;
+        line-height: 1.4;
+        text-decoration: none;
+        cursor: pointer;
+        user-select: none;
+      }
+
+      .nav-item svg {
+        flex: none;
+        width: 1.125rem;
+        height: 1.125rem;
+      }
+
+      .nav-item:hover {
+        background: var(--menu-hover);
+        color: #fff;
+      }
+
+      .nav-item.is-active {
+        background: var(--sidebar-active);
+        color: #fff;
+      }
+
+      .main {
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+      }
+
+      .content {
+        width: 100%;
+        max-width: 72rem;
+        padding: 1.75rem 2rem 3rem;
+      }
+
+      .button {
+        padding: 0.625rem 1.25rem;
+        border: 0;
+        border-radius: 0;
+        background: var(--accent);
+        color: var(--on-accent);
+        font: inherit;
+        font-size: 0.8125rem;
+        font-weight: 500;
+        letter-spacing: 0.05em;
+        line-height: 1.4;
+        text-transform: uppercase;
+        cursor: pointer;
+      }
+
+      .button:hover {
+        background: var(--accent-hover);
+      }
+
+      .button:active {
+        background: var(--accent-active);
+      }
+
+      .user-menu {
+        position: relative;
+      }
+
+      .user-menu summary {
+        display: grid;
+        place-items: center;
+        width: 2.25rem;
+        height: 2.25rem;
+        color: rgba(255, 255, 255, 0.86);
+        list-style: none;
+        cursor: pointer;
+        user-select: none;
+      }
+
+      .user-menu summary::-webkit-details-marker {
+        display: none;
+      }
+
+      .user-menu summary::marker {
+        content: '';
+      }
+
+      .user-menu summary:hover,
+      .user-menu[open] summary {
+        color: #fff;
+      }
+
+      .user-menu svg {
+        width: 1.5rem;
+        height: 1.5rem;
+      }
+
+      .user-panel {
+        position: absolute;
+        top: 2.75rem;
+        right: 0;
+        z-index: 10;
+        width: 15rem;
+        background: var(--sidebar);
+        color: #fff;
+        box-shadow: var(--shadow);
+      }
+
+      .user-summary {
+        display: grid;
+        gap: 0.125rem;
+        padding: 0.875rem 1rem;
+      }
+
+      .user-name {
+        font-size: 0.875rem;
+        font-weight: 500;
+        line-height: 1.4;
+      }
+
+      .user-meta {
+        color: rgba(255, 255, 255, 0.56);
+        font-size: 0.75rem;
+        line-height: 1.4;
+      }
+
+      .user-menu-list {
+        display: flex;
+        flex-direction: column;
+        padding: 0.5rem 0;
+      }
+
+      .user-menu-item {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        width: 100%;
+        padding: 0.625rem 1rem;
+        color: rgba(255, 255, 255, 0.82);
+        font-size: 0.875rem;
+        line-height: 1.4;
+        text-decoration: none;
+        cursor: pointer;
+        user-select: none;
+      }
+
+      .user-menu-item svg {
+        flex: none;
+        width: 1.125rem;
+        height: 1.125rem;
+      }
+
+      .user-menu-item:hover {
+        background: var(--menu-hover);
+        color: #fff;
+      }
+
+      .stats {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 1rem;
+        margin-bottom: 1rem;
+      }
+
+      .stat {
+        padding: 1.25rem 1.5rem;
+        background: var(--surface);
+        box-shadow: var(--shadow);
+      }
+
+      .stat-label {
+        display: block;
+        color: var(--muted);
+        font-size: 0.8125rem;
+        line-height: 1.4;
+      }
+
+      .stat-value {
+        display: block;
+        margin-top: 0.5rem;
+        font-size: 1.75rem;
+        font-weight: 300;
+        line-height: 1.2;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 1rem;
+      }
+
+      .panel {
+        padding: 1.5rem;
+        background: var(--surface);
+        box-shadow: var(--shadow);
+      }
+
+      .panel-wide {
+        grid-column: 1 / -1;
+        margin-top: 1rem;
+      }
+
+      .panel h2 {
+        margin: 0 0 1.25rem;
+        font-size: 1.0625rem;
+        font-weight: 500;
+        line-height: 1.4;
+      }
+
+      .details {
+        display: grid;
+        gap: 0.875rem;
+        margin: 0;
+      }
+
+      .details > div {
+        display: grid;
+        grid-template-columns: 8.5rem minmax(0, 1fr);
+        gap: 1rem;
+      }
+
+      .details dt {
+        color: var(--muted);
+        font-size: 0.875rem;
+        line-height: 1.5;
+      }
+
+      .details dd {
+        margin: 0;
+        overflow-wrap: anywhere;
+        font-size: 0.875rem;
+        line-height: 1.5;
+      }
+
+      .note {
+        margin: 0;
+        color: var(--muted);
+        font-size: 0.875rem;
+        line-height: 1.6;
+      }
+
+      a:focus-visible,
+      button:focus-visible {
+        outline: 2pt solid var(--accent);
+        outline-offset: 2pt;
+      }
+
+      @media (max-width: 60em) {
+        .app {
+          grid-template-columns: minmax(0, 1fr);
+        }
+
+        .sidebar {
+          min-height: auto;
+        }
+
+        .nav {
+          flex-direction: row;
+          flex-wrap: wrap;
+          padding: 0;
+        }
+
+        .nav-label {
+          display: none;
+        }
+
+        .nav-item {
+          width: auto;
+          flex: 1;
+          justify-content: center;
+        }
+
+        .stats,
+        .grid {
+          grid-template-columns: minmax(0, 1fr);
+        }
+
+        .panel-wide {
+          margin-top: 0;
+        }
+      }
+
+      @media (max-width: 37.5em) {
+        .content {
+          padding: 1.25rem 1rem 2rem;
+        }
+
+        .topbar {
+          padding: 0 1rem;
+        }
+
+        .nav-item span {
+          display: none;
+        }
+
+        .details > div {
+          grid-template-columns: minmax(0, 1fr);
+          gap: 0.125rem;
+        }
+      }
+
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --canvas: #181818;
+          --surface: #282828;
+          --sidebar: #000;
+          --sidebar-active: #333;
+          --topbar: #000;
+          --text: #e7e7e7;
+          --muted: #a0a4a8;
+        }
+
+        body {
+          color-scheme: dark;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand">
+        <svg class="brand-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+        </svg>
+        <span class="brand-name">Auth</span>
+      </div>
+      <details class="user-menu" open>
+        <summary aria-label="Account menu">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="10" />
+            <circle cx="12" cy="10" r="3" />
+            <path d="M7 20.662V19a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v1.662" />
+          </svg>
+        </summary>
+        <div class="user-panel">
+          <div class="user-summary">
+            <span class="user-name">System Admin</span>
+            <span class="user-meta">admin@system.test</span>
+          </div>
+          <div class="user-menu-list">
+            <a class="user-menu-item" href="#">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
+                <circle cx="12" cy="12" r="3" />
+              </svg>
+              <span>Account settings</span>
+            </a>
+            <a class="user-menu-item" href="#">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                <path d="m16 17 5-5-5-5" />
+                <path d="M21 12H9" />
+              </svg>
+              <span>Sign out</span>
+            </a>
+          </div>
+        </div>
+      </details>
+    </header>
+
+    <div class="app">
+      <aside class="sidebar">
+        <nav class="nav" aria-label="Administration">
+          <p class="nav-label">Administration</p>
+          <a class="nav-item is-active" href="#" aria-current="page">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="3" y="3" width="7" height="7" />
+              <rect x="14" y="3" width="7" height="7" />
+              <rect x="3" y="14" width="7" height="7" />
+              <rect x="14" y="14" width="7" height="7" />
+            </svg>
+            <span>Overview</span>
+          </a>
+          <a class="nav-item" href="#">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M22 12h-4l-3 8-6-16-3 8H2" />
+            </svg>
+            <span>Sessions</span>
+          </a>
+          <a class="nav-item" href="#">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="9" />
+              <path d="M3 12h18" />
+              <path d="M12 3a15 15 0 0 1 0 18a15 15 0 0 1 0-18" />
+            </svg>
+            <span>Realms</span>
+          </a>
+          <a class="nav-item" href="#">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+              <circle cx="12" cy="7" r="4" />
+            </svg>
+            <span>Users</span>
+          </a>
+          <a class="nav-item" href="#">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="8" cy="15" r="4" />
+              <path d="m11 12 9-9" />
+              <path d="m17 6 3 3" />
+            </svg>
+            <span>Clients</span>
+          </a>
+        </nav>
+      </aside>
+
+      <div class="main">
+        <main class="content">
+          <section class="stats" aria-label="Provider summary">
+            <article class="stat">
+              <span class="stat-label">Realms</span>
+              <strong class="stat-value">2</strong>
+            </article>
+            <article class="stat">
+              <span class="stat-label">Users</span>
+              <strong class="stat-value">6</strong>
+            </article>
+            <article class="stat">
+              <span class="stat-label">OIDC clients</span>
+              <strong class="stat-value">6</strong>
+            </article>
+            <article class="stat">
+              <span class="stat-label">Active sessions</span>
+              <strong class="stat-value">3</strong>
+            </article>
+          </section>
+
+          <div class="grid">
+            <section class="panel">
+              <h2>Account</h2>
+              <dl class="details">
+                <div>
+                  <dt>User</dt>
+                  <dd>System Admin</dd>
+                </div>
+                <div>
+                  <dt>Email</dt>
+                  <dd>admin@system.test</dd>
+                </div>
+                <div>
+                  <dt>Username</dt>
+                  <dd>admin</dd>
+                </div>
+                <div>
+                  <dt>Role</dt>
+                  <dd>System administrator</dd>
+                </div>
+              </dl>
+            </section>
+
+            <section class="panel">
+              <h2>Access</h2>
+              <dl class="details">
+                <div>
+                  <dt>Client</dt>
+                  <dd>admin</dd>
+                </div>
+                <div>
+                  <dt>Refresh</dt>
+                  <dd>Automatic</dd>
+                </div>
+                <div>
+                  <dt>Scope</dt>
+                  <dd>openid profile email</dd>
+                </div>
+                <div>
+                  <dt>Session</dt>
+                  <dd>Active</dd>
+                </div>
+              </dl>
+            </section>
+          </div>
+
+          <section class="panel panel-wide">
+            <h2>Administration</h2>
+            <p class="note">
+              Manage realms, sessions, users and OIDC clients from the navigation.
+            </p>
+          </section>
+        </main>
+      </div>
+    </div>
+    <script>
+      const userMenu = document.querySelector('.user-menu');
+      document.addEventListener('click', (event) => {
+        if (userMenu.open && !userMenu.contains(event.target)) {
+          userMenu.open = false;
+        }
+      });
+    </script>
+  </body>
+</html>
