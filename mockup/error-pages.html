@@ -48,13 +48,13 @@
         display: grid;
         place-items: center;
         min-height: 100vh;
-        padding: 2rem;
+        padding: 0;
         background-color: var(--surface);
       }
 
       .status-panel,
       .login-card {
-        width: min(28rem, 100%);
+        width: min(calc(100% - 2rem), 28rem);
         padding: 2rem;
         background: var(--surface);
       }
@@ -64,7 +64,7 @@
       }
 
       .login-card {
-        width: min(24rem, 100%);
+        width: min(calc(100% - 2rem), 24rem);
       }
 
       .status-panel h1,
@@ -247,32 +247,6 @@
         .status-panel,
         .login-card {
           box-shadow: var(--shadow);
-        }
-      }
-
-      @media (max-width: 30em) {
-        .status-page {
-          padding: 1rem;
-        }
-
-        .status-panel,
-        .login-card {
-          padding: 1.5rem;
-        }
-
-        .status-panel h1 {
-          padding-right: 2.75rem;
-        }
-
-        .status-icon,
-        .spinner {
-          top: 1.5rem;
-          right: 1.5rem;
-        }
-
-        .status-actions .button {
-          flex: 1;
-          text-align: center;
         }
       }
 

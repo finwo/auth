@@ -57,14 +57,15 @@
 
       .app {
         display: grid;
-        grid-template-columns: 15rem minmax(0, 1fr);
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-rows: auto minmax(0, 1fr);
         min-height: calc(100vh - 3.5rem);
       }
 
       .sidebar {
         display: flex;
         flex-direction: column;
-        min-height: calc(100vh - 3.5rem);
+        min-height: auto;
         background: var(--sidebar);
         color: #fff;
       }
@@ -90,12 +91,13 @@
 
       .nav {
         display: flex;
-        flex: 1;
-        flex-direction: column;
+        flex-direction: row;
+        flex-wrap: wrap;
         padding: 0.75rem 0;
       }
 
       .nav-label {
+        display: none;
         margin: 0;
         padding: 0.5rem 1.5rem;
         color: rgba(255, 255, 255, 0.46);
@@ -108,8 +110,10 @@
       .nav-item {
         display: flex;
         align-items: center;
+        justify-content: center;
         gap: 0.75rem;
-        width: 100%;
+        width: auto;
+        flex: 1;
         padding: 0.6875rem 1.5rem;
         color: rgba(255, 255, 255, 0.82);
         font-size: 0.875rem;
@@ -117,6 +121,10 @@
         text-decoration: none;
         cursor: pointer;
         user-select: none;
+      }
+
+      .nav-item span {
+        display: none;
       }
 
       .nav-item svg {
@@ -309,12 +317,22 @@
         gap: 0.75rem;
         width: 100%;
         padding: 0.625rem 1rem;
+        border: 0;
+        background: transparent;
         color: rgba(255, 255, 255, 0.82);
+        font: inherit;
         font-size: 0.875rem;
         line-height: 1.4;
+        text-align: left;
         text-decoration: none;
         cursor: pointer;
         user-select: none;
+      }
+
+      .user-menu-value {
+        margin-left: auto;
+        color: rgba(255, 255, 255, 0.56);
+        font-size: 0.75rem;
       }
 
       .user-menu-item svg {
@@ -330,7 +348,7 @@
 
       .stats {
         display: grid;
-        grid-template-columns: repeat(4, minmax(0, 1fr));
+        grid-template-columns: minmax(0, 1fr);
         gap: 1rem;
         margin-bottom: 1rem;
       }
@@ -358,7 +376,7 @@
 
       .grid {
         display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+        grid-template-columns: minmax(0, 1fr);
         gap: 1rem;
       }
 
@@ -388,7 +406,7 @@
 
       .details > div {
         display: grid;
-        grid-template-columns: 8.5rem minmax(0, 1fr);
+        grid-template-columns: minmax(0, 1fr);
         gap: 1rem;
       }
 
@@ -418,57 +436,48 @@
         outline-offset: 2pt;
       }
 
-      @media (max-width: 60em) {
-        .app {
-          grid-template-columns: minmax(0, 1fr);
-        }
-
-        .sidebar {
-          min-height: auto;
-        }
-
-        .nav {
-          flex-direction: row;
-          flex-wrap: wrap;
-          padding: 0;
-        }
-
-        .nav-label {
-          display: none;
-        }
-
-        .nav-item {
-          width: auto;
-          flex: 1;
-          justify-content: center;
-        }
-
-        .stats,
-        .grid {
-          grid-template-columns: minmax(0, 1fr);
-        }
-
-        .panel-wide {
-          margin-top: 0;
-        }
-      }
-
-      @media (max-width: 37.5em) {
-        .content {
-          padding: 1.25rem 1rem 2rem;
-        }
-
-        .topbar {
-          padding: 0 1rem;
-        }
-
+      @media (min-width: 40em) {
         .nav-item span {
-          display: none;
+          display: inline;
         }
 
         .details > div {
-          grid-template-columns: minmax(0, 1fr);
-          gap: 0.125rem;
+          grid-template-columns: 8.5rem minmax(0, 1fr);
+        }
+      }
+
+      @media (min-width: 60em) {
+        .app {
+          grid-template-columns: 15rem minmax(0, 1fr);
+          grid-template-rows: minmax(0, 1fr);
+        }
+
+        .sidebar {
+          min-height: calc(100vh - 3.5rem);
+        }
+
+        .nav {
+          flex: 1;
+          flex-direction: column;
+          flex-wrap: nowrap;
+        }
+
+        .nav-label {
+          display: block;
+        }
+
+        .nav-item {
+          width: 100%;
+          flex: none;
+          justify-content: flex-start;
+        }
+
+        .stats {
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+        }
+
+        .grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
         }
       }
 
@@ -526,6 +535,21 @@
               </svg>
               <span>Account settings</span>
             </a>
+            <button class="user-menu-item" type="button" data-user-theme>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="12" cy="12" r="4" />
+                <path d="M12 2v2" />
+                <path d="M12 20v2" />
+                <path d="m4.93 4.93 1.41 1.41" />
+                <path d="m17.66 17.66 1.41 1.41" />
+                <path d="M2 12h2" />
+                <path d="M20 12h2" />
+                <path d="m6.34 17.66-1.41 1.41" />
+                <path d="m19.07 4.93-1.41 1.41" />
+              </svg>
+              <span>Theme</span>
+              <span class="user-menu-value" data-user-theme-value>Auto</span>
+            </button>
             <a class="user-menu-item" href="#">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
@@ -676,8 +700,12 @@
     <script>
       const root = document.documentElement;
       const themeButtons = document.querySelectorAll('[data-theme-target]');
+      const userThemeButton = document.querySelector('[data-user-theme]');
+      const userThemeValue = document.querySelector('[data-user-theme-value]');
+      let currentTheme = 'auto';
 
       function setTheme(value) {
+        currentTheme = value;
         if (value === 'auto') {
           root.removeAttribute('data-theme');
         } else {
@@ -687,10 +715,18 @@
         themeButtons.forEach((button) => {
           button.classList.toggle('is-active', button.dataset.themeTarget === value);
         });
+        if (userThemeValue) {
+          userThemeValue.textContent = value.charAt(0).toUpperCase() + value.slice(1);
+        }
       }
 
       themeButtons.forEach((button) => {
         button.addEventListener('click', () => setTheme(button.dataset.themeTarget));
+      });
+
+      userThemeButton?.addEventListener('click', () => {
+        const themes = ['auto', 'light', 'dark'];
+        setTheme(themes[(themes.indexOf(currentTheme) + 1) % themes.length]);
       });
 
       const userMenu = document.querySelector('.user-menu');
