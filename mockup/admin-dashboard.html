@@ -73,13 +73,13 @@
         display: flex;
         align-items: center;
         gap: 0.75rem;
+        color: #fff;
       }
 
       .brand-icon {
         flex: none;
         width: 1.125rem;
         height: 1.125rem;
-        color: var(--accent);
       }
 
       .brand-name {
@@ -144,7 +144,26 @@
       .content {
         width: 100%;
         max-width: 72rem;
+        margin: 0 auto;
         padding: 1.75rem 2rem 3rem;
+      }
+
+      .page-header {
+        margin-bottom: 1.5rem;
+      }
+
+      .page-header h1 {
+        margin: 0;
+        font-size: 1.5rem;
+        font-weight: 400;
+        line-height: 1.3;
+      }
+
+      .page-header p {
+        margin: 0.25rem 0 0;
+        color: var(--muted);
+        font-size: 0.875rem;
+        line-height: 1.5;
       }
 
       .button {
@@ -168,6 +187,52 @@
 
       .button:active {
         background: var(--accent-active);
+      }
+
+      .mockup-controls {
+        position: fixed;
+        right: 1rem;
+        bottom: 1rem;
+        z-index: 100;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.25rem;
+        max-width: calc(100vw - 2rem);
+        padding: 0.375rem;
+        background: #000;
+        color: #fff;
+        box-shadow: var(--shadow);
+        font-size: 0.75rem;
+      }
+
+      .mockup-label {
+        padding: 0 0.5rem;
+        color: rgba(255, 255, 255, 0.5);
+        font-size: 0.6875rem;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .mockup-button {
+        padding: 0.375rem 0.625rem;
+        border: 0;
+        background: transparent;
+        color: rgba(255, 255, 255, 0.76);
+        font: inherit;
+        font-size: 0.75rem;
+        cursor: pointer;
+      }
+
+      .mockup-button:hover {
+        background: var(--menu-hover);
+        color: #fff;
+      }
+
+      .mockup-button.is-active {
+        background: var(--sidebar-active);
+        color: #fff;
       }
 
       .user-menu {
@@ -408,7 +473,7 @@
       }
 
       @media (prefers-color-scheme: dark) {
-        :root {
+        :root:not([data-theme]) {
           --canvas: #181818;
           --surface: #282828;
           --sidebar: #000;
@@ -416,11 +481,19 @@
           --topbar: #000;
           --text: #e7e7e7;
           --muted: #a0a4a8;
-        }
-
-        body {
           color-scheme: dark;
         }
+      }
+
+      :root[data-theme="dark"] {
+        --canvas: #181818;
+        --surface: #282828;
+        --sidebar: #000;
+        --sidebar-active: #333;
+        --topbar: #000;
+        --text: #e7e7e7;
+        --muted: #a0a4a8;
+        color-scheme: dark;
       }
     </style>
   </head>
@@ -513,6 +586,11 @@
 
       <div class="main">
         <main class="content">
+          <div class="page-header">
+            <h1>Overview</h1>
+            <p>Provider summary and administration.</p>
+          </div>
+
           <section class="stats" aria-label="Provider summary">
             <article class="stat">
               <span class="stat-label">Realms</span>
@@ -587,7 +665,34 @@
         </main>
       </div>
     </div>
+
+    <div class="mockup-controls" aria-label="Mockup theme">
+      <span class="mockup-label">Mockup</span>
+      <button class="mockup-button is-active" type="button" data-theme-target="auto">Auto</button>
+      <button class="mockup-button" type="button" data-theme-target="light">Light</button>
+      <button class="mockup-button" type="button" data-theme-target="dark">Dark</button>
+    </div>
+
     <script>
+      const root = document.documentElement;
+      const themeButtons = document.querySelectorAll('[data-theme-target]');
+
+      function setTheme(value) {
+        if (value === 'auto') {
+          root.removeAttribute('data-theme');
+        } else {
+          root.setAttribute('data-theme', value);
+        }
+
+        themeButtons.forEach((button) => {
+          button.classList.toggle('is-active', button.dataset.themeTarget === value);
+        });
+      }
+
+      themeButtons.forEach((button) => {
+        button.addEventListener('click', () => setTheme(button.dataset.themeTarget));
+      });
+
       const userMenu = document.querySelector('.user-menu');
       document.addEventListener('click', (event) => {
         if (userMenu.open && !userMenu.contains(event.target)) {

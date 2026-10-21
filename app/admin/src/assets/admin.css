@@ -65,7 +65,6 @@ body {
   flex: none;
   width: 1.125rem;
   height: 1.125rem;
-  color: var(--admin-accent);
 }
 
 .admin-brand-name {
@@ -144,6 +143,7 @@ body {
 .admin-content {
   width: 100%;
   max-width: 72rem;
+  margin: 0 auto;
   padding: 1.75rem 2rem 3rem;
 }
 

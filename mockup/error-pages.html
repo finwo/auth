@@ -1,0 +1,458 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Error pages mockup</title>
+    <style>
+      :root {
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+        --page: #fff;
+        --surface: #fff;
+        --text: #1b1b1b;
+        --muted: #656a70;
+        --accent: #25a;
+        --accent-hover: #2a66cc;
+        --accent-active: #1b468c;
+        --on-accent: #fff;
+        --danger: #c9190b;
+        --field-line: rgba(0, 0, 0, 0.42);
+        --skeleton: #00000012;
+        --shadow: 0 0.125em 0.25em #0008;
+        --hex: url('./hex-grid-light.svg');
+      }
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        background: var(--page);
+        color: var(--text);
+        -webkit-font-smoothing: antialiased;
+      }
+
+      [hidden] {
+        display: none !important;
+      }
+
+      .status-page {
+        display: grid;
+        place-items: center;
+        min-height: 100vh;
+        padding: 2rem;
+        background-color: var(--surface);
+      }
+
+      .status-panel,
+      .login-card {
+        width: min(28rem, 100%);
+        padding: 2rem;
+        background: var(--surface);
+      }
+
+      .status-panel {
+        position: relative;
+      }
+
+      .login-card {
+        width: min(24rem, 100%);
+      }
+
+      .status-panel h1,
+      .login-card h1 {
+        margin: 0 0 1rem;
+        font-size: 1.5rem;
+        font-weight: 400;
+        line-height: 1.3;
+      }
+
+      .status-panel h1 {
+        padding-right: 3rem;
+      }
+
+      .status-icon {
+        position: absolute;
+        top: 2rem;
+        right: 2rem;
+        width: 2rem;
+        height: 2rem;
+        color: currentColor;
+      }
+
+      .spinner {
+        position: absolute;
+        top: 2rem;
+        right: 2rem;
+        width: 2rem;
+        height: 2rem;
+        border: 0.1875rem solid var(--skeleton);
+        border-top-color: var(--text);
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
+
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      .status-note,
+      .login-note {
+        margin: 0;
+        color: var(--muted);
+        font-size: 0.875rem;
+        line-height: 1.6;
+      }
+
+      .status-error {
+        margin: 0;
+        color: var(--danger);
+        font-size: 0.875rem;
+        line-height: 1.6;
+      }
+
+      .login-note {
+        margin-bottom: 0.5rem;
+      }
+
+      .status-actions {
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+        gap: 1rem;
+        margin-top: 1.5rem;
+      }
+
+      .button {
+        display: inline-block;
+        padding: 0.625rem 1.25rem;
+        border: 0;
+        border-radius: 0;
+        background: var(--accent);
+        color: var(--on-accent);
+        font: inherit;
+        font-size: 0.8125rem;
+        font-weight: 500;
+        letter-spacing: 0.05em;
+        line-height: 1.4;
+        text-decoration: none;
+        text-transform: uppercase;
+        cursor: pointer;
+      }
+
+      .button:hover {
+        background: var(--accent-hover);
+      }
+
+      .button:active {
+        background: var(--accent-active);
+      }
+
+      .field {
+        display: grid;
+        gap: 0.125rem;
+        padding: 0.75rem 0;
+        border-bottom: 1pt solid var(--field-line);
+      }
+
+      .field-label {
+        color: var(--muted);
+        font-size: 0.75rem;
+        line-height: 1.4;
+      }
+
+      .field-value {
+        font-size: 1rem;
+        line-height: 1.5;
+      }
+
+      .mockup-controls {
+        position: fixed;
+        right: 1rem;
+        bottom: 1rem;
+        z-index: 100;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.25rem;
+        max-width: calc(100vw - 2rem);
+        padding: 0.375rem;
+        background: #000;
+        color: #fff;
+        box-shadow: var(--shadow);
+        font-size: 0.75rem;
+      }
+
+      .mockup-label {
+        padding: 0 0.5rem;
+        color: rgba(255, 255, 255, 0.5);
+        font-size: 0.6875rem;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .mockup-button {
+        padding: 0.375rem 0.625rem;
+        border: 0;
+        background: transparent;
+        color: rgba(255, 255, 255, 0.76);
+        font: inherit;
+        font-size: 0.75rem;
+        cursor: pointer;
+      }
+
+      .mockup-button:hover {
+        background: #8884;
+        color: #fff;
+      }
+
+      .mockup-button.is-active {
+        background: #333;
+        color: #fff;
+      }
+
+      .mockup-separator {
+        width: 0.0625rem;
+        height: 1.25rem;
+        margin: 0 0.25rem;
+        background: rgba(255, 255, 255, 0.18);
+      }
+
+      a:focus-visible,
+      button:focus-visible {
+        outline: 2pt solid var(--accent);
+        outline-offset: 2pt;
+      }
+
+      @media (min-width: 35em) {
+        .status-page {
+          background-color: var(--page);
+          background-image: var(--hex);
+          background-position: center;
+          background-repeat: no-repeat;
+          background-size: cover;
+        }
+
+        .status-panel,
+        .login-card {
+          box-shadow: var(--shadow);
+        }
+      }
+
+      @media (max-width: 30em) {
+        .status-page {
+          padding: 1rem;
+        }
+
+        .status-panel,
+        .login-card {
+          padding: 1.5rem;
+        }
+
+        .status-panel h1 {
+          padding-right: 2.75rem;
+        }
+
+        .status-icon,
+        .spinner {
+          top: 1.5rem;
+          right: 1.5rem;
+        }
+
+        .status-actions .button {
+          flex: 1;
+          text-align: center;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .spinner {
+          animation: none;
+        }
+      }
+
+      @media (prefers-color-scheme: dark) {
+        :root:not([data-theme]) {
+          --page: #000;
+          --surface: #282828;
+          --text: #e7e7e7;
+          --muted: #a0a4a8;
+          --danger: #f28b82;
+          --field-line: rgba(255, 255, 255, 0.42);
+          --skeleton: #ffffff14;
+          --hex: url('./hex-grid-dark.svg');
+          color-scheme: dark;
+        }
+      }
+
+      :root[data-theme="dark"] {
+        --page: #000;
+        --surface: #282828;
+        --text: #e7e7e7;
+        --muted: #a0a4a8;
+        --danger: #f28b82;
+        --field-line: rgba(255, 255, 255, 0.42);
+        --skeleton: #ffffff14;
+        --hex: url('./hex-grid-dark.svg');
+        color-scheme: dark;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="mockup-controls" aria-label="Mockup state">
+      <span class="mockup-label">Mockup</span>
+      <button class="mockup-button is-active" type="button" data-view-target="login-error">Login error</button>
+      <button class="mockup-button" type="button" data-view-target="login-inline">Login inline</button>
+      <button class="mockup-button" type="button" data-view-target="account-loading">Account loading</button>
+      <button class="mockup-button" type="button" data-view-target="account-error">Account error</button>
+      <button class="mockup-button" type="button" data-view-target="admin-loading">Admin loading</button>
+      <button class="mockup-button" type="button" data-view-target="admin-error">Admin error</button>
+      <span class="mockup-separator" aria-hidden="true"></span>
+      <button class="mockup-button is-active" type="button" data-theme-target="auto">Auto</button>
+      <button class="mockup-button" type="button" data-theme-target="light">Light</button>
+      <button class="mockup-button" type="button" data-theme-target="dark">Dark</button>
+    </div>
+
+    <section class="status-page" data-view="login-error">
+      <div class="status-panel">
+        <svg class="status-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="10" />
+          <path d="M12 8v4" />
+          <path d="M12 16h.01" />
+        </svg>
+        <h1>Sign-in unavailable</h1>
+        <p class="status-error" role="alert">The sign-in service could not be reached. Try again in a moment.</p>
+        <div class="status-actions">
+          <a class="button" href="#">Try again</a>
+        </div>
+      </div>
+    </section>
+
+    <section class="status-page" data-view="login-inline" hidden>
+      <div class="login-card">
+        <h1>Sign in</h1>
+        <p class="login-note">Continue to Acme.</p>
+        <div class="field">
+          <span class="field-label">Username</span>
+          <span class="field-value">demo</span>
+        </div>
+        <div class="field">
+          <span class="field-label">Password</span>
+          <span class="field-value">••••••••</span>
+        </div>
+        <p class="status-error" role="alert">The username or password is incorrect.</p>
+        <div class="status-actions">
+          <button class="button" type="button">Sign in</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="status-page" data-view="account-loading" hidden aria-busy="true">
+      <div class="status-panel">
+        <div class="spinner" aria-hidden="true"></div>
+        <h1>Completing sign-in</h1>
+        <p class="status-note">Establishing the account session.</p>
+      </div>
+    </section>
+
+    <section class="status-page" data-view="account-error" hidden>
+      <div class="status-panel">
+        <svg class="status-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="10" />
+          <path d="M12 8v4" />
+          <path d="M12 16h.01" />
+        </svg>
+        <h1>Sign-in failed</h1>
+        <p class="status-error" role="alert">The sign-in request is no longer valid.</p>
+        <div class="status-actions">
+          <a class="button" href="#">Return to account</a>
+        </div>
+      </div>
+    </section>
+
+    <section class="status-page" data-view="admin-loading" hidden aria-busy="true">
+      <div class="status-panel">
+        <div class="spinner" aria-hidden="true"></div>
+        <h1>Completing sign-in</h1>
+        <p class="status-note">Establishing the administrative session.</p>
+      </div>
+    </section>
+
+    <section class="status-page" data-view="admin-error" hidden>
+      <div class="status-panel">
+        <svg class="status-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="10" />
+          <path d="M12 8v4" />
+          <path d="M12 16h.01" />
+        </svg>
+        <h1>Sign-in failed</h1>
+        <p class="status-error" role="alert">The sign-in request is no longer valid.</p>
+        <div class="status-actions">
+          <a class="button" href="#">Return to administration</a>
+        </div>
+      </div>
+    </section>
+
+    <script>
+      const root = document.documentElement;
+      const viewButtons = document.querySelectorAll('[data-view-target]');
+      const views = document.querySelectorAll('[data-view]');
+      const themeButtons = document.querySelectorAll('[data-theme-target]');
+
+      function setView(name) {
+        views.forEach((view) => {
+          view.hidden = view.dataset.view !== name;
+        });
+
+        viewButtons.forEach((button) => {
+          button.classList.toggle('is-active', button.dataset.viewTarget === name);
+        });
+      }
+
+      function setTheme(value) {
+        if (value === 'auto') {
+          root.removeAttribute('data-theme');
+        } else {
+          root.setAttribute('data-theme', value);
+        }
+
+        themeButtons.forEach((button) => {
+          button.classList.toggle('is-active', button.dataset.themeTarget === value);
+        });
+      }
+
+      viewButtons.forEach((button) => {
+        button.addEventListener('click', () => setView(button.dataset.viewTarget));
+      });
+
+      themeButtons.forEach((button) => {
+        button.addEventListener('click', () => setTheme(button.dataset.themeTarget));
+      });
+
+      const params = new URLSearchParams(window.location.search);
+      const initialView = params.get('view');
+      const initialTheme = params.get('theme');
+      if (
+        ['login-error', 'login-inline', 'account-loading', 'account-error', 'admin-loading', 'admin-error'].includes(
+          initialView
+        )
+      ) {
+        setView(initialView);
+      }
+      if (['auto', 'light', 'dark'].includes(initialTheme)) {
+        setTheme(initialTheme);
+      }
+    </script>
+  </body>
+</html>
