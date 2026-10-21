@@ -24,6 +24,16 @@ interface TextFieldAttrs {
   oninput: (value: string) => void;
 }
 
+function queryParam(name: string) {
+  const query = (m.route.get() || '').split('?')[1] || '';
+  return new URLSearchParams(query).get(name);
+}
+
+function authorizeRoute() {
+  const path = (m.route.get() || '').split('?')[0];
+  return path.replace(/\/login$/, '/authorize');
+}
+
 const TextField: m.Component<TextFieldAttrs> = {
   view({ attrs }) {
     return (
@@ -58,10 +68,12 @@ export const Login: m.Component<{ realm?: string; clientId?: string }> = {
   signedIn: null as PasswordLoginResult['user'] | null,
   error: null as Error | null,
   pending: false,
+  reauth: false,
 
   oninit(this: any, vnode: any) {
     this.realmSlug = vnode.attrs.realm ?? null;
     this.clientId = vnode.attrs.clientId ?? null;
+    this.reauth = queryParam('reauth') === '1';
     this.loadClient();
   },
 
@@ -81,6 +93,10 @@ export const Login: m.Component<{ realm?: string; clientId?: string }> = {
   },
 
   async loadAccounts(this: any) {
+    if (this.reauth) {
+      this.accounts = [];
+      return;
+    }
     try {
       const session = await getSession();
       if (session.accounts.length >= 2) {
@@ -122,8 +138,7 @@ export const Login: m.Component<{ realm?: string; clientId?: string }> = {
       );
 
       if (result.pending_auth_request) {
-        const current = m.route.get() || '';
-        m.route.set(current.replace(/\/login$/, '/authorize'));
+        m.route.set(authorizeRoute());
         return;
       }
 
@@ -149,8 +164,7 @@ export const Login: m.Component<{ realm?: string; clientId?: string }> = {
     try {
       const result = await selectSession(account.public_id, this.clientId);
       if (result.pending_auth_request) {
-        const current = m.route.get() || '';
-        m.route.set(current.replace(/\/login$/, '/authorize'));
+        m.route.set(authorizeRoute());
         return;
       }
 
@@ -271,6 +285,9 @@ export const Login: m.Component<{ realm?: string; clientId?: string }> = {
           if (!this.pending && this.identifier.trim()) this.submitIdentifier();
         }}
       >
+        {this.reauth ? (
+          <p class="auth-note">Confirm your password to continue.</p>
+        ) : null}
         <TextField
           id="identifier"
           label="Email or username"
@@ -284,7 +301,7 @@ export const Login: m.Component<{ realm?: string; clientId?: string }> = {
         />
         {this.error ? <p class="auth-error">{this.error.message}</p> : null}
         <div class="auth-actions">
-          {this.accounts.length >= 2 ? (
+          {!this.reauth && this.accounts.length >= 2 ? (
             <button class="auth-link" type="button" onclick={() => this.backToAccounts()}>
               Back to accounts
             </button>

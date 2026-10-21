@@ -19,7 +19,11 @@ import {
   createHostSession,
   destroySession,
   getSessionByToken,
+  getSessionRealmBinding,
   listSessionAccounts,
+  reauthenticateSession,
+  revokeRealmSessions,
+  revokeSessionRealm,
   selectSessionAccount,
 } from '../src/lib/session.js';
 import { createUser, ensureMembership } from '../src/lib/users.js';
@@ -480,6 +484,190 @@ test('realm bindings are inserted once and updated on repeat', async () => {
     );
     assert.equal(rows.length, 1);
     assert.equal(rows[0].last_seen_at, 2000);
+  } finally {
+    await closeRealms();
+    await fs.rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('revoking one session realm leaves other realm bindings intact', async () => {
+  const { dir, realm, systemDb, userId } = await setup();
+  try {
+    const other = await createRealm({ slug: 'globex', displayName: 'Globex' });
+    const { session } = await createHostSession(systemDb, {
+      context: canonicalContext(),
+      userId,
+      ttl: SHORT_SESSION_TTL,
+    });
+
+    await bindSessionRealm(systemDb, session.id, realm.id, 1000);
+    await bindSessionRealm(systemDb, session.id, other.id, 1000);
+
+    const revoked = await revokeSessionRealm(systemDb, {
+      sessionId: session.id,
+      realmId: realm.id,
+      revokedBy: 'admin',
+      now: 2000,
+    });
+    assert.equal(revoked.revoked_at, 2000);
+    assert.equal(revoked.revoked_by, 'admin');
+
+    const acme = await getSessionRealmBinding(systemDb, session.id, realm.id);
+    assert.equal(acme.revoked_at, 2000);
+    const globex = await getSessionRealmBinding(systemDb, session.id, other.id);
+    assert.equal(globex.revoked_at, null);
+
+    const again = await revokeSessionRealm(systemDb, {
+      sessionId: session.id,
+      realmId: realm.id,
+      revokedBy: 'second-admin',
+      now: 3000,
+    });
+    assert.equal(again.revoked_at, 2000);
+    assert.equal(again.revoked_by, 'admin');
+  } finally {
+    await closeRealms();
+    await fs.rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('revoking an unbound session realm creates a revoked binding', async () => {
+  const { dir, realm, systemDb, userId } = await setup();
+  try {
+    const { session } = await createHostSession(systemDb, {
+      context: canonicalContext(),
+      userId,
+      ttl: SHORT_SESSION_TTL,
+    });
+
+    await revokeSessionRealm(systemDb, {
+      sessionId: session.id,
+      realmId: realm.id,
+      revokedBy: 'admin',
+      now: 4000,
+    });
+
+    const binding = await getSessionRealmBinding(systemDb, session.id, realm.id);
+    assert.equal(binding.created_at, 4000);
+    assert.equal(binding.last_seen_at, 4000);
+    assert.equal(binding.revoked_at, 4000);
+    assert.equal(binding.revoked_by, 'admin');
+  } finally {
+    await closeRealms();
+    await fs.rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('revoking a realm marks every unrevoked binding for that realm', async () => {
+  const { dir, realm, systemDb, userId } = await setup();
+  try {
+    const other = await createRealm({ slug: 'globex', displayName: 'Globex' });
+    const first = await createHostSession(systemDb, {
+      context: canonicalContext('identity.test'),
+      userId,
+      ttl: SHORT_SESSION_TTL,
+    });
+    const second = await createHostSession(systemDb, {
+      context: canonicalContext('other-identity.test'),
+      userId,
+      ttl: SHORT_SESSION_TTL,
+    });
+
+    await bindSessionRealm(systemDb, first.session.id, realm.id, 1000);
+    await bindSessionRealm(systemDb, first.session.id, other.id, 1000);
+    await bindSessionRealm(systemDb, second.session.id, realm.id, 1000);
+
+    const changed = await revokeRealmSessions(systemDb, {
+      realmId: realm.id,
+      revokedBy: 'admin',
+      now: 5000,
+    });
+    assert.equal(changed, 2);
+
+    const firstAcme = await getSessionRealmBinding(systemDb, first.session.id, realm.id);
+    const secondAcme = await getSessionRealmBinding(systemDb, second.session.id, realm.id);
+    const firstGlobex = await getSessionRealmBinding(systemDb, first.session.id, other.id);
+    assert.equal(firstAcme.revoked_at, 5000);
+    assert.equal(secondAcme.revoked_at, 5000);
+    assert.equal(firstGlobex.revoked_at, null);
+  } finally {
+    await closeRealms();
+    await fs.rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('reauthentication clears only the target realm and refreshes auth_time', async () => {
+  const { dir, realm, systemDb, userId } = await setup();
+  try {
+    const other = await createRealm({ slug: 'globex', displayName: 'Globex' });
+    const { session } = await createHostSession(systemDb, {
+      context: canonicalContext(),
+      userId,
+      ttl: SHORT_SESSION_TTL,
+    });
+
+    await bindSessionRealm(systemDb, session.id, realm.id, 1000);
+    await bindSessionRealm(systemDb, session.id, other.id, 1000);
+    await revokeSessionRealm(systemDb, {
+      sessionId: session.id,
+      realmId: realm.id,
+      revokedBy: 'admin',
+      now: 2000,
+    });
+    await revokeSessionRealm(systemDb, {
+      sessionId: session.id,
+      realmId: other.id,
+      revokedBy: 'admin',
+      now: 2000,
+    });
+
+    const authTime = await reauthenticateSession(systemDb, {
+      sessionId: session.id,
+      realmId: realm.id,
+      now: 9000,
+    });
+    assert.equal(authTime, 9);
+
+    const acme = await getSessionRealmBinding(systemDb, session.id, realm.id);
+    const globex = await getSessionRealmBinding(systemDb, session.id, other.id);
+    assert.equal(acme.revoked_at, null);
+    assert.equal(acme.revoked_by, null);
+    assert.equal(acme.last_seen_at, 9000);
+    assert.equal(globex.revoked_at, 2000);
+
+    const updated = await systemDb.get(
+      'SELECT auth_time, last_seen_at FROM sessions WHERE id = {id}',
+      { id: session.id }
+    );
+    assert.equal(updated.auth_time, 9);
+    assert.equal(updated.last_seen_at, 9000);
+  } finally {
+    await closeRealms();
+    await fs.rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('binding a revoked realm does not clear the revocation', async () => {
+  const { dir, realm, systemDb, userId } = await setup();
+  try {
+    const { session } = await createHostSession(systemDb, {
+      context: canonicalContext(),
+      userId,
+      ttl: SHORT_SESSION_TTL,
+    });
+
+    await bindSessionRealm(systemDb, session.id, realm.id, 1000);
+    await revokeSessionRealm(systemDb, {
+      sessionId: session.id,
+      realmId: realm.id,
+      revokedBy: 'admin',
+      now: 2000,
+    });
+    await bindSessionRealm(systemDb, session.id, realm.id, 3000);
+
+    const binding = await getSessionRealmBinding(systemDb, session.id, realm.id);
+    assert.equal(binding.revoked_at, 2000);
+    assert.equal(binding.last_seen_at, 1000);
   } finally {
     await closeRealms();
     await fs.rm(dir, { recursive: true, force: true });

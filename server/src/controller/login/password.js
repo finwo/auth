@@ -16,6 +16,7 @@ import {
   SHORT_SESSION_TTL,
   createHostSession,
   purgeExpiredSessions,
+  reauthenticateSession,
   requestIp,
   requestToken,
   setSessionCookie,
@@ -130,12 +131,16 @@ export default {
       userAgent: req.headers['user-agent'] || null,
       ip: requestIp(req),
     });
+    const authTime = await reauthenticateSession(systemDb, {
+      sessionId: session.id,
+      realmId: realm.id,
+    });
     setSessionCookie(res, req, token, session.ttl);
     if (pendingClient && pending) {
       await selectAuthRequestAccount(realmDb, pending.id, {
         userId: user.id,
         sessionId: session.id,
-        authTime: session.auth_time,
+        authTime,
       });
     }
     await updateLastLogin(systemDb, user.id);

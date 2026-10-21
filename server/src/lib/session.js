@@ -526,6 +526,89 @@ export async function destroySession(systemDb, token) {
   });
 }
 
+export async function getSessionRealmBinding(systemDb, sessionId, realmId) {
+  return systemDb.get(
+    `SELECT session_id, realm_id, created_at, last_seen_at, revoked_at, revoked_by
+       FROM session_realms
+      WHERE session_id = {sessionId} AND realm_id = {realmId}`,
+    { sessionId, realmId }
+  );
+}
+
+export async function revokeSessionRealm(
+  systemDb,
+  { sessionId, realmId, revokedBy = null, now = Date.now() }
+) {
+  return systemDb.transaction(async (tx) => {
+    const existing = await getSessionRealmBinding(tx, sessionId, realmId);
+    if (existing) {
+      if (!existing.revoked_at) {
+        await tx.run(
+          `UPDATE session_realms
+              SET revoked_at = {now}, revoked_by = {revokedBy}
+            WHERE session_id = {sessionId} AND realm_id = {realmId}`,
+          { now, revokedBy, sessionId, realmId }
+        );
+        existing.revoked_at = now;
+        existing.revoked_by = revokedBy;
+      }
+      return existing;
+    }
+
+    await tx.run(
+      `INSERT INTO session_realms
+        (session_id, realm_id, created_at, last_seen_at, revoked_at, revoked_by)
+       VALUES
+        ({sessionId}, {realmId}, {now}, {now}, {now}, {revokedBy})`,
+      { sessionId, realmId, now, revokedBy }
+    );
+    return {
+      session_id: sessionId,
+      realm_id: realmId,
+      created_at: now,
+      last_seen_at: now,
+      revoked_at: now,
+      revoked_by: revokedBy,
+    };
+  });
+}
+
+export async function revokeRealmSessions(
+  systemDb,
+  { realmId, revokedBy = null, now = Date.now() }
+) {
+  const result = await systemDb.run(
+    `UPDATE session_realms
+        SET revoked_at = {now}, revoked_by = {revokedBy}
+      WHERE realm_id = {realmId} AND revoked_at IS NULL`,
+    { realmId, revokedBy, now }
+  );
+  return result.changes;
+}
+
+export async function reauthenticateSession(
+  systemDb,
+  { sessionId, realmId, now = Date.now() }
+) {
+  const authTime = Math.floor(now / 1000);
+
+  return systemDb.transaction(async (tx) => {
+    await tx.run(
+      `UPDATE sessions
+          SET auth_time = {authTime}, last_seen_at = {now}
+        WHERE id = {id}`,
+      { authTime, now, id: sessionId }
+    );
+    await tx.run(
+      `UPDATE session_realms
+          SET revoked_at = NULL, revoked_by = NULL, last_seen_at = {now}
+        WHERE session_id = {sessionId} AND realm_id = {realmId}`,
+      { now, sessionId, realmId }
+    );
+    return authTime;
+  });
+}
+
 export async function bindSessionRealm(systemDb, sessionId, realmId, now = Date.now()) {
   const existing = await systemDb.get(
     `SELECT session_id, realm_id, revoked_at

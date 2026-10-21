@@ -37,6 +37,7 @@ import {
   bindSessionRealm,
   clearSessionCookie,
   destroySession,
+  getSessionRealmBinding,
   listSessionAccounts,
   requestToken,
 } from '../lib/session.js';
@@ -254,6 +255,19 @@ async function authorize(context, client, req, res) {
   if (!selected && accounts.length >= 2) {
     setAuthRequestCookie(res, req, context.realm, pending.id);
     return redirect(res, endpointUrls(context).login);
+  }
+
+  const binding = await getSessionRealmBinding(
+    systemDb,
+    auth.session.id,
+    context.realm.id
+  );
+  if (binding?.revoked_at) {
+    await clearAuthRequestSelection(db, pending.id);
+    setAuthRequestCookie(res, req, context.realm, pending.id);
+    const login = new URL(endpointUrls(context).login);
+    login.searchParams.set('reauth', '1');
+    return redirect(res, login.toString());
   }
 
   await bindSessionRealm(systemDb, auth.session.id, context.realm.id);

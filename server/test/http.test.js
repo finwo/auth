@@ -161,6 +161,33 @@ function locationQuery(response) {
   return new URL(response.headers.location, 'http://localhost');
 }
 
+function cookieValue(cookie, name) {
+  const pair = cookie
+    .split('; ')
+    .find((value) => value.startsWith(`${name}=`));
+  return pair ? pair.slice(name.length + 1) : null;
+}
+
+function withSystemDatabase(env, fn) {
+  const database = new DatabaseSync(env.AUTH_DATABASE_PATH);
+  try {
+    return fn(database);
+  } finally {
+    database.close();
+  }
+}
+
+function activeSessionId(env, cookie) {
+  const token = cookieValue(cookie, 'auth_session');
+  const groupId = crypto.createHash('sha256').update(token).digest('hex');
+  return withSystemDatabase(env, (database) => {
+    const row = database
+      .prepare('SELECT active_session_id FROM session_groups WHERE id = ?')
+      .get(groupId);
+    return row.active_session_id;
+  });
+}
+
 test('HTTP realm, login, OIDC and logout flows', async (t) => {
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'auth-http-'));
   const port = await freePort();
@@ -472,6 +499,166 @@ test('HTTP realm, login, OIDC and logout flows', async (t) => {
         audience: 'internal-app',
       });
       assert.equal(payload.preferred_username, 'alice');
+    });
+
+    await t.test('a revoked realm binding requires password re-verification', async () => {
+      const login = await acme({
+        method: 'POST',
+        path: '/api/v1/login/password',
+        body: { client_id: 'internal-app', identifier: 'alice@acme.test', password: 'demo' },
+      });
+      assert.equal(login.status, 200);
+      let jar = mergeCookies('', login);
+
+      const { verifier, challenge } = pkce();
+      const redirectUri = `${origin('app.acme.localhost')}/callback`;
+      const authorizePath =
+        `/oidc/internal-app/authorize?response_type=code&client_id=internal-app` +
+        `&redirect_uri=${encodeURIComponent(redirectUri)}&scope=openid%20email` +
+        `&state=state-revoked&code_challenge=${challenge}&code_challenge_method=S256`;
+
+      const first = await acme({ path: authorizePath, cookie: jar });
+      assert.equal(first.status, 302);
+      assert.ok(locationQuery(first).searchParams.get('code'));
+
+      const sessionId = activeSessionId(env, jar);
+      const revokedAt = Date.now();
+      withSystemDatabase(env, (database) => {
+        database
+          .prepare(
+            `UPDATE session_realms
+                SET revoked_at = ?, revoked_by = ?
+              WHERE session_id = ?
+                AND realm_id = (SELECT id FROM realms WHERE slug = 'acme')`
+          )
+          .run(revokedAt, 'test-admin', sessionId);
+      });
+
+      const reauth = await acme({ path: authorizePath, cookie: jar });
+      assert.equal(reauth.status, 302);
+      const reauthLocation = locationQuery(reauth);
+      assert.equal(reauthLocation.pathname, '/oidc/internal-app/login');
+      assert.equal(reauthLocation.searchParams.get('reauth'), '1');
+      jar = mergeCookies(jar, reauth);
+
+      const relogin = await acme({
+        method: 'POST',
+        path: '/api/v1/login/password',
+        body: { client_id: 'internal-app', identifier: 'alice@acme.test', password: 'demo' },
+        cookie: jar,
+      });
+      assert.equal(relogin.status, 200);
+      assert.equal(relogin.json.pending_auth_request, true);
+      jar = mergeCookies(jar, relogin);
+
+      const second = await acme({ path: authorizePath, cookie: jar });
+      assert.equal(second.status, 302);
+      const code = locationQuery(second).searchParams.get('code');
+      assert.ok(code);
+
+      const binding = withSystemDatabase(env, (database) =>
+        database
+          .prepare(
+            `SELECT revoked_at
+               FROM session_realms
+              WHERE session_id = ?
+                AND realm_id = (SELECT id FROM realms WHERE slug = 'acme')`
+          )
+          .get(sessionId)
+      );
+      assert.equal(binding.revoked_at, null);
+
+      const tokenResponse = await acme({
+        method: 'POST',
+        path: '/oidc/internal-app/token',
+        form: {
+          grant_type: 'authorization_code',
+          code,
+          redirect_uri: redirectUri,
+          client_id: 'internal-app',
+          code_verifier: verifier,
+        },
+      });
+      assert.equal(tokenResponse.status, 200);
+    });
+
+    await t.test('the account chooser cannot bypass a revoked realm binding', async () => {
+      const aliceLogin = await acme({
+        method: 'POST',
+        path: '/api/v1/login/password',
+        body: { client_id: 'internal-app', identifier: 'alice@acme.test', password: 'demo' },
+      });
+      let jar = mergeCookies('', aliceLogin);
+      const itLogin = await acme({
+        method: 'POST',
+        path: '/api/v1/login/password',
+        body: { client_id: 'internal-app', identifier: 'it@acme.test', password: 'demo' },
+        cookie: jar,
+      });
+      jar = mergeCookies(jar, itLogin);
+
+      const { challenge } = pkce();
+      const redirectUri = `${origin('app.acme.localhost')}/callback`;
+      const authorizePath =
+        `/oidc/internal-app/authorize?response_type=code&client_id=internal-app` +
+        `&redirect_uri=${encodeURIComponent(redirectUri)}&scope=openid%20email` +
+        `&state=state-revoked-chooser&code_challenge=${challenge}&code_challenge_method=S256`;
+
+      const chooser = await acme({ path: authorizePath, cookie: jar });
+      assert.equal(chooser.status, 302);
+      assert.equal(locationQuery(chooser).pathname, '/oidc/internal-app/login');
+      jar = mergeCookies(jar, chooser);
+
+      const session = await acme({ path: '/api/v1/session', cookie: jar });
+      const itAccount = session.json.accounts.find(
+        (account) => account.user.username === 'acme-it'
+      );
+      const selected = await acme({
+        method: 'POST',
+        path: '/api/v1/session/select',
+        body: { public_id: itAccount.public_id, client_id: 'internal-app' },
+        cookie: jar,
+      });
+      assert.equal(selected.status, 200);
+      assert.equal(selected.json.pending_auth_request, true);
+
+      const authorized = await acme({ path: authorizePath, cookie: jar });
+      assert.equal(authorized.status, 302);
+      assert.ok(locationQuery(authorized).searchParams.get('code'));
+
+      const sessionId = activeSessionId(env, jar);
+      withSystemDatabase(env, (database) => {
+        database
+          .prepare(
+            `UPDATE session_realms
+                SET revoked_at = ?, revoked_by = ?
+              WHERE session_id = ?
+                AND realm_id = (SELECT id FROM realms WHERE slug = 'acme')`
+          )
+          .run(Date.now(), 'test-admin', sessionId);
+      });
+
+      const nextChooser = await acme({ path: authorizePath, cookie: jar });
+      assert.equal(nextChooser.status, 302);
+      const chooserLocation = locationQuery(nextChooser);
+      assert.equal(chooserLocation.pathname, '/oidc/internal-app/login');
+      assert.equal(chooserLocation.searchParams.get('reauth'), null);
+      jar = mergeCookies(jar, nextChooser);
+
+      const reselected = await acme({
+        method: 'POST',
+        path: '/api/v1/session/select',
+        body: { public_id: itAccount.public_id, client_id: 'internal-app' },
+        cookie: jar,
+      });
+      assert.equal(reselected.status, 200);
+      assert.equal(reselected.json.pending_auth_request, true);
+
+      const blocked = await acme({ path: authorizePath, cookie: jar });
+      assert.equal(blocked.status, 302);
+      const blockedLocation = locationQuery(blocked);
+      assert.equal(blockedLocation.pathname, '/oidc/internal-app/login');
+      assert.equal(blockedLocation.searchParams.get('reauth'), '1');
     });
 
     await t.test('unknown hosts are rejected by auth and session APIs', async () => {
