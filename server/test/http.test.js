@@ -355,6 +355,125 @@ test('HTTP realm, login, OIDC and logout flows', async (t) => {
       assert.equal(oldStyle.status, 401);
     });
 
+    await t.test('a host group holds multiple accounts and can switch', async () => {
+      const aliceLogin = await acme({
+        method: 'POST',
+        path: '/api/v1/login/password',
+        body: { client_id: 'internal-app', identifier: 'alice@acme.test', password: 'demo' },
+      });
+      assert.equal(aliceLogin.status, 200);
+      const aliceCookie = mergeCookies('', aliceLogin);
+
+      const itLogin = await acme({
+        method: 'POST',
+        path: '/api/v1/login/password',
+        body: { client_id: 'internal-app', identifier: 'it@acme.test', password: 'demo' },
+        cookie: aliceCookie,
+      });
+      assert.equal(itLogin.status, 200);
+      assert.equal(responseCookies(itLogin)[0], responseCookies(aliceLogin)[0]);
+      const cookie = mergeCookies(aliceCookie, itLogin);
+
+      const session = await acme({ path: '/api/v1/session', cookie });
+      assert.equal(session.status, 200);
+      assert.equal(session.json.user.username, 'acme-it');
+      assert.deepEqual(
+        session.json.accounts.map((account) => account.user.username),
+        ['alice', 'acme-it']
+      );
+      assert.equal(
+        session.json.accounts.find((account) => account.user.username === 'acme-it').active,
+        true
+      );
+
+      const aliceAccount = session.json.accounts.find(
+        (account) => account.user.username === 'alice'
+      );
+      const selected = await acme({
+        method: 'POST',
+        path: '/api/v1/session/select',
+        body: { public_id: aliceAccount.public_id, client_id: 'internal-app' },
+        cookie,
+      });
+      assert.equal(selected.status, 200);
+      assert.equal(selected.json.user.username, 'alice');
+      assert.equal(selected.json.pending_auth_request, false);
+
+      const switched = await acme({ path: '/api/v1/session', cookie });
+      assert.equal(switched.status, 200);
+      assert.equal(switched.json.user.username, 'alice');
+    });
+
+    await t.test('authorize asks which account to use when the group has multiple accounts', async () => {
+      const aliceLogin = await app({
+        method: 'POST',
+        path: '/api/v1/login/password',
+        body: { client_id: 'internal-app', identifier: 'alice@acme.test', password: 'demo' },
+      });
+      let jar = mergeCookies('', aliceLogin);
+      const itLogin = await app({
+        method: 'POST',
+        path: '/api/v1/login/password',
+        body: { client_id: 'internal-app', identifier: 'it@acme.test', password: 'demo' },
+        cookie: jar,
+      });
+      jar = mergeCookies(jar, itLogin);
+
+      const { verifier, challenge } = pkce();
+      const redirectUri = `${origin('app.acme.localhost')}/callback`;
+      const authorizePath =
+        `/oidc/authorize?response_type=code&client_id=internal-app` +
+        `&redirect_uri=${encodeURIComponent(redirectUri)}&scope=openid%20email` +
+        `&state=state-select&code_challenge=${challenge}&code_challenge_method=S256`;
+
+      const first = await app({ path: authorizePath, cookie: jar });
+      assert.equal(first.status, 302);
+      assert.equal(locationQuery(first).pathname, '/oidc/login');
+      jar = mergeCookies(jar, first);
+
+      const session = await app({ path: '/api/v1/session', cookie: jar });
+      const aliceAccount = session.json.accounts.find(
+        (account) => account.user.username === 'alice'
+      );
+      const selected = await app({
+        method: 'POST',
+        path: '/api/v1/session/select',
+        body: { public_id: aliceAccount.public_id, client_id: 'internal-app' },
+        cookie: jar,
+      });
+      assert.equal(selected.status, 200);
+      assert.equal(selected.json.pending_auth_request, true);
+      assert.equal(selected.json.user.username, 'alice');
+
+      const second = await app({ path: authorizePath, cookie: jar });
+      assert.equal(second.status, 302);
+      const redirected = locationQuery(second);
+      assert.equal(redirected.searchParams.get('state'), 'state-select');
+      const code = redirected.searchParams.get('code');
+      assert.ok(code);
+
+      const tokenResponse = await app({
+        method: 'POST',
+        path: '/oidc/token',
+        form: {
+          grant_type: 'authorization_code',
+          code,
+          redirect_uri: redirectUri,
+          client_id: 'internal-app',
+          code_verifier: verifier,
+        },
+      });
+      assert.equal(tokenResponse.status, 200);
+
+      const jwks = await app({ path: '/oidc/jwks' });
+      const keySet = createLocalJWKSet(jwks.json);
+      const { payload } = await jwtVerify(tokenResponse.json.id_token, keySet, {
+        issuer: `${publicUrl}/oidc/acme`,
+        audience: 'internal-app',
+      });
+      assert.equal(payload.preferred_username, 'alice');
+    });
+
     await t.test('unknown hosts are rejected by auth and session APIs', async () => {
       const unknown = (options = {}) =>
         request(port, { host: `unknown.test:${port}`, ...options });

@@ -1,14 +1,17 @@
 import m from 'mithril';
 import {
   getClientDiscovery,
+  getSession,
   resolveLogin,
+  selectSession,
   signInPassword,
   type ClientDiscovery,
   type LoginResolution,
   type PasswordLoginResult,
+  type SessionAccount,
 } from '../util/api';
 
-type Step = 'identifier' | 'password' | 'oidc' | 'done';
+type Step = 'accounts' | 'identifier' | 'password' | 'oidc' | 'done';
 
 interface TextFieldAttrs {
   id: string;
@@ -47,6 +50,7 @@ export const Login: m.Component<{ realm?: string; clientId?: string }> = {
   clientId: null as string | null,
   discovery: null as ClientDiscovery | null,
   step: 'identifier' as Step,
+  accounts: [] as SessionAccount[],
   identifier: '',
   password: '',
   longSession: false,
@@ -69,10 +73,23 @@ export const Login: m.Component<{ realm?: string; clientId?: string }> = {
       this.realmSlug = discovery.realm;
       this.clientId = discovery.client_id;
       document.title = discovery.display_name;
+      await this.loadAccounts();
     } catch (e) {
       this.error = e as Error;
     }
     m.redraw();
+  },
+
+  async loadAccounts(this: any) {
+    try {
+      const session = await getSession();
+      if (session.accounts.length >= 2) {
+        this.accounts = session.accounts;
+        this.step = 'accounts';
+      }
+    } catch {
+      this.accounts = [];
+    }
   },
 
   async submitIdentifier(this: any) {
@@ -126,11 +143,52 @@ export const Login: m.Component<{ realm?: string; clientId?: string }> = {
     }
   },
 
+  async selectAccount(this: any, account: SessionAccount) {
+    this.pending = true;
+    this.error = null;
+    try {
+      const result = await selectSession(account.public_id, this.clientId);
+      if (result.pending_auth_request) {
+        const current = m.route.get() || '';
+        m.route.set(current.replace(/\/login$/, '/authorize'));
+        return;
+      }
+
+      if (this.clientId === 'admin') {
+        m.route.set(this.realmSlug ? `/realms/${this.realmSlug}/admin` : '/admin');
+        return;
+      }
+
+      this.signedIn = result.user;
+      this.step = 'done';
+    } catch (e) {
+      this.error = e as Error;
+    }
+    this.pending = false;
+    m.redraw();
+  },
+
+  differentAccount(this: any) {
+    this.step = 'identifier';
+    this.identifier = '';
+    this.password = '';
+    this.longSession = false;
+    this.provider = null;
+    this.error = null;
+    m.redraw();
+  },
+
   back(this: any) {
     this.step = 'identifier';
     this.password = '';
     this.longSession = false;
     this.provider = null;
+    this.error = null;
+    m.redraw();
+  },
+
+  backToAccounts(this: any) {
+    this.step = 'accounts';
     this.error = null;
     m.redraw();
   },
@@ -161,10 +219,45 @@ export const Login: m.Component<{ realm?: string; clientId?: string }> = {
           ) : null}
           <h1>{title}</h1>
 
+          {this.step === 'accounts' ? this.renderAccounts() : null}
           {this.step === 'identifier' ? this.renderIdentifier() : null}
           {this.step === 'password' ? this.renderPassword() : null}
           {this.step === 'oidc' ? this.renderProvider() : null}
           {this.step === 'done' ? this.renderDone() : null}
+        </div>
+      </div>
+    );
+  },
+
+  renderAccounts(this: any) {
+    return (
+      <div>
+        <p class="auth-note">Choose an account to continue.</p>
+        <div class="auth-accounts">
+          {this.accounts.map((account: SessionAccount) => {
+            const name = account.user.display_name || account.user.username;
+            const secondary =
+              account.user.display_name && account.user.display_name !== account.user.username
+                ? account.user.username
+                : null;
+            return (
+              <button
+                class="auth-account"
+                type="button"
+                disabled={this.pending}
+                onclick={() => this.selectAccount(account)}
+              >
+                <span class="auth-account-name">{name}</span>
+                {secondary ? <span class="auth-account-username">{secondary}</span> : null}
+              </button>
+            );
+          })}
+        </div>
+        {this.error ? <p class="auth-error">{this.error.message}</p> : null}
+        <div class="auth-actions">
+          <button class="auth-link" type="button" onclick={() => this.differentAccount()}>
+            Different account
+          </button>
         </div>
       </div>
     );
@@ -191,6 +284,11 @@ export const Login: m.Component<{ realm?: string; clientId?: string }> = {
         />
         {this.error ? <p class="auth-error">{this.error.message}</p> : null}
         <div class="auth-actions">
+          {this.accounts.length >= 2 ? (
+            <button class="auth-link" type="button" onclick={() => this.backToAccounts()}>
+              Back to accounts
+            </button>
+          ) : null}
           <button class="auth-button" type="submit" disabled={this.pending || !this.identifier.trim()}>
             {this.pending ? 'Checking' : 'Next'}
           </button>

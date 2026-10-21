@@ -3,7 +3,11 @@ import { resolveClientForHost, resolveHostContext } from '../../lib/host-context
 import { HttpError } from '../../lib/http/http-error.js';
 import { findManagedProviderForUser, resolveLogin } from '../../lib/login.js';
 import { getClient } from '../../lib/oidc/clients.js';
-import { getAuthRequest, readAuthRequestId } from '../../lib/oidc/requests.js';
+import {
+  getAuthRequest,
+  readAuthRequestId,
+  selectAuthRequestAccount,
+} from '../../lib/oidc/requests.js';
 import { verifyDummyPassword, verifyPassword } from '../../lib/password.js';
 import { canUseClient } from '../../lib/policy.js';
 import { getSystemDatabase, openRealmDatabase, realmMetadata } from '../../lib/realm.js';
@@ -127,6 +131,13 @@ export default {
       ip: requestIp(req),
     });
     setSessionCookie(res, req, token, session.ttl);
+    if (pendingClient && pending) {
+      await selectAuthRequestAccount(realmDb, pending.id, {
+        userId: user.id,
+        sessionId: session.id,
+        authTime: session.auth_time,
+      });
+    }
     await updateLastLogin(systemDb, user.id);
 
     return new app.HttpOk({

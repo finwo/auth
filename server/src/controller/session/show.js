@@ -3,7 +3,7 @@ import { resolveHostContext } from '../../lib/host-context.js';
 import { HttpError } from '../../lib/http/http-error.js';
 import { getSystemDatabase, openRealmDatabase, realmMetadata } from '../../lib/realm.js';
 import { isSystemAdmin } from '../../lib/policy.js';
-import { authenticateRequest } from '../../lib/session.js';
+import { authenticateRequest, listSessionAccounts } from '../../lib/session.js';
 
 export default {
   method: 'get',
@@ -50,6 +50,7 @@ export default {
       roles: auth.roles,
       is_system_admin: isSystemAdmin(auth.user),
       expires_at: auth.session.expires_at,
+      accounts: await listSessionAccounts(getSystemDatabase(), auth.group),
     });
   },
 };

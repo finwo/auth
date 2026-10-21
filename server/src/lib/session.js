@@ -150,6 +150,68 @@ export async function purgeExpiredSessions(systemDb, now = Date.now()) {
   });
 }
 
+async function insertSession(tx, {
+  groupId,
+  userId,
+  scope,
+  scopeHost,
+  ttl,
+  userAgent,
+  ip,
+  now,
+}) {
+  const id = crypto.randomUUID();
+  const publicId = crypto.randomUUID();
+  const expiresAt = now + ttl * 1000;
+  const authTime = Math.floor(now / 1000);
+
+  await tx.run(
+    `INSERT INTO sessions
+      (id, public_id, group_id, user_id, scope_type, scope_host, realm_id,
+       client_id, ttl, auth_time, created_at, expires_at, last_seen_at,
+       user_agent, ip)
+     VALUES
+      ({id}, {publicId}, {groupId}, {userId}, {scopeType}, {scopeHost}, {realmId},
+       {clientId}, {ttl}, {authTime}, {createdAt}, {expiresAt}, {lastSeenAt},
+       {userAgent}, {ip})`,
+    {
+      id,
+      publicId,
+      groupId,
+      userId,
+      scopeType: scope.scopeType,
+      scopeHost,
+      realmId: scope.realmId,
+      clientId: scope.clientId,
+      ttl,
+      authTime,
+      createdAt: now,
+      expiresAt,
+      lastSeenAt: now,
+      userAgent,
+      ip,
+    }
+  );
+
+  return {
+    id,
+    public_id: publicId,
+    group_id: groupId,
+    user_id: userId,
+    scope_type: scope.scopeType,
+    scope_host: scopeHost,
+    realm_id: scope.realmId,
+    client_id: scope.clientId,
+    ttl,
+    auth_time: authTime,
+    created_at: now,
+    expires_at: expiresAt,
+    last_seen_at: now,
+    user_agent: userAgent,
+    ip,
+  };
+}
+
 export async function createHostSession(
   systemDb,
   { context, token = null, userId, ttl, userAgent = null, ip = null },
@@ -159,8 +221,9 @@ export async function createHostSession(
 
   return systemDb.transaction(async (tx) => {
     let group = await findGroupByToken(tx, token);
+    if (group && group.host !== context.host) group = null;
 
-    if (group && group.host === context.host) {
+    if (group) {
       const existing = await tx.get(
         `SELECT id, public_id, group_id, user_id, scope_type, scope_host, realm_id,
                 client_id, ttl, auth_time, created_at, expires_at, last_seen_at,
@@ -207,88 +270,148 @@ export async function createHostSession(
         };
       }
 
-      await deleteGroup(tx, group.id);
-      group = null;
+      if (existing) {
+        await tx.run('DELETE FROM sessions WHERE id = {id}', { id: existing.id });
+      }
+
+      const session = await insertSession(tx, {
+        groupId: group.id,
+        userId,
+        scope,
+        scopeHost: context.host,
+        ttl,
+        userAgent,
+        ip,
+        now,
+      });
+      await tx.run(
+        `UPDATE session_groups
+            SET active_session_id = {sessionId}, last_seen_at = {now}
+          WHERE id = {groupId}`,
+        { sessionId: session.id, now, groupId: group.id }
+      );
+
+      return {
+        token,
+        group: { ...group, active_session_id: session.id, last_seen_at: now },
+        session,
+      };
     }
 
     const nextToken = crypto.randomBytes(32).toString('base64url');
     const groupId = hashToken(nextToken);
-    const sessionId = crypto.randomUUID();
-    const publicId = crypto.randomUUID();
     const createdAt = now;
-    const expiresAt = now + ttl * 1000;
-    const authTime = Math.floor(now / 1000);
 
     await tx.run(
       `INSERT INTO session_groups
         (id, host, active_session_id, created_at, last_seen_at)
        VALUES
-        ({id}, {host}, {activeSessionId}, {createdAt}, {lastSeenAt})`,
-      {
-        id: groupId,
-        host: context.host,
-        activeSessionId: sessionId,
-        createdAt,
-        lastSeenAt: now,
-      }
+        ({id}, {host}, NULL, {createdAt}, {lastSeenAt})`,
+      { id: groupId, host: context.host, createdAt, lastSeenAt: now }
     );
+
+    const session = await insertSession(tx, {
+      groupId,
+      userId,
+      scope,
+      scopeHost: context.host,
+      ttl,
+      userAgent,
+      ip,
+      now,
+    });
 
     await tx.run(
-      `INSERT INTO sessions
-        (id, public_id, group_id, user_id, scope_type, scope_host, realm_id,
-         client_id, ttl, auth_time, created_at, expires_at, last_seen_at,
-         user_agent, ip)
-       VALUES
-        ({id}, {publicId}, {groupId}, {userId}, {scopeType}, {scopeHost}, {realmId},
-         {clientId}, {ttl}, {authTime}, {createdAt}, {expiresAt}, {lastSeenAt},
-         {userAgent}, {ip})`,
-      {
-        id: sessionId,
-        publicId,
-        groupId,
-        userId,
-        scopeType: scope.scopeType,
-        scopeHost: context.host,
-        realmId: scope.realmId,
-        clientId: scope.clientId,
-        ttl,
-        authTime,
-        createdAt,
-        expiresAt,
-        lastSeenAt: now,
-        userAgent,
-        ip,
-      }
+      'UPDATE session_groups SET active_session_id = {sessionId} WHERE id = {id}',
+      { sessionId: session.id, id: groupId }
     );
-
-    const session = {
-      id: sessionId,
-      public_id: publicId,
-      group_id: groupId,
-      user_id: userId,
-      scope_type: scope.scopeType,
-      scope_host: context.host,
-      realm_id: scope.realmId,
-      client_id: scope.clientId,
-      ttl,
-      auth_time: authTime,
-      created_at: createdAt,
-      expires_at: expiresAt,
-      last_seen_at: now,
-      user_agent: userAgent,
-      ip,
-    };
 
     return {
       token: nextToken,
       group: {
         id: groupId,
         host: context.host,
-        active_session_id: sessionId,
+        active_session_id: session.id,
         created_at: createdAt,
         last_seen_at: now,
       },
       session,
+    };
+  });
+}
+
+export async function listSessionAccounts(systemDb, group, now = Date.now()) {
+  if (!group) return [];
+
+  const rows = await systemDb.all(
+    `SELECT s.id, s.public_id, s.user_id, s.created_at, s.expires_at,
+            u.username, u.display_name
+       FROM sessions s
+       JOIN users u ON u.id = s.user_id
+      WHERE s.group_id = {groupId}
+        AND s.expires_at > {now}
+        AND u.status = 'active'
+      ORDER BY s.created_at ASC`,
+    { groupId: group.id, now }
+  );
+
+  return rows.map((row) => ({
+    public_id: row.public_id,
+    active: row.id === group.active_session_id,
+    user: {
+      id: row.user_id,
+      username: row.username,
+      display_name: row.display_name,
+    },
+    created_at: row.created_at,
+    expires_at: row.expires_at,
+  }));
+}
+
+export async function selectSessionAccount(
+  systemDb,
+  { token, context, publicId },
+  now = Date.now()
+) {
+  if (!token || !publicId) return null;
+
+  return systemDb.transaction(async (tx) => {
+    const group = await findGroupByToken(tx, token);
+    if (!group || group.host !== context.host) return null;
+
+    const session = await tx.get(
+      `SELECT id, public_id, group_id, user_id, scope_type, scope_host, realm_id,
+              client_id, ttl, auth_time, created_at, expires_at, last_seen_at,
+              user_agent, ip
+         FROM sessions
+        WHERE group_id = {groupId} AND public_id = {publicId}`,
+      { groupId: group.id, publicId }
+    );
+    if (!session || session.expires_at <= now || !scopeMatches(session, context)) {
+      return null;
+    }
+
+    const user = await findUserById(tx, session.user_id);
+    if (!user || user.status !== 'active') return null;
+
+    const expiresAt = now + session.ttl * 1000;
+    await tx.run(
+      `UPDATE sessions
+          SET last_seen_at = {now}, expires_at = {expiresAt}
+        WHERE id = {id}`,
+      { now, expiresAt, id: session.id }
+    );
+    await tx.run(
+      `UPDATE session_groups
+          SET active_session_id = {sessionId}, last_seen_at = {now}
+        WHERE id = {id}`,
+      { sessionId: session.id, now, id: group.id }
+    );
+
+    return {
+      group: { ...group, active_session_id: session.id, last_seen_at: now },
+      session: { ...session, last_seen_at: now, expires_at: expiresAt },
+      user,
     };
   });
 }
@@ -335,8 +458,20 @@ export async function authenticateRequest({
 
   const user = await findUserById(systemDb, session.user_id);
   if (!user || user.status !== 'active') {
-    await deleteGroup(systemDb, group.id);
-    clearSessionCookie(res, req);
+    const groupDeleted = await systemDb.transaction(async (tx) => {
+      await tx.run('DELETE FROM sessions WHERE id = {id}', { id: session.id });
+      const next = await nextActiveSession(tx, group.id, now);
+      if (next) {
+        await tx.run(
+          'UPDATE session_groups SET active_session_id = {sessionId} WHERE id = {id}',
+          { sessionId: next.id, id: group.id }
+        );
+        return false;
+      }
+      await deleteGroup(tx, group.id);
+      return true;
+    });
+    if (groupDeleted) clearSessionCookie(res, req);
     return null;
   }
 

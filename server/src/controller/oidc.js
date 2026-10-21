@@ -16,6 +16,7 @@ import {
 import { getJwks, signToken, verifyToken } from '../lib/oidc/keys.js';
 import {
   clearAuthRequestCookie,
+  clearAuthRequestSelection,
   completeAuthRequest,
   createAuthRequest,
   createAuthorizationCode,
@@ -36,6 +37,7 @@ import {
   bindSessionRealm,
   clearSessionCookie,
   destroySession,
+  listSessionAccounts,
   requestToken,
 } from '../lib/session.js';
 import {
@@ -235,6 +237,21 @@ async function authorize(context, client, req, res) {
   }
 
   if (!auth) {
+    setAuthRequestCookie(res, req, context.realm, pending.id);
+    return redirect(res, endpointUrls(context).login);
+  }
+
+  const accounts = await listSessionAccounts(systemDb, auth.group);
+  const selected = Boolean(
+    pending.user_id &&
+      pending.session_id &&
+      pending.session_id === auth.session.id &&
+      pending.user_id === auth.user.id
+  );
+  if ((pending.user_id || pending.session_id) && !selected) {
+    await clearAuthRequestSelection(db, pending.id);
+  }
+  if (!selected && accounts.length >= 2) {
     setAuthRequestCookie(res, req, context.realm, pending.id);
     return redirect(res, endpointUrls(context).login);
   }

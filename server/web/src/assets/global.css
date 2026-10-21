@@ -115,6 +115,50 @@ body {
   accent-color: var(--realm-primary);
 }
 
+.auth-accounts {
+  display: grid;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.auth-account {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.125rem;
+  width: 100%;
+  padding: 0.75rem 0;
+  border: 0;
+  border-bottom: 1pt solid rgba(0, 0, 0, 0.16);
+  border-radius: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.auth-account:hover,
+.auth-account:focus-visible {
+  border-bottom-color: var(--realm-primary);
+}
+
+.auth-account:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.auth-account-name {
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+.auth-account-username {
+  color: rgba(0, 0, 0, 0.6);
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
 .auth-error {
   margin: 1rem 0 0;
   color: #d93025;
@@ -175,8 +219,13 @@ body {
 
   .auth-field label,
   .auth-identifier,
-  .auth-note {
+  .auth-note,
+  .auth-account-username {
     color: rgba(255, 255, 255, 0.6);
+  }
+
+  .auth-account {
+    border-bottom-color: rgba(255, 255, 255, 0.16);
   }
 
   .auth-error {

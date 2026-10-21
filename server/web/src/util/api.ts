@@ -45,6 +45,18 @@ export interface SessionScope {
   client_id: string | null;
 }
 
+export interface SessionAccount {
+  public_id: string;
+  active: boolean;
+  user: {
+    id: string;
+    username: string;
+    display_name: string | null;
+  };
+  created_at: number;
+  expires_at: number;
+}
+
 export interface SessionInfo {
   scope: SessionScope;
   realm: RealmInfo | null;
@@ -56,6 +68,18 @@ export interface SessionInfo {
   roles: string[];
   is_system_admin: boolean;
   expires_at: number;
+  accounts: SessionAccount[];
+}
+
+export interface SelectSessionResult {
+  ok: boolean;
+  user: {
+    id: string;
+    username: string;
+    display_name: string | null;
+  };
+  expires_at: number;
+  pending_auth_request: boolean;
 }
 
 export interface ApiError extends Error {
@@ -130,6 +154,19 @@ export function signInPassword(
 
 export function getSession(): Promise<SessionInfo> {
   return request<SessionInfo>('/api/v1/session');
+}
+
+export function selectSession(
+  publicId: string,
+  clientId?: string | null
+): Promise<SelectSessionResult> {
+  return request<SelectSessionResult>('/api/v1/session/select', {
+    method: 'POST',
+    body: JSON.stringify({
+      public_id: publicId,
+      client_id: clientId || undefined,
+    }),
+  });
 }
 
 export function signOut(): Promise<{ ok: boolean }> {

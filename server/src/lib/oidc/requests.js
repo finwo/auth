@@ -107,6 +107,30 @@ export async function getAuthRequest(db, id, now = Date.now()) {
   return request;
 }
 
+export async function selectAuthRequestAccount(
+  db,
+  id,
+  { userId, sessionId, authTime }
+) {
+  if (!id) return;
+  await db.run(
+    `UPDATE auth_requests
+        SET user_id = {userId}, session_id = {sessionId}, auth_time = {authTime}
+      WHERE id = {id} AND completed_at IS NULL`,
+    { id, userId, sessionId, authTime }
+  );
+}
+
+export async function clearAuthRequestSelection(db, id) {
+  if (!id) return;
+  await db.run(
+    `UPDATE auth_requests
+        SET user_id = NULL, session_id = NULL, auth_time = NULL
+      WHERE id = {id} AND completed_at IS NULL`,
+    { id }
+  );
+}
+
 export async function completeAuthRequest(db, id, { userId, sessionId, authTime }, now = Date.now()) {
   await db.run(
     `UPDATE auth_requests

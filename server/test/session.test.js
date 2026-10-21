@@ -19,6 +19,8 @@ import {
   createHostSession,
   destroySession,
   getSessionByToken,
+  listSessionAccounts,
+  selectSessionAccount,
 } from '../src/lib/session.js';
 import { createUser, ensureMembership } from '../src/lib/users.js';
 
@@ -232,6 +234,52 @@ test('disabled users lose access and their session group is removed', async () =
   }
 });
 
+test('disabling the active account keeps other accounts in the group', async () => {
+  const { dir, realm, systemDb, userId } = await setup();
+  try {
+    const context = realmContext(realm);
+    const first = await createHostSession(systemDb, {
+      context,
+      userId,
+      ttl: SHORT_SESSION_TTL,
+    });
+    const otherId = await createUser(systemDb, { username: 'bob', displayName: 'Bob' });
+    const second = await createHostSession(systemDb, {
+      context,
+      token: first.token,
+      userId: otherId,
+      ttl: SHORT_SESSION_TTL,
+    });
+
+    await systemDb.run('UPDATE users SET status = {status} WHERE id = {id}', {
+      status: 'disabled',
+      id: otherId,
+    });
+
+    const res = mockResponse();
+    assert.equal(
+      await authenticateRequest({
+        systemDb,
+        realmDb: null,
+        req: mockRequest(`${SESSION_COOKIE}=${first.token}`),
+        res,
+        context,
+      }),
+      null
+    );
+
+    const found = await getSessionByToken(systemDb, first.token);
+    assert.equal(found.session.user_id, userId);
+
+    const accounts = await listSessionAccounts(systemDb, second.group);
+    assert.equal(accounts.length, 1);
+    assert.equal(accounts[0].user.id, userId);
+  } finally {
+    await closeRealms();
+    await fs.rm(dir, { recursive: true, force: true });
+  }
+});
+
 test('a session is rejected on a different host scope', async () => {
   const { dir, realm, realmDb, systemDb, userId } = await setup();
   try {
@@ -263,7 +311,7 @@ test('a session is rejected on a different host scope', async () => {
   }
 });
 
-test('the same user reuses a group and a different user replaces it', async () => {
+test('the same user reuses a session and a different user adds an account', async () => {
   const { dir, realm, systemDb, userId } = await setup();
   try {
     const context = realmContext(realm);
@@ -279,6 +327,7 @@ test('the same user reuses a group and a different user replaces it', async () =
       ttl: SHORT_SESSION_TTL,
     });
     assert.equal(second.group.id, first.group.id);
+    assert.equal(second.token, first.token);
     assert.equal(second.session.id, first.session.id);
 
     const otherId = await createUser(systemDb, { username: 'bob', displayName: 'Bob' });
@@ -288,13 +337,68 @@ test('the same user reuses a group and a different user replaces it', async () =
       userId: otherId,
       ttl: SHORT_SESSION_TTL,
     });
-    assert.notEqual(third.group.id, first.group.id);
+    assert.equal(third.group.id, first.group.id);
+    assert.equal(third.token, first.token);
     assert.equal(third.session.user_id, otherId);
 
     const old = await systemDb.get('SELECT id FROM sessions WHERE id = {id}', {
       id: first.session.id,
     });
-    assert.equal(old, undefined);
+    assert.equal(old.id, first.session.id);
+
+    const accounts = await listSessionAccounts(systemDb, third.group);
+    assert.deepEqual(
+      accounts.map((account) => account.user.username),
+      ['alice', 'bob']
+    );
+    assert.equal(accounts.find((account) => account.user.id === otherId).active, true);
+  } finally {
+    await closeRealms();
+    await fs.rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('selecting an account updates the active session', async () => {
+  const { dir, realm, systemDb, userId } = await setup();
+  try {
+    const context = realmContext(realm);
+    const first = await createHostSession(systemDb, {
+      context,
+      userId,
+      ttl: SHORT_SESSION_TTL,
+    });
+    const otherId = await createUser(systemDb, { username: 'bob', displayName: 'Bob' });
+    const second = await createHostSession(systemDb, {
+      context,
+      token: first.token,
+      userId: otherId,
+      ttl: SHORT_SESSION_TTL,
+    });
+
+    const selected = await selectSessionAccount(systemDb, {
+      token: first.token,
+      context,
+      publicId: first.session.public_id,
+    });
+    assert.equal(selected.user.id, userId);
+    assert.equal(selected.session.id, first.session.id);
+
+    const found = await getSessionByToken(systemDb, first.token);
+    assert.equal(found.session.id, first.session.id);
+
+    const rejectedHost = await selectSessionAccount(systemDb, {
+      token: first.token,
+      context: clientContext(realm),
+      publicId: second.session.public_id,
+    });
+    assert.equal(rejectedHost, null);
+
+    const rejectedAccount = await selectSessionAccount(systemDb, {
+      token: first.token,
+      context,
+      publicId: 'missing',
+    });
+    assert.equal(rejectedAccount, null);
   } finally {
     await closeRealms();
     await fs.rm(dir, { recursive: true, force: true });
@@ -318,6 +422,38 @@ test('logout deletes the active session and group', async () => {
       id: group.id,
     });
     assert.equal(row, undefined);
+  } finally {
+    await closeRealms();
+    await fs.rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('logout keeps the group when another account remains', async () => {
+  const { dir, realm, systemDb, userId } = await setup();
+  try {
+    const context = realmContext(realm);
+    const first = await createHostSession(systemDb, {
+      context,
+      userId,
+      ttl: SHORT_SESSION_TTL,
+    });
+    const otherId = await createUser(systemDb, { username: 'bob', displayName: 'Bob' });
+    const second = await createHostSession(systemDb, {
+      context,
+      token: first.token,
+      userId: otherId,
+      ttl: SHORT_SESSION_TTL,
+    });
+
+    const result = await destroySession(systemDb, first.token);
+    assert.equal(result.groupDeleted, false);
+
+    const found = await getSessionByToken(systemDb, first.token);
+    assert.equal(found.session.id, first.session.id);
+
+    const accounts = await listSessionAccounts(systemDb, second.group);
+    assert.equal(accounts.length, 1);
+    assert.equal(accounts[0].user.id, userId);
   } finally {
     await closeRealms();
     await fs.rm(dir, { recursive: true, force: true });
