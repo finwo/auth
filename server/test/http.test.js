@@ -188,6 +188,39 @@ function activeSessionId(env, cookie) {
   });
 }
 
+function activeSessionPublicId(env, cookie) {
+  const token = cookieValue(cookie, 'auth_session');
+  const groupId = crypto.createHash('sha256').update(token).digest('hex');
+  return withSystemDatabase(env, (database) => {
+    const row = database
+      .prepare(
+        `SELECT s.public_id
+           FROM sessions s
+           JOIN session_groups g ON g.active_session_id = s.id
+          WHERE g.id = ?`
+      )
+      .get(groupId);
+    return row.public_id;
+  });
+}
+
+function withRealmDatabase(env, slug, fn) {
+  const system = new DatabaseSync(env.AUTH_DATABASE_PATH);
+  try {
+    const realm = system
+      .prepare('SELECT db_file FROM realms WHERE slug = ?')
+      .get(slug);
+    const database = new DatabaseSync(path.join(env.AUTH_REALMS_PATH, realm.db_file));
+    try {
+      return fn(database);
+    } finally {
+      database.close();
+    }
+  } finally {
+    system.close();
+  }
+}
+
 test('HTTP realm, login, OIDC and logout flows', async (t) => {
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'auth-http-'));
   const port = await freePort();
@@ -211,6 +244,48 @@ test('HTTP realm, login, OIDC and logout flows', async (t) => {
     const acme = (options = {}) => request(port, { host: `acme.localhost:${port}`, ...options });
     const globex = (options = {}) => request(port, { host: `globex.localhost:${port}`, ...options });
     const app = (options = {}) => request(port, { host: `app.acme.localhost:${port}`, ...options });
+
+    async function accessToken(
+      requester,
+      { clientId, identifier, redirectUri, scope = 'openid profile' }
+    ) {
+      const { verifier, challenge } = pkce();
+      const authorizePath =
+        `/oidc/${clientId}/authorize?response_type=code&client_id=${clientId}` +
+        `&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scope)}` +
+        `&state=admin-api&code_challenge=${challenge}&code_challenge_method=S256`;
+
+      const first = await requester({ path: authorizePath });
+      assert.equal(first.status, 302);
+      let jar = mergeCookies('', first);
+      const login = await requester({
+        method: 'POST',
+        path: '/api/v1/login/password',
+        body: { client_id: clientId, identifier, password: 'demo' },
+        cookie: jar,
+      });
+      assert.equal(login.status, 200);
+      jar = mergeCookies(jar, login);
+
+      const second = await requester({ path: authorizePath, cookie: jar });
+      assert.equal(second.status, 302);
+      const code = locationQuery(second).searchParams.get('code');
+      assert.ok(code);
+
+      const tokenResponse = await requester({
+        method: 'POST',
+        path: `/oidc/${clientId}/token`,
+        form: {
+          grant_type: 'authorization_code',
+          code,
+          redirect_uri: redirectUri,
+          client_id: clientId,
+          code_verifier: verifier,
+        },
+      });
+      assert.equal(tokenResponse.status, 200);
+      return { access_token: tokenResponse.json.access_token, cookie: jar };
+    }
 
     await t.test('realm metadata is served for a realm hostname', async () => {
       const response = await acme({ path: '/api/v1/realm' });
@@ -979,6 +1054,372 @@ test('HTTP realm, login, OIDC and logout flows', async (t) => {
         },
       });
       assert.equal(tokenResponse.status, 200);
+    });
+
+    await t.test('admin session APIs require an active admin token', async () => {
+      const missing = await acme({ path: '/api/v1/admin/realms/acme/sessions' });
+      assert.equal(missing.status, 401);
+      assert.equal(missing.json.error.code, 'invalid_token');
+
+      const alice = await accessToken(acme, {
+        clientId: 'internal-app',
+        identifier: 'alice@acme.test',
+        redirectUri: `${origin('app.acme.localhost')}/callback`,
+      });
+      const wrongAudience = await acme({
+        path: '/api/v1/admin/realms/acme/sessions',
+        bearer: alice.access_token,
+      });
+      assert.equal(wrongAudience.status, 401);
+      assert.equal(wrongAudience.json.error.code, 'invalid_token');
+    });
+
+    await t.test('realm admins see bound and home-realm sessions', async () => {
+      const aliceLogin = await acme({
+        method: 'POST',
+        path: '/api/v1/login/password',
+        body: { client_id: 'internal-app', identifier: 'alice@acme.test', password: 'demo' },
+      });
+      assert.equal(aliceLogin.status, 200);
+      const aliceCookie = mergeCookies('', aliceLogin);
+      const alicePublicId = activeSessionPublicId(env, aliceCookie);
+
+      const guest = await accessToken(acme, {
+        clientId: 'acme-members-app',
+        identifier: 'guest@personal.test',
+        redirectUri: `${origin('members.localhost')}/callback`,
+      });
+      const guestPublicId = activeSessionPublicId(env, guest.cookie);
+
+      const contractor = await accessToken(globex, {
+        clientId: 'globex-members-app',
+        identifier: 'contractor@personal.test',
+        redirectUri: `${origin('members.localhost')}/callback`,
+      });
+      const contractorPublicId = activeSessionPublicId(env, contractor.cookie);
+
+      const admin = await accessToken(acme, {
+        clientId: 'admin',
+        identifier: 'it@acme.test',
+        redirectUri: `${origin('acme.localhost')}/oidc/admin/callback`,
+      });
+      const response = await acme({
+        path: '/api/v1/admin/realms/acme/sessions',
+        bearer: admin.access_token,
+      });
+      assert.equal(response.status, 200);
+      assert.equal(response.headers['cache-control'], 'no-store');
+
+      const aliceSession = response.json.sessions.find(
+        (session) => session.public_id === alicePublicId
+      );
+      assert.equal(aliceSession.user.username, 'alice');
+      assert.equal(aliceSession.revoked_at, null);
+      assert.equal(aliceSession.can_terminate, true);
+      assert.equal('id' in aliceSession, false);
+
+      const guestSession = response.json.sessions.find(
+        (session) => session.public_id === guestPublicId
+      );
+      assert.equal(guestSession.user.username, 'guest');
+      assert.equal(guestSession.can_terminate, false);
+
+      assert.equal(
+        response.json.sessions.some(
+          (session) => session.public_id === contractorPublicId
+        ),
+        false
+      );
+    });
+
+    await t.test('guest realm admins can revoke realm access but not terminate', async () => {
+      const admin = await accessToken(globex, {
+        clientId: 'admin',
+        identifier: 'contractor@personal.test',
+        redirectUri: `${origin('globex.localhost')}/oidc/admin/callback`,
+      });
+      const alice = await accessToken(globex, {
+        clientId: 'globex-members-app',
+        identifier: 'alice@acme.test',
+        redirectUri: `${origin('members.localhost')}/callback`,
+      });
+      const alicePublicId = activeSessionPublicId(env, alice.cookie);
+
+      const list = await globex({
+        path: '/api/v1/admin/realms/globex/sessions',
+        bearer: admin.access_token,
+      });
+      assert.equal(list.status, 200);
+      assert.equal(
+        list.json.sessions.find((session) => session.public_id === alicePublicId)
+          .can_terminate,
+        false
+      );
+
+      const revoked = await globex({
+        method: 'DELETE',
+        path: `/api/v1/admin/realms/globex/sessions/${alicePublicId}/realm`,
+        bearer: admin.access_token,
+      });
+      assert.equal(revoked.status, 200);
+      assert.ok(revoked.json.revoked_at);
+
+      const { binding, actorId } = withSystemDatabase(env, (database) => {
+        const actor = database
+          .prepare('SELECT id FROM users WHERE username = ?')
+          .get('contractor');
+        const session = database
+          .prepare('SELECT id FROM sessions WHERE public_id = ?')
+          .get(alicePublicId);
+        return {
+          actorId: actor.id,
+          binding: database
+            .prepare(
+              `SELECT sr.revoked_at, sr.revoked_by
+                 FROM session_realms sr
+                WHERE sr.session_id = ?
+                  AND sr.realm_id = (SELECT id FROM realms WHERE slug = 'globex')`
+            )
+            .get(session.id),
+        };
+      });
+      assert.ok(binding.revoked_at);
+      assert.equal(binding.revoked_by, actorId);
+
+      const { challenge } = pkce();
+      const authorizePath =
+        `/oidc/globex-members-app/authorize?response_type=code` +
+        `&client_id=globex-members-app&redirect_uri=${encodeURIComponent(
+          `${origin('members.localhost')}/callback`
+        )}&scope=openid&state=reauth` +
+        `&code_challenge=${challenge}&code_challenge_method=S256`;
+      const reauth = await globex({ path: authorizePath, cookie: alice.cookie });
+      assert.equal(reauth.status, 302);
+      const reauthLocation = locationQuery(reauth);
+      assert.equal(reauthLocation.pathname, '/oidc/globex-members-app/login');
+      assert.equal(reauthLocation.searchParams.get('reauth'), '1');
+
+      const terminate = await globex({
+        method: 'DELETE',
+        path: `/api/v1/admin/realms/globex/sessions/${alicePublicId}`,
+        bearer: admin.access_token,
+      });
+      assert.equal(terminate.status, 403);
+      assert.equal(terminate.json.error.code, 'forbidden');
+
+      const stillSignedIn = await globex({
+        path: '/api/v1/session',
+        cookie: alice.cookie,
+      });
+      assert.equal(stillSignedIn.status, 200);
+    });
+
+    await t.test('home realm admins terminate only the selected session', async () => {
+      const admin = await accessToken(acme, {
+        clientId: 'admin',
+        identifier: 'it@acme.test',
+        redirectUri: `${origin('acme.localhost')}/oidc/admin/callback`,
+      });
+
+      const aliceAcme = await acme({
+        method: 'POST',
+        path: '/api/v1/login/password',
+        body: { client_id: 'internal-app', identifier: 'alice@acme.test', password: 'demo' },
+      });
+      const aliceAcmeCookie = mergeCookies('', aliceAcme);
+      const aliceAcmePublicId = activeSessionPublicId(env, aliceAcmeCookie);
+
+      const aliceGlobex = await accessToken(globex, {
+        clientId: 'globex-members-app',
+        identifier: 'alice@acme.test',
+        redirectUri: `${origin('members.localhost')}/callback`,
+      });
+
+      const terminated = await acme({
+        method: 'DELETE',
+        path: `/api/v1/admin/realms/acme/sessions/${aliceAcmePublicId}`,
+        bearer: admin.access_token,
+      });
+      assert.equal(terminated.status, 200);
+      assert.equal(terminated.json.ok, true);
+
+      const acmeSession = await acme({
+        path: '/api/v1/session',
+        cookie: aliceAcmeCookie,
+      });
+      assert.equal(acmeSession.status, 401);
+
+      const globexSession = await globex({
+        path: '/api/v1/session',
+        cookie: aliceGlobex.cookie,
+      });
+      assert.equal(globexSession.status, 200);
+
+      const deleted = withSystemDatabase(env, (database) =>
+        database
+          .prepare('SELECT public_id FROM sessions WHERE public_id = ?')
+          .get(aliceAcmePublicId)
+      );
+      assert.equal(deleted, undefined);
+    });
+
+    await t.test('terminating an inactive account keeps the active account', async () => {
+      const aliceLogin = await acme({
+        method: 'POST',
+        path: '/api/v1/login/password',
+        body: { client_id: 'internal-app', identifier: 'alice@acme.test', password: 'demo' },
+      });
+      let cookie = mergeCookies('', aliceLogin);
+      const itLogin = await acme({
+        method: 'POST',
+        path: '/api/v1/login/password',
+        body: { client_id: 'internal-app', identifier: 'it@acme.test', password: 'demo' },
+        cookie,
+      });
+      cookie = mergeCookies(cookie, itLogin);
+
+      const group = await acme({ path: '/api/v1/session', cookie });
+      const aliceAccount = group.json.accounts.find(
+        (account) => account.user.username === 'alice'
+      );
+
+      const admin = await accessToken(acme, {
+        clientId: 'admin',
+        identifier: 'it@acme.test',
+        redirectUri: `${origin('acme.localhost')}/oidc/admin/callback`,
+      });
+      const terminated = await acme({
+        method: 'DELETE',
+        path: `/api/v1/admin/realms/acme/sessions/${aliceAccount.public_id}`,
+        bearer: admin.access_token,
+      });
+      assert.equal(terminated.status, 200);
+
+      const after = await acme({ path: '/api/v1/session', cookie });
+      assert.equal(after.status, 200);
+      assert.equal(after.json.user.username, 'acme-it');
+      assert.deepEqual(
+        after.json.accounts.map((account) => account.user.username),
+        ['acme-it']
+      );
+    });
+
+    await t.test('system admins can terminate guest sessions', async () => {
+      const admin = await accessToken(globex, {
+        clientId: 'admin',
+        identifier: 'admin@system.test',
+        redirectUri: `${origin('globex.localhost')}/oidc/admin/callback`,
+      });
+      const alice = await accessToken(globex, {
+        clientId: 'globex-members-app',
+        identifier: 'alice@acme.test',
+        redirectUri: `${origin('members.localhost')}/callback`,
+      });
+      const alicePublicId = activeSessionPublicId(env, alice.cookie);
+
+      const list = await globex({
+        path: '/api/v1/admin/realms/globex/sessions',
+        bearer: admin.access_token,
+      });
+      assert.equal(list.status, 200);
+      assert.equal(
+        list.json.sessions.find((session) => session.public_id === alicePublicId)
+          .can_terminate,
+        true
+      );
+
+      const terminated = await globex({
+        method: 'DELETE',
+        path: `/api/v1/admin/realms/globex/sessions/${alicePublicId}`,
+        bearer: admin.access_token,
+      });
+      assert.equal(terminated.status, 200);
+
+      const session = await globex({
+        path: '/api/v1/session',
+        cookie: alice.cookie,
+      });
+      assert.equal(session.status, 401);
+    });
+
+    await t.test('admin token sessions and realms are enforced', async () => {
+      const admin = await accessToken(acme, {
+        clientId: 'admin',
+        identifier: 'it@acme.test',
+        redirectUri: `${origin('acme.localhost')}/oidc/admin/callback`,
+      });
+      const adminPublicId = activeSessionPublicId(env, admin.cookie);
+
+      const otherRealm = await acme({
+        path: '/api/v1/admin/realms/globex/sessions',
+        bearer: admin.access_token,
+      });
+      assert.equal(otherRealm.status, 404);
+      assert.equal(otherRealm.json.error.code, 'unknown_realm');
+
+      const clientHost = await app({
+        path: '/api/v1/admin/realms/acme/sessions',
+        bearer: admin.access_token,
+      });
+      assert.equal(clientHost.status, 404);
+
+      const canonical = await identity({
+        path: '/api/v1/admin/realms/acme/sessions',
+        bearer: admin.access_token,
+      });
+      assert.equal(canonical.status, 200);
+
+      const terminated = await acme({
+        method: 'DELETE',
+        path: `/api/v1/admin/realms/acme/sessions/${adminPublicId}`,
+        bearer: admin.access_token,
+      });
+      assert.equal(terminated.status, 200);
+
+      const deadToken = await acme({
+        path: '/api/v1/admin/realms/acme/sessions',
+        bearer: admin.access_token,
+      });
+      assert.equal(deadToken.status, 401);
+      assert.equal(deadToken.json.error.code, 'invalid_token');
+    });
+
+    await t.test('admin access is re-read from the realm database', async () => {
+      const admin = await accessToken(acme, {
+        clientId: 'admin',
+        identifier: 'it@acme.test',
+        redirectUri: `${origin('acme.localhost')}/oidc/admin/callback`,
+      });
+      const actor = withSystemDatabase(env, (database) =>
+        database.prepare('SELECT id FROM users WHERE username = ?').get('acme-it')
+      );
+
+      withRealmDatabase(env, 'acme', (database) => {
+        const role = database
+          .prepare('SELECT id FROM roles WHERE slug = ?')
+          .get('realm-admin');
+        database
+          .prepare('DELETE FROM membership_roles WHERE user_id = ? AND role_id = ?')
+          .run(actor.id, role.id);
+      });
+
+      try {
+        const response = await acme({
+          path: '/api/v1/admin/realms/acme/sessions',
+          bearer: admin.access_token,
+        });
+        assert.equal(response.status, 403);
+        assert.equal(response.json.error.code, 'forbidden');
+      } finally {
+        withRealmDatabase(env, 'acme', (database) => {
+          const role = database
+            .prepare('SELECT id FROM roles WHERE slug = ?')
+            .get('realm-admin');
+          database
+            .prepare('INSERT INTO membership_roles (user_id, role_id) VALUES (?, ?)')
+            .run(actor.id, role.id);
+        });
+      }
     });
 
     await t.test('confidential clients authenticate with client_secret_basic', async () => {

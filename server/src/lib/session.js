@@ -500,6 +500,28 @@ export async function authenticateRequest({
   return { group, session, user, membership, roles };
 }
 
+async function removeSession(tx, session, now) {
+  const group = await tx.get(
+    'SELECT active_session_id FROM session_groups WHERE id = {id}',
+    { id: session.group_id }
+  );
+  await tx.run('DELETE FROM sessions WHERE id = {id}', { id: session.id });
+  if (!group) return { groupDeleted: true };
+  if (group.active_session_id !== session.id) return { groupDeleted: false };
+
+  const next = await nextActiveSession(tx, session.group_id, now);
+  if (next) {
+    await tx.run(
+      'UPDATE session_groups SET active_session_id = {sessionId} WHERE id = {id}',
+      { sessionId: next.id, id: session.group_id }
+    );
+    return { groupDeleted: false };
+  }
+
+  await deleteGroup(tx, session.group_id);
+  return { groupDeleted: true };
+}
+
 export async function destroySession(systemDb, token) {
   if (!token) return { groupDeleted: true };
 
@@ -508,9 +530,7 @@ export async function destroySession(systemDb, token) {
     if (!group) return { groupDeleted: true };
 
     const session = await findActiveSession(tx, group);
-    if (session) {
-      await tx.run('DELETE FROM sessions WHERE id = {id}', { id: session.id });
-    }
+    if (session) return removeSession(tx, session, Date.now());
 
     const next = await nextActiveSession(tx, group.id, Date.now());
     if (next) {
@@ -523,6 +543,19 @@ export async function destroySession(systemDb, token) {
 
     await deleteGroup(tx, group.id);
     return { groupDeleted: true };
+  });
+}
+
+export async function destroySessionById(systemDb, sessionId, now = Date.now()) {
+  return systemDb.transaction(async (tx) => {
+    const session = await tx.get(
+      'SELECT id, group_id FROM sessions WHERE id = {id}',
+      { id: sessionId }
+    );
+    if (!session) return { deleted: false, groupDeleted: false };
+
+    const result = await removeSession(tx, session, now);
+    return { deleted: true, ...result };
   });
 }
 
