@@ -21,7 +21,7 @@ const SETTINGS = {
 };
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-const assets = path.resolve(here, '../web/src/assets');
+const assets = path.resolve(here, '../src/assets');
 
 function randomAt(column, row) {
   let value = Math.imul(column + 1000, 374761393) + Math.imul(row + 1000, 668265263);

@@ -1,9 +1,6 @@
 {
   "type": "module",
   "scripts": {
-    "build": "web/esbuild.cjs",
-    "assets:hex": "node scripts/generate-hex-grid.js",
-    "prestart": "npm run build",
     "start": "node src/index.js",
     "seed:demo": "node scripts/seed-demo.js",
     "test": "node --test \"test/**/*.test.js\""
@@ -14,14 +11,8 @@
     "cookie": "^2.0.1",
     "cors": "^2.8.6",
     "jose": "^6.2.13",
-    "mithril": "^2.3.8",
     "morgan": "^1.12.1",
     "router": "^2.2.0",
-    "serve-static": "^2.2.1",
     "yaml": "^2.9.1"
-  },
-  "devDependencies": {
-    "cpy": "^13.2.3",
-    "esbuild": "^0.28.2"
   }
 }

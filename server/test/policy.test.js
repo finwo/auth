@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { canManageUser, canUseClient, isRealmAdmin, isSystemAdmin } from '../src/lib/policy.js';
+import { getSystemClient, isSystemClient } from '../src/lib/oidc/clients.js';
 
 const realm = { id: 'realm-a' };
 const user = { id: 'u1', status: 'active', home_realm_id: 'realm-a' };
@@ -60,42 +61,12 @@ test('disabled users and clients are denied', () => {
   );
 });
 
-test('virtual admin clients accept system admins and realm admins', () => {
-  const adminClient = { ...client('admin'), virtual: true, client_id: 'admin' };
-  const systemAdmin = { ...guest, is_system_admin: 1 };
-
-  assert.equal(
-    canUseClient({ user: systemAdmin, membership: null, roles: [], client: adminClient, realm }),
-    true
-  );
-  assert.equal(
-    canUseClient({
-      user: guest,
-      membership: activeMembership,
-      roles: ['realm-admin'],
-      client: adminClient,
-      realm,
-    }),
-    true
-  );
-  assert.equal(
-    canUseClient({
-      user: guest,
-      membership: activeMembership,
-      roles: [],
-      client: adminClient,
-      realm,
-    }),
-    false
-  );
-});
-
-test('virtual account clients accept every active user', () => {
-  const accountClient = { ...client('public'), virtual: true, client_id: 'account' };
-  assert.equal(
-    canUseClient({ user: guest, membership: null, roles: [], client: accountClient, realm }),
-    true
-  );
+test('admin and account are built-in system clients', () => {
+  assert.equal(isSystemClient('admin'), true);
+  assert.equal(isSystemClient('account'), true);
+  assert.equal(isSystemClient('internal-app'), false);
+  assert.equal(getSystemClient('admin').system_client, true);
+  assert.equal(getSystemClient('missing'), null);
   assert.equal(isSystemAdmin({ is_system_admin: 1 }), true);
   assert.equal(isSystemAdmin({ is_system_admin: 0 }), false);
 });

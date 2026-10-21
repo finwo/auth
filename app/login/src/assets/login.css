@@ -236,7 +236,7 @@ body {
 @media (min-width: 35em) {
   .auth-page {
     background-color: #fff;
-    background-image: url('/assets/hex-grid-light.svg');
+    background-image: url('./hex-grid-light.svg');
     background-position: center;
     background-repeat: no-repeat;
     background-size: cover;
@@ -250,7 +250,7 @@ body {
 @media (min-width: 35em) and (prefers-color-scheme: dark) {
   .auth-page {
     background-color: #222;
-    background-image: url('/assets/hex-grid-dark.svg');
+    background-image: url('./hex-grid-dark.svg');
     background-position: center;
     background-repeat: no-repeat;
     background-size: cover;

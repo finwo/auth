@@ -1,8 +1,8 @@
 import crypto from 'node:crypto';
 
-const VIRTUAL_CLIENTS = {
+const SYSTEM_CLIENTS = {
   admin: {
-    id: 'virtual:admin',
+    id: 'system:admin',
     client_id: 'admin',
     name: 'Admin',
     access_mode: 'admin',
@@ -13,10 +13,10 @@ const VIRTUAL_CLIENTS = {
     post_logout_redirect_uris: [],
     branding: {},
     required_roles: [],
-    virtual: true,
+    system_client: true,
   },
   account: {
-    id: 'virtual:account',
+    id: 'system:account',
     client_id: 'account',
     name: 'Account',
     access_mode: 'public',
@@ -27,7 +27,7 @@ const VIRTUAL_CLIENTS = {
     post_logout_redirect_uris: [],
     branding: {},
     required_roles: [],
-    virtual: true,
+    system_client: true,
   },
 };
 
@@ -43,13 +43,18 @@ export function hashClientSecret(secret) {
   return crypto.createHash('sha256').update(secret).digest('hex');
 }
 
-export function isVirtualClient(clientId) {
-  return Object.hasOwn(VIRTUAL_CLIENTS, clientId);
+export function isSystemClient(clientId) {
+  return Object.hasOwn(SYSTEM_CLIENTS, clientId);
+}
+
+export function getSystemClient(clientId) {
+  const client = SYSTEM_CLIENTS[clientId];
+  return client ? { ...client } : null;
 }
 
 export async function getClient(db, clientId) {
-  const virtual = VIRTUAL_CLIENTS[clientId];
-  if (virtual) return { ...virtual };
+  const system = SYSTEM_CLIENTS[clientId];
+  if (system) return { ...system };
 
   const row = await db.get(
     `SELECT id, client_id, name, redirect_uris, scopes, access_mode, enabled,
@@ -77,18 +82,18 @@ export async function getClient(db, clientId) {
     post_logout_redirect_uris: parseJson(row.post_logout_redirect_uris, []),
     branding: parseJson(row.branding, {}),
     required_roles: roles.map((role) => role.slug),
-    virtual: false,
+    system_client: false,
   };
 }
 
-export function redirectUriAllowed(client, redirectUri, virtualCallbacks = []) {
-  if (client.virtual) return virtualCallbacks.includes(redirectUri);
+export function redirectUriAllowed(client, redirectUri, systemCallbacks = []) {
+  if (client.system_client) return systemCallbacks.includes(redirectUri);
   return client.redirect_uris.includes(redirectUri);
 }
 
-export function postLogoutRedirectAllowed(client, redirectUri, virtualCallbacks = []) {
+export function postLogoutRedirectAllowed(client, redirectUri, systemCallbacks = []) {
   if (!redirectUri) return true;
-  if (client.virtual) return virtualCallbacks.includes(redirectUri);
+  if (client.system_client) return systemCallbacks.includes(redirectUri);
   return client.post_logout_redirect_uris.includes(redirectUri);
 }
 

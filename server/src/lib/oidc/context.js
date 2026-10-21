@@ -1,6 +1,5 @@
 import { HttpError } from '../http/http-error.js';
 import { resolveClientForHost, resolveHostContext } from '../host-context.js';
-import { isVirtualClient } from './clients.js';
 
 export function requestOrigin(req) {
   const forwarded = String(req.headers['x-forwarded-proto'] || '')
@@ -10,9 +9,16 @@ export function requestOrigin(req) {
   return `${proto}://${req.headers.host}`;
 }
 
+export function canonicalBaseUrl(publicUrl) {
+  return String(publicUrl || '').replace(/\/+$/, '');
+}
+
 export function canonicalIssuer(publicUrl, realmSlug) {
-  const base = String(publicUrl || '').replace(/\/+$/, '');
-  return `${base}/oidc/${encodeURIComponent(realmSlug)}`;
+  return `${canonicalBaseUrl(publicUrl)}/oidc/${encodeURIComponent(realmSlug)}`;
+}
+
+export function systemIssuer(publicUrl) {
+  return canonicalBaseUrl(publicUrl);
 }
 
 function pathSegments(req) {
@@ -36,6 +42,7 @@ export async function resolveOidcContext(req, { publicUrl } = {}) {
       origin,
       realm: hostContext.realm,
       clientId: hostContext.clientId,
+      systemClient: false,
       action: segments[0],
     };
   }
@@ -43,28 +50,15 @@ export async function resolveOidcContext(req, { publicUrl } = {}) {
   if (segments.length !== 2) throw new HttpError(404, 'not_found', 'Not found');
   const clientId = segments[0];
   const action = segments[1];
-
-  if (hostContext.mode === 'realm') {
-    const resolved = isVirtualClient(clientId)
-      ? { realm: hostContext.realm, clientId }
-      : await resolveClientForHost(hostContext, clientId);
-    return {
-      mode: 'realm',
-      host: hostContext.host,
-      origin,
-      realm: resolved.realm,
-      clientId: resolved.clientId,
-      action,
-    };
-  }
-
   const resolved = await resolveClientForHost(hostContext, clientId);
+
   return {
-    mode: 'canonical',
+    mode: hostContext.mode,
     host: hostContext.host,
     origin,
     realm: resolved.realm,
     clientId: resolved.clientId,
+    systemClient: resolved.systemClient,
     action,
   };
 }

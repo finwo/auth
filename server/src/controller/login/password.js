@@ -2,7 +2,7 @@ import { app } from '../../app.js';
 import { resolveClientForHost, resolveHostContext } from '../../lib/host-context.js';
 import { HttpError } from '../../lib/http/http-error.js';
 import { findManagedProviderForUser, resolveLogin } from '../../lib/login.js';
-import { getClient } from '../../lib/oidc/clients.js';
+import { getClient, getSystemClient } from '../../lib/oidc/clients.js';
 import {
   getAuthRequest,
   readAuthRequestId,
@@ -21,6 +21,7 @@ import {
   requestToken,
   setSessionCookie,
 } from '../../lib/session.js';
+import { canUseSystemClient } from '../../lib/system-clients.js';
 import {
   findUserByIdentifier,
   getMembership,
@@ -54,11 +55,14 @@ export default {
     const hostContext = await resolveHostContext(req, {
       publicUrl: app.config.server.public_url,
     });
-    const { realm, clientId } = await resolveClientForHost(hostContext, body.client_id);
-    const metadata = await realmMetadata(realm);
-    const realmDb = await openRealmDatabase(realm);
+    const target = await resolveClientForHost(hostContext, body.client_id);
+    const { realm, clientId, systemClient } = target;
+    const metadata = realm ? await realmMetadata(realm) : null;
+    const realmDb = realm ? await openRealmDatabase(realm) : null;
     const systemDb = getSystemDatabase();
-    const client = await getClient(realmDb, clientId);
+    const client = systemClient
+      ? getSystemClient(clientId)
+      : await getClient(realmDb, clientId);
     if (!client || !client.enabled) {
       throw new HttpError(404, 'unknown_client', 'Unknown client');
     }
@@ -72,10 +76,11 @@ export default {
 
     const user = await findUserByIdentifier(systemDb, body.identifier);
     const credential = user ? await getPasswordCredential(systemDb, user.id) : null;
-    const membership = user ? await getMembership(realmDb, user.id) : null;
-    const roles = user ? await getUserRoles(realmDb, user.id) : [];
-    const pendingId = readAuthRequestId(req, realm);
-    const pending = pendingId ? await getAuthRequest(realmDb, pendingId) : null;
+    const membership = user && realmDb ? await getMembership(realmDb, user.id) : null;
+    const roles = user && realmDb ? await getUserRoles(realmDb, user.id) : [];
+    const store = systemClient ? systemDb : realmDb;
+    const pendingId = readAuthRequestId(req, target);
+    const pending = pendingId ? await getAuthRequest(store, pendingId) : null;
     const pendingClient = pending && !pending.completed_at && pending.client_id === client.client_id;
 
     if (!credential) {
@@ -92,18 +97,23 @@ export default {
       throw new HttpError(401, 'invalid_credentials', 'Invalid credentials');
     }
 
-    const allowedByPolicy = canUseClient({
-      user,
-      membership,
-      roles,
-      client,
-      realm,
-    });
-    const member = membership && membership.status === 'active';
-    const publicNonMember = client.access_mode === 'public' && !client.virtual && pendingClient;
-    const allowed =
-      allowedByPolicy &&
-      (member || client.virtual || publicNonMember || user.is_system_admin);
+    let allowed;
+    if (systemClient) {
+      allowed = await canUseSystemClient(systemDb, { user, client });
+    } else {
+      const allowedByPolicy = canUseClient({
+        user,
+        membership,
+        roles,
+        client,
+        realm,
+      });
+      const member = membership && membership.status === 'active';
+      const publicNonMember = client.access_mode === 'public' && pendingClient;
+      allowed =
+        allowedByPolicy &&
+        (member || publicNonMember || user.is_system_admin);
+    }
 
     if (!allowed) {
       throw new HttpError(401, 'invalid_credentials', 'Invalid credentials');
@@ -119,7 +129,9 @@ export default {
       }
     }
 
-    const longSession = body.long_session === true && metadata.allow_session_duration_choice;
+    const longSession =
+      body.long_session === true &&
+      (metadata?.allow_session_duration_choice ?? true);
     const ttl = longSession ? LONG_SESSION_TTL : SHORT_SESSION_TTL;
 
     await purgeExpiredSessions(systemDb);
@@ -133,11 +145,11 @@ export default {
     });
     const authTime = await reauthenticateSession(systemDb, {
       sessionId: session.id,
-      realmId: realm.id,
+      realmId: realm?.id ?? null,
     });
     setSessionCookie(res, req, token, session.ttl);
     if (pendingClient && pending) {
-      await selectAuthRequestAccount(realmDb, pending.id, {
+      await selectAuthRequestAccount(store, pending.id, {
         userId: user.id,
         sessionId: session.id,
         authTime,

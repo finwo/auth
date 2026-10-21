@@ -4,6 +4,7 @@ import crypto from 'node:crypto';
 import { openDatabase, runMigrations } from './db/index.js';
 import { MIGRATIONS_ROOT } from './db/migrate.js';
 import { HttpError } from './http/http-error.js';
+import { isSystemClient } from './oidc/clients.js';
 
 let systemDb = null;
 let dialect = 'sqlite';
@@ -286,6 +287,9 @@ export async function addClientRealm(clientId, realmId) {
   const value = String(clientId || '').trim();
   if (!/^[a-z0-9][a-z0-9-]*$/.test(value)) {
     throw new Error(`invalid client id: ${JSON.stringify(clientId)}`);
+  }
+  if (isSystemClient(value)) {
+    throw new Error(`client id is reserved: ${value}`);
   }
   const existing = await findClientRealm(value);
   if (existing) {

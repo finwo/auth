@@ -8,11 +8,17 @@ import {
 } from 'jose';
 
 const pending = new WeakMap();
+const SIGNING_KEY_TABLES = new Set(['signing_keys', 'system_signing_keys']);
 
-async function loadSigningKey(db) {
+function signingKeyTable(name) {
+  if (!SIGNING_KEY_TABLES.has(name)) throw new Error(`unknown signing key table: ${name}`);
+  return name;
+}
+
+async function loadSigningKey(db, table) {
   const row = await db.get(
     `SELECT id, alg, private_jwk, public_jwk
-       FROM signing_keys
+       FROM ${table}
       WHERE status = 'active'
       ORDER BY created_at DESC
       LIMIT 1`
@@ -39,7 +45,7 @@ async function loadSigningKey(db) {
   publicJwk.use = 'sig';
 
   await db.run(
-    `INSERT INTO signing_keys (id, alg, private_jwk, public_jwk, status, created_at)
+    `INSERT INTO ${table} (id, alg, private_jwk, public_jwk, status, created_at)
      VALUES ({id}, 'ES256', {privateJwk}, {publicJwk}, 'active', {createdAt})`,
     {
       id,
@@ -52,22 +58,32 @@ async function loadSigningKey(db) {
   return { id, alg: 'ES256', privateJwk, publicJwk };
 }
 
-export function ensureSigningKey(db) {
-  let promise = pending.get(db);
+export function ensureSigningKey(db, tableName = 'signing_keys') {
+  const table = signingKeyTable(tableName);
+  let tables = pending.get(db);
+  if (!tables) {
+    tables = new Map();
+    pending.set(db, tables);
+  }
+  let promise = tables.get(table);
   if (!promise) {
-    promise = loadSigningKey(db);
-    pending.set(db, promise);
+    promise = loadSigningKey(db, table);
+    tables.set(table, promise);
   }
   return promise;
 }
 
-export async function getJwks(db) {
-  const key = await ensureSigningKey(db);
+export async function getJwks(db, { table = 'signing_keys' } = {}) {
+  const key = await ensureSigningKey(db, table);
   return { keys: [key.publicJwk] };
 }
 
-export async function signToken(db, claims, { issuer, audience, expiresIn }) {
-  const key = await ensureSigningKey(db);
+export async function signToken(
+  db,
+  claims,
+  { issuer, audience, expiresIn, table = 'signing_keys' }
+) {
+  const key = await ensureSigningKey(db, table);
   const privateKey = await importJWK(key.privateJwk, key.alg);
   const now = Math.floor(Date.now() / 1000);
 
@@ -80,8 +96,12 @@ export async function signToken(db, claims, { issuer, audience, expiresIn }) {
     .sign(privateKey);
 }
 
-export async function verifyToken(db, token, { issuer, audience }) {
-  const key = await ensureSigningKey(db);
+export async function verifyToken(
+  db,
+  token,
+  { issuer, audience, table = 'signing_keys' }
+) {
+  const key = await ensureSigningKey(db, table);
   const publicKey = await importJWK(key.publicJwk, key.alg);
   const { payload } = await jwtVerify(token, publicKey, { issuer, audience });
   return payload;

@@ -9,17 +9,17 @@ export interface ClientDiscovery {
   issuer: string;
   client_id: string;
   client_name: string;
-  realm: string;
+  realm: string | null;
   display_name: string;
   branding: Record<string, string>;
   access_mode: string;
-  virtual: boolean;
+  system_client: boolean;
   require_pkce: boolean;
   allow_session_duration_choice: boolean;
 }
 
 export interface LoginResolution {
-  realm: RealmInfo;
+  realm: RealmInfo | null;
   next: 'password' | 'oidc';
   provider?: {
     slug: string;
@@ -28,7 +28,7 @@ export interface LoginResolution {
 }
 
 export interface PasswordLoginResult {
-  realm: RealmInfo;
+  realm: RealmInfo | null;
   user: {
     id: string;
     username: string;

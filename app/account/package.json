@@ -1,0 +1,14 @@
+{
+  "name": "auth-account",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node esbuild.cjs"
+  },
+  "dependencies": {
+    "mithril": "^2.3.8"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2"
+  }
+}

@@ -55,8 +55,7 @@ const TextField: m.Component<TextFieldAttrs> = {
   },
 };
 
-export const Login: m.Component<{ realm?: string; clientId?: string }> = {
-  realmSlug: null as string | null,
+export const Login: m.Component<{ clientId?: string }> = {
   clientId: null as string | null,
   discovery: null as ClientDiscovery | null,
   step: 'identifier' as Step,
@@ -71,7 +70,6 @@ export const Login: m.Component<{ realm?: string; clientId?: string }> = {
   reauth: false,
 
   oninit(this: any, vnode: any) {
-    this.realmSlug = vnode.attrs.realm ?? null;
     this.clientId = vnode.attrs.clientId ?? null;
     this.reauth = queryParam('reauth') === '1';
     this.loadClient();
@@ -82,7 +80,6 @@ export const Login: m.Component<{ realm?: string; clientId?: string }> = {
     try {
       const discovery = await getClientDiscovery(this.clientId);
       this.discovery = discovery;
-      this.realmSlug = discovery.realm;
       this.clientId = discovery.client_id;
       document.title = discovery.display_name;
       await this.loadAccounts();
@@ -142,11 +139,6 @@ export const Login: m.Component<{ realm?: string; clientId?: string }> = {
         return;
       }
 
-      if (this.clientId === 'admin') {
-        m.route.set(this.realmSlug ? `/realms/${this.realmSlug}/admin` : '/admin');
-        return;
-      }
-
       this.signedIn = result.user;
       this.step = 'done';
       this.pending = false;
@@ -165,11 +157,6 @@ export const Login: m.Component<{ realm?: string; clientId?: string }> = {
       const result = await selectSession(account.public_id, this.clientId);
       if (result.pending_auth_request) {
         m.route.set(authorizeRoute());
-        return;
-      }
-
-      if (this.clientId === 'admin') {
-        m.route.set(this.realmSlug ? `/realms/${this.realmSlug}/admin` : '/admin');
         return;
       }
 

@@ -21,6 +21,10 @@ const DEFAULTS = {
     path: './data/system.sqlite',
     realms: './data/realms',
   },
+  apps: {
+    admin: null,
+    account: null,
+  },
 };
 
 // [environment variable, dotted config path, parser]
@@ -31,6 +35,8 @@ const ENV_MAP = [
   ['AUTH_DATABASE_DIALECT', 'database.dialect', lower],
   ['AUTH_DATABASE_PATH', 'database.path', String],
   ['AUTH_REALMS_PATH', 'database.realms', String],
+  ['AUTH_ADMIN_APP_URL', 'apps.admin', String],
+  ['AUTH_ACCOUNT_APP_URL', 'apps.account', String],
 ];
 
 function lower(v) {
@@ -106,7 +112,20 @@ function validate(cfg) {
     }
   }
 
-
+  for (const [name, value] of Object.entries(cfg.apps || {})) {
+    if (!value) continue;
+    try {
+      const url = new URL(value);
+      if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+        errors.push(`apps.${name} must use http or https`);
+      }
+      if (url.pathname !== '/' || url.search || url.hash) {
+        errors.push(`apps.${name} must be an origin without a path`);
+      }
+    } catch {
+      errors.push(`apps.${name} must be an absolute URL`);
+    }
+  }
 
   if (errors.length > 0) {
     throw new Error(`invalid configuration:\n  - ${errors.join('\n  - ')}`);

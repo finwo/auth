@@ -86,6 +86,8 @@ test('client IDs are globally unique and client hosts resolve through mappings',
       /already assigned/
     );
     await assert.rejects(() => addClientRealm('Bad App', acme.id), /invalid client id/);
+    await assert.rejects(() => addClientRealm('admin', acme.id), /reserved/);
+    await assert.rejects(() => addClientRealm('account', acme.id), /reserved/);
 
     await addOidcClientHost('shared-app', 'app.acme.localhost');
     const clientHost = await findOidcClientHost('app.acme.localhost:3000');

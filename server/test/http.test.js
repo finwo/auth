@@ -230,6 +230,8 @@ test('HTTP realm, login, OIDC and logout flows', async (t) => {
     AUTH_REALMS_PATH: path.join(dir, 'realms'),
     AUTH_PORT: String(port),
     AUTH_PUBLIC_URL: publicUrl,
+    AUTH_ADMIN_APP_URL: `http://admin.test:${port}`,
+    AUTH_ACCOUNT_APP_URL: `http://account.test:${port}`,
   };
 
   const origin = (host) => `http://${host}:${port}`;
@@ -267,7 +269,10 @@ test('HTTP realm, login, OIDC and logout flows', async (t) => {
       assert.equal(login.status, 200);
       jar = mergeCookies(jar, login);
 
-      const second = await requester({ path: authorizePath, cookie: jar });
+      const second = await requester({
+        path: authorizePath.split('?')[0],
+        cookie: jar,
+      });
       assert.equal(second.status, 302);
       const code = locationQuery(second).searchParams.get('code');
       assert.ok(code);
@@ -284,7 +289,19 @@ test('HTTP realm, login, OIDC and logout flows', async (t) => {
         },
       });
       assert.equal(tokenResponse.status, 200);
-      return { access_token: tokenResponse.json.access_token, cookie: jar };
+      return {
+        access_token: tokenResponse.json.access_token,
+        refresh_token: tokenResponse.json.refresh_token,
+        cookie: jar,
+      };
+    }
+
+    async function adminToken(identifier = 'admin@system.test') {
+      return accessToken(identity, {
+        clientId: 'admin',
+        identifier,
+        redirectUri: `${origin('identity.test')}/app/admin/callback`,
+      });
     }
 
     await t.test('realm metadata is served for a realm hostname', async () => {
@@ -355,16 +372,24 @@ test('HTTP realm, login, OIDC and logout flows', async (t) => {
       assert.equal(otherRealm.json.issuer, `${publicUrl}/oidc/globex`);
     });
 
-    await t.test('virtual clients are discoverable', async () => {
-      const admin = await acme({ path: '/oidc/admin/openid-configuration' });
+    await t.test('system clients are discoverable on their allowed hosts', async () => {
+      const admin = await identity({ path: '/oidc/admin/openid-configuration' });
       assert.equal(admin.status, 200);
-      assert.equal(admin.json.virtual, true);
+      assert.equal(admin.json.system_client, true);
       assert.equal(admin.json.access_mode, 'admin');
+      assert.equal(admin.json.issuer, publicUrl);
 
-      const account = await acme({ path: '/oidc/account/openid-configuration' });
+      const adminRealm = await acme({ path: '/oidc/admin/openid-configuration' });
+      assert.equal(adminRealm.status, 404);
+
+      const account = await identity({ path: '/oidc/account/openid-configuration' });
       assert.equal(account.status, 200);
-      assert.equal(account.json.virtual, true);
+      assert.equal(account.json.system_client, true);
       assert.equal(account.json.access_mode, 'public');
+
+      const accountRealm = await acme({ path: '/oidc/account/openid-configuration' });
+      assert.equal(accountRealm.status, 200);
+      assert.equal(accountRealm.json.system_client, true);
     });
 
     await t.test('identifier resolution selects password or upstream OIDC', async () => {
@@ -1016,48 +1041,151 @@ test('HTTP realm, login, OIDC and logout flows', async (t) => {
       assert.equal(tokenResponse.status, 200);
     });
 
-    await t.test('system admins can use the admin virtual client', async () => {
-      const redirectUri = `${origin('acme.localhost')}/oidc/admin/callback`;
-      const { verifier, challenge } = pkce();
-      const authorizePath =
-        `/oidc/admin/authorize?response_type=code&client_id=admin` +
-        `&redirect_uri=${encodeURIComponent(redirectUri)}&scope=openid%20profile` +
-        `&state=state-3&code_challenge=${challenge}&code_challenge_method=S256`;
+    await t.test('system admins can use the admin client on the canonical host', async () => {
+      const admin = await adminToken();
+      assert.ok(admin.access_token);
+      assert.ok(admin.refresh_token);
 
-      const first = await acme({ path: authorizePath });
-      assert.equal(first.status, 302);
-      let jar = mergeCookies('', first);
+      const discovery = await identity({ path: '/oidc/admin/openid-configuration' });
+      assert.equal(discovery.status, 200);
+      assert.equal(discovery.json.issuer, publicUrl);
+      assert.ok(discovery.json.grant_types_supported.includes('refresh_token'));
 
-      const login = await acme({
-        method: 'POST',
-        path: '/api/v1/login/password',
-        body: { client_id: 'admin', identifier: 'admin@system.test', password: 'demo' },
-        cookie: jar,
+      const userinfo = await identity({
+        path: '/oidc/admin/userinfo',
+        bearer: admin.access_token,
       });
-      assert.equal(login.status, 200);
-      jar = mergeCookies(jar, login);
+      assert.equal(userinfo.status, 200);
+      assert.equal(userinfo.json.preferred_username, 'admin');
+      assert.equal(userinfo.json.is_system_admin, true);
 
-      const second = await acme({ path: authorizePath, cookie: jar });
-      assert.equal(second.status, 302);
-      const code = locationQuery(second).searchParams.get('code');
-      assert.ok(code);
-
-      const tokenResponse = await acme({
+      const refreshed = await identity({
         method: 'POST',
         path: '/oidc/admin/token',
         form: {
-          grant_type: 'authorization_code',
-          code,
-          redirect_uri: redirectUri,
+          grant_type: 'refresh_token',
           client_id: 'admin',
-          code_verifier: verifier,
+          refresh_token: admin.refresh_token,
         },
       });
-      assert.equal(tokenResponse.status, 200);
+      assert.equal(refreshed.status, 200);
+      assert.ok(refreshed.json.access_token);
+      assert.ok(refreshed.json.refresh_token);
+      assert.notEqual(refreshed.json.refresh_token, admin.refresh_token);
+
+      const reused = await identity({
+        method: 'POST',
+        path: '/oidc/admin/token',
+        form: {
+          grant_type: 'refresh_token',
+          client_id: 'admin',
+          refresh_token: admin.refresh_token,
+        },
+      });
+      assert.equal(reused.status, 400);
+      assert.equal(reused.json.error, 'invalid_grant');
+
+      const revoked = await identity({
+        method: 'POST',
+        path: '/oidc/admin/token',
+        form: {
+          grant_type: 'refresh_token',
+          client_id: 'admin',
+          refresh_token: refreshed.json.refresh_token,
+        },
+      });
+      assert.equal(revoked.status, 400);
+    });
+
+    await t.test('configured static app callbacks are accepted', async () => {
+      const admin = await accessToken(identity, {
+        clientId: 'admin',
+        identifier: 'admin@system.test',
+        redirectUri: `http://admin.test:${port}/callback`,
+      });
+      assert.ok(admin.access_token);
+
+      const account = await accessToken(identity, {
+        clientId: 'account',
+        identifier: 'guest@personal.test',
+        redirectUri: `http://account.test:${port}/callback`,
+      });
+      assert.ok(account.access_token);
+    });
+
+    await t.test('split apps are served on their allowed hosts', async (t) => {
+      const admin = await identity({ path: '/app/admin' });
+      if (admin.status === 503) {
+        t.skip('app builds are not available');
+        return;
+      }
+      assert.equal(admin.status, 200);
+      assert.match(admin.headers['content-type'], /text\/html/);
+      assert.match(admin.text, /admin-app/);
+
+      const adminRealm = await acme({ path: '/app/admin' });
+      assert.equal(adminRealm.status, 404);
+
+      const accountCanonical = await identity({ path: '/app/account' });
+      assert.equal(accountCanonical.status, 200);
+      assert.match(accountCanonical.text, /account-app/);
+
+      const accountRealm = await acme({ path: '/app/account' });
+      assert.equal(accountRealm.status, 200);
+
+      const accountClient = await app({ path: '/app/account' });
+      assert.equal(accountClient.status, 200);
+
+      const login = await identity({ path: '/oidc/admin/login' });
+      assert.equal(login.status, 200);
+      assert.match(login.text, /auth-page/);
+
+      const loginRealm = await acme({ path: '/oidc/admin/login' });
+      assert.equal(loginRealm.status, 404);
+    });
+
+    await t.test('account clients work for guests on canonical and realm hosts', async (t) => {
+      const canonical = await identity({ path: '/oidc/account/openid-configuration' });
+      assert.equal(canonical.status, 200);
+      assert.equal(canonical.json.issuer, publicUrl);
+
+      const realmHost = await acme({ path: '/oidc/account/openid-configuration' });
+      assert.equal(realmHost.status, 200);
+      assert.equal(realmHost.json.issuer, publicUrl);
+
+      const clientHost = await app({ path: '/oidc/account/openid-configuration' });
+      assert.equal(clientHost.status, 404);
+
+      const account = await accessToken(acme, {
+        clientId: 'account',
+        identifier: 'guest@personal.test',
+        redirectUri: `${origin('acme.localhost')}/app/account/callback`,
+      });
+      assert.ok(account.access_token);
+      assert.ok(account.refresh_token);
+
+      const userinfo = await acme({
+        path: '/oidc/account/userinfo',
+        bearer: account.access_token,
+      });
+      assert.equal(userinfo.status, 200);
+      assert.equal(userinfo.json.preferred_username, 'guest');
+
+      const refreshed = await acme({
+        method: 'POST',
+        path: '/oidc/account/token',
+        form: {
+          grant_type: 'refresh_token',
+          client_id: 'account',
+          refresh_token: account.refresh_token,
+        },
+      });
+      assert.equal(refreshed.status, 200);
+      assert.ok(refreshed.json.refresh_token);
     });
 
     await t.test('admin session APIs require an active admin token', async () => {
-      const missing = await acme({ path: '/api/v1/admin/realms/acme/sessions' });
+      const missing = await identity({ path: '/api/v1/admin/realms/acme/sessions' });
       assert.equal(missing.status, 401);
       assert.equal(missing.json.error.code, 'invalid_token');
 
@@ -1066,7 +1194,7 @@ test('HTTP realm, login, OIDC and logout flows', async (t) => {
         identifier: 'alice@acme.test',
         redirectUri: `${origin('app.acme.localhost')}/callback`,
       });
-      const wrongAudience = await acme({
+      const wrongAudience = await identity({
         path: '/api/v1/admin/realms/acme/sessions',
         bearer: alice.access_token,
       });
@@ -1098,12 +1226,8 @@ test('HTTP realm, login, OIDC and logout flows', async (t) => {
       });
       const contractorPublicId = activeSessionPublicId(env, contractor.cookie);
 
-      const admin = await accessToken(acme, {
-        clientId: 'admin',
-        identifier: 'it@acme.test',
-        redirectUri: `${origin('acme.localhost')}/oidc/admin/callback`,
-      });
-      const response = await acme({
+      const admin = await adminToken('it@acme.test');
+      const response = await identity({
         path: '/api/v1/admin/realms/acme/sessions',
         bearer: admin.access_token,
       });
@@ -1133,11 +1257,7 @@ test('HTTP realm, login, OIDC and logout flows', async (t) => {
     });
 
     await t.test('guest realm admins can revoke realm access but not terminate', async () => {
-      const admin = await accessToken(globex, {
-        clientId: 'admin',
-        identifier: 'contractor@personal.test',
-        redirectUri: `${origin('globex.localhost')}/oidc/admin/callback`,
-      });
+      const admin = await adminToken('contractor@personal.test');
       const alice = await accessToken(globex, {
         clientId: 'globex-members-app',
         identifier: 'alice@acme.test',
@@ -1145,7 +1265,7 @@ test('HTTP realm, login, OIDC and logout flows', async (t) => {
       });
       const alicePublicId = activeSessionPublicId(env, alice.cookie);
 
-      const list = await globex({
+      const list = await identity({
         path: '/api/v1/admin/realms/globex/sessions',
         bearer: admin.access_token,
       });
@@ -1156,7 +1276,7 @@ test('HTTP realm, login, OIDC and logout flows', async (t) => {
         false
       );
 
-      const revoked = await globex({
+      const revoked = await identity({
         method: 'DELETE',
         path: `/api/v1/admin/realms/globex/sessions/${alicePublicId}/realm`,
         bearer: admin.access_token,
@@ -1199,7 +1319,7 @@ test('HTTP realm, login, OIDC and logout flows', async (t) => {
       assert.equal(reauthLocation.pathname, '/oidc/globex-members-app/login');
       assert.equal(reauthLocation.searchParams.get('reauth'), '1');
 
-      const terminate = await globex({
+      const terminate = await identity({
         method: 'DELETE',
         path: `/api/v1/admin/realms/globex/sessions/${alicePublicId}`,
         bearer: admin.access_token,
@@ -1215,11 +1335,7 @@ test('HTTP realm, login, OIDC and logout flows', async (t) => {
     });
 
     await t.test('home realm admins terminate only the selected session', async () => {
-      const admin = await accessToken(acme, {
-        clientId: 'admin',
-        identifier: 'it@acme.test',
-        redirectUri: `${origin('acme.localhost')}/oidc/admin/callback`,
-      });
+      const admin = await adminToken('it@acme.test');
 
       const aliceAcme = await acme({
         method: 'POST',
@@ -1235,7 +1351,7 @@ test('HTTP realm, login, OIDC and logout flows', async (t) => {
         redirectUri: `${origin('members.localhost')}/callback`,
       });
 
-      const terminated = await acme({
+      const terminated = await identity({
         method: 'DELETE',
         path: `/api/v1/admin/realms/acme/sessions/${aliceAcmePublicId}`,
         bearer: admin.access_token,
@@ -1283,12 +1399,8 @@ test('HTTP realm, login, OIDC and logout flows', async (t) => {
         (account) => account.user.username === 'alice'
       );
 
-      const admin = await accessToken(acme, {
-        clientId: 'admin',
-        identifier: 'it@acme.test',
-        redirectUri: `${origin('acme.localhost')}/oidc/admin/callback`,
-      });
-      const terminated = await acme({
+      const admin = await adminToken('it@acme.test');
+      const terminated = await identity({
         method: 'DELETE',
         path: `/api/v1/admin/realms/acme/sessions/${aliceAccount.public_id}`,
         bearer: admin.access_token,
@@ -1305,11 +1417,7 @@ test('HTTP realm, login, OIDC and logout flows', async (t) => {
     });
 
     await t.test('system admins can terminate guest sessions', async () => {
-      const admin = await accessToken(globex, {
-        clientId: 'admin',
-        identifier: 'admin@system.test',
-        redirectUri: `${origin('globex.localhost')}/oidc/admin/callback`,
-      });
+      const admin = await adminToken();
       const alice = await accessToken(globex, {
         clientId: 'globex-members-app',
         identifier: 'alice@acme.test',
@@ -1317,7 +1425,7 @@ test('HTTP realm, login, OIDC and logout flows', async (t) => {
       });
       const alicePublicId = activeSessionPublicId(env, alice.cookie);
 
-      const list = await globex({
+      const list = await identity({
         path: '/api/v1/admin/realms/globex/sessions',
         bearer: admin.access_token,
       });
@@ -1328,7 +1436,7 @@ test('HTTP realm, login, OIDC and logout flows', async (t) => {
         true
       );
 
-      const terminated = await globex({
+      const terminated = await identity({
         method: 'DELETE',
         path: `/api/v1/admin/realms/globex/sessions/${alicePublicId}`,
         bearer: admin.access_token,
@@ -1343,19 +1451,21 @@ test('HTTP realm, login, OIDC and logout flows', async (t) => {
     });
 
     await t.test('admin token sessions and realms are enforced', async () => {
-      const admin = await accessToken(acme, {
-        clientId: 'admin',
-        identifier: 'it@acme.test',
-        redirectUri: `${origin('acme.localhost')}/oidc/admin/callback`,
-      });
+      const admin = await adminToken('it@acme.test');
       const adminPublicId = activeSessionPublicId(env, admin.cookie);
 
-      const otherRealm = await acme({
+      const otherRealm = await identity({
         path: '/api/v1/admin/realms/globex/sessions',
         bearer: admin.access_token,
       });
-      assert.equal(otherRealm.status, 404);
-      assert.equal(otherRealm.json.error.code, 'unknown_realm');
+      assert.equal(otherRealm.status, 403);
+      assert.equal(otherRealm.json.error.code, 'forbidden');
+
+      const realmHost = await acme({
+        path: '/api/v1/admin/realms/acme/sessions',
+        bearer: admin.access_token,
+      });
+      assert.equal(realmHost.status, 404);
 
       const clientHost = await app({
         path: '/api/v1/admin/realms/acme/sessions',
@@ -1369,14 +1479,14 @@ test('HTTP realm, login, OIDC and logout flows', async (t) => {
       });
       assert.equal(canonical.status, 200);
 
-      const terminated = await acme({
+      const terminated = await identity({
         method: 'DELETE',
         path: `/api/v1/admin/realms/acme/sessions/${adminPublicId}`,
         bearer: admin.access_token,
       });
       assert.equal(terminated.status, 200);
 
-      const deadToken = await acme({
+      const deadToken = await identity({
         path: '/api/v1/admin/realms/acme/sessions',
         bearer: admin.access_token,
       });
@@ -1385,11 +1495,7 @@ test('HTTP realm, login, OIDC and logout flows', async (t) => {
     });
 
     await t.test('admin access is re-read from the realm database', async () => {
-      const admin = await accessToken(acme, {
-        clientId: 'admin',
-        identifier: 'it@acme.test',
-        redirectUri: `${origin('acme.localhost')}/oidc/admin/callback`,
-      });
+      const admin = await adminToken('it@acme.test');
       const actor = withSystemDatabase(env, (database) =>
         database.prepare('SELECT id FROM users WHERE username = ?').get('acme-it')
       );
@@ -1404,7 +1510,7 @@ test('HTTP realm, login, OIDC and logout flows', async (t) => {
       });
 
       try {
-        const response = await acme({
+        const response = await identity({
           path: '/api/v1/admin/realms/acme/sessions',
           bearer: admin.access_token,
         });

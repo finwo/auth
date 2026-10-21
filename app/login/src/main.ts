@@ -1,6 +1,7 @@
 import m from 'mithril';
-import { Admin } from './screen/admin';
 import { Login } from './screen/login';
+
+import './assets/login.css';
 
 const routes: m.RouteDefs = {
   '/oidc/:clientId/login': {
@@ -8,15 +9,6 @@ const routes: m.RouteDefs = {
   },
   '/oidc/login': {
     render: () => m(Login, {}),
-  },
-  '/realms/:realm/admin': {
-    render: (vnode) => m(Admin, { realm: (vnode.attrs as any).realm }),
-  },
-  '/admin': {
-    render: () => m(Admin, {}),
-  },
-  '/': {
-    onmatch: () => m.route.set('/oidc/login'),
   },
 };
 

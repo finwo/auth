@@ -4,8 +4,14 @@ import { parseCookie, stringifySetCookie } from 'cookie';
 const AUTH_REQUEST_TTL = 10 * 60;
 const CODE_TTL = 60;
 
-export function authRequestCookieName(realm) {
-  return `auth_request_${realm.slug}`;
+function authRequestScopeName(scope) {
+  if (scope.systemClient) return `system_${scope.clientId}`;
+  if (!scope.realm?.slug) throw new Error('auth request scope requires a realm');
+  return scope.realm.slug;
+}
+
+export function authRequestCookieName(scope) {
+  return `auth_request_${authRequestScopeName(scope)}`;
 }
 
 function secureRequest(req) {
@@ -24,11 +30,11 @@ function appendSetCookie(res, value) {
   res.setHeader('Set-Cookie', [...values, value]);
 }
 
-export function setAuthRequestCookie(res, req, realm, id, ttl = AUTH_REQUEST_TTL) {
+export function setAuthRequestCookie(res, req, scope, id, ttl = AUTH_REQUEST_TTL) {
   appendSetCookie(
     res,
     stringifySetCookie({
-      name: authRequestCookieName(realm),
+      name: authRequestCookieName(scope),
       value: id,
       httpOnly: true,
       sameSite: 'lax',
@@ -39,11 +45,11 @@ export function setAuthRequestCookie(res, req, realm, id, ttl = AUTH_REQUEST_TTL
   );
 }
 
-export function clearAuthRequestCookie(res, req, realm) {
+export function clearAuthRequestCookie(res, req, scope) {
   appendSetCookie(
     res,
     stringifySetCookie({
-      name: authRequestCookieName(realm),
+      name: authRequestCookieName(scope),
       value: '',
       httpOnly: true,
       sameSite: 'lax',
@@ -54,9 +60,9 @@ export function clearAuthRequestCookie(res, req, realm) {
   );
 }
 
-export function readAuthRequestId(req, realm) {
+export function readAuthRequestId(req, scope) {
   const cookies = parseCookie(req.headers.cookie || '');
-  return cookies[authRequestCookieName(realm)] || null;
+  return cookies[authRequestCookieName(scope)] || null;
 }
 
 export async function purgeExpired(db, now = Date.now()) {

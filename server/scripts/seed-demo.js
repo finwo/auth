@@ -309,6 +309,6 @@ console.log(
     'globex-members-app, globex-public-app'
 );
 console.log('client host: app.acme.localhost -> acme/internal-app');
-console.log('virtual clients: admin, account');
+console.log('built-in system clients: admin, account');
 
 await closeRealms();

@@ -25,15 +25,17 @@ export default {
     const hostContext = await resolveHostContext(req, {
       publicUrl: app.config.server.public_url,
     });
-    let realm = hostContext.realm || null;
-    let clientId = body.client_id || hostContext.clientId || null;
-    if (body.client_id && hostContext.mode !== 'client') {
-      const resolved = await resolveClientForHost(hostContext, body.client_id);
-      realm = resolved.realm;
-      clientId = resolved.clientId;
+    const systemDb = getSystemDatabase();
+    let target = {
+      realm: hostContext.realm || null,
+      clientId: hostContext.clientId || null,
+      systemClient: false,
+    };
+    if (body.client_id) {
+      target = await resolveClientForHost(hostContext, body.client_id);
     }
 
-    const selected = await selectSessionAccount(getSystemDatabase(), {
+    const selected = await selectSessionAccount(systemDb, {
       token: requestToken(req),
       context: hostContext,
       publicId: body.public_id,
@@ -43,15 +45,19 @@ export default {
     }
 
     let pendingAuthRequest = false;
-    if (realm) {
-      const realmDb = await openRealmDatabase(realm);
-      const pending = await getAuthRequest(realmDb, readAuthRequestId(req, realm));
+    const store = target.systemClient
+      ? systemDb
+      : target.realm
+        ? await openRealmDatabase(target.realm)
+        : null;
+    if (store) {
+      const pending = await getAuthRequest(store, readAuthRequestId(req, target));
       if (
         pending &&
         !pending.completed_at &&
-        (!clientId || pending.client_id === clientId)
+        (!target.clientId || pending.client_id === target.clientId)
       ) {
-        await selectAuthRequestAccount(realmDb, pending.id, {
+        await selectAuthRequestAccount(store, pending.id, {
           userId: selected.user.id,
           sessionId: selected.session.id,
           authTime: selected.session.auth_time,

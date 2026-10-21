@@ -13,11 +13,6 @@ export function canUseClient({ user, membership, roles, client, realm }) {
   const requiredRoles = Array.isArray(client.required_roles) ? client.required_roles : [];
   const roleOk = requiredRoles.length === 0 || requiredRoles.some((role) => roles.includes(role));
 
-  if (client.virtual && client.client_id === 'admin') {
-    if (isSystemAdmin(user)) return true;
-    return Boolean(membership && membership.status === 'active' && roles.includes('realm-admin'));
-  }
-
   if (client.access_mode === 'public') return true;
 
   if (!membership || membership.status !== 'active') return false;

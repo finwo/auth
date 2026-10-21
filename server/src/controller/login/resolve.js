@@ -1,7 +1,7 @@
 import { app } from '../../app.js';
 import { resolveClientForHost, resolveHostContext } from '../../lib/host-context.js';
 import { resolveLogin } from '../../lib/login.js';
-import { getClient } from '../../lib/oidc/clients.js';
+import { getClient, getSystemClient } from '../../lib/oidc/clients.js';
 import { HttpError } from '../../lib/http/http-error.js';
 import { openRealmDatabase, realmMetadata } from '../../lib/realm.js';
 
@@ -21,14 +21,19 @@ export default {
     const hostContext = await resolveHostContext(req, {
       publicUrl: app.config.server.public_url,
     });
-    const { realm, clientId } = await resolveClientForHost(hostContext, body.client_id);
-    const realmDb = await openRealmDatabase(realm);
-    const client = await getClient(realmDb, clientId);
+    const { realm, clientId, systemClient } = await resolveClientForHost(
+      hostContext,
+      body.client_id
+    );
+    const realmDb = realm ? await openRealmDatabase(realm) : null;
+    const client = systemClient
+      ? getSystemClient(clientId)
+      : await getClient(realmDb, clientId);
     if (!client || !client.enabled) {
       throw new HttpError(404, 'unknown_client', 'Unknown client');
     }
 
-    const metadata = await realmMetadata(realm);
+    const metadata = realm ? await realmMetadata(realm) : null;
     const result = await resolveLogin({ identifier: body.identifier });
 
     return new app.HttpOk({

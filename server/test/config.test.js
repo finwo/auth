@@ -107,6 +107,22 @@ test('a non-integer port names the environment variable', async () => {
   );
 });
 
+test('static app origins are origins without paths', async () => {
+  await inTempDir(() =>
+    withEnv(
+      {
+        AUTH_DATABASE_PATH: './data/system.sqlite',
+        AUTH_REALMS_PATH: './data/realms',
+        AUTH_ADMIN_APP_URL: 'https://admin.example.com',
+        AUTH_ACCOUNT_APP_URL: 'https://account.example.com/app',
+      },
+      () => {
+        assert.throws(() => loadConfig(), /apps\.account/);
+      }
+    )
+  );
+});
+
 test('environment variables override the YAML file', async () => {
   await inTempDir(async () => {
     await fs.writeFile(

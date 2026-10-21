@@ -1,19 +1,16 @@
 import bodyParser from 'body-parser';
 import cors from 'cors';
-import fs from 'node:fs';
 import http from 'node:http';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import morgan from 'morgan';
 import scandir from '@finwo/scandir';
-import serveStatic from 'serve-static';
 
 import { app } from './app.js';
 import { loadConfig } from './lib/config.js';
 import { closeRealms, initRealms } from './lib/realm.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-const dist = path.join(here, '..', 'web', 'dist');
 
 const cfg = loadConfig();
 app.config = cfg;
@@ -33,8 +30,20 @@ for (const mod of await loadModules(path.join(here, 'lib', 'http'))) {
   Object.assign(app, mod);
 }
 
+const browserOrigins = new Set(
+  [cfg.server.public_url, cfg.apps?.admin, cfg.apps?.account]
+    .filter(Boolean)
+    .map((value) => new URL(value).origin)
+);
+
 app.use(morgan('tiny'));
-app.use(cors());
+app.use(
+  cors({
+    origin(origin, callback) {
+      callback(null, !origin || browserOrigins.has(origin));
+    },
+  })
+);
 app.use(bodyParser.json({ limit: '16kb' }));
 app.use(bodyParser.urlencoded({ extended: false, limit: '16kb' }));
 
@@ -89,17 +98,6 @@ for (const route of routes) {
   });
 }
 
-const serve = serveStatic(dist, {
-  index: ['index.htm', 'index.html'],
-});
-
-let indexContent = null;
-try {
-  indexContent = fs.readFileSync(path.join(dist, 'index.html'));
-} catch {
-  indexContent = null;
-}
-
 await initRealms(cfg);
 
 const server = http.createServer((req, res) => {
@@ -112,15 +110,12 @@ const server = http.createServer((req, res) => {
       return;
     }
 
-    serve(req, res, () => {
-      if (!indexContent) {
-        res.writeHead(500, { 'content-type': 'text/plain; charset=utf-8' });
-        res.end('frontend build missing');
-        return;
-      }
-      res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
-      res.end(indexContent);
-    });
+    if (res.headersSent) {
+      res.end();
+      return;
+    }
+    res.writeHead(404, { 'content-type': 'text/plain; charset=utf-8' });
+    res.end('Not found');
   });
 });
 

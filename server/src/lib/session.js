@@ -96,6 +96,21 @@ function scopeMatches(session, context) {
   );
 }
 
+export function sessionMatchesContext(session, context) {
+  return scopeMatches(session, context);
+}
+
+export async function findActiveSessionById(systemDb, sessionId, now = Date.now()) {
+  return systemDb.get(
+    `SELECT id, public_id, group_id, user_id, scope_type, scope_host, realm_id,
+            client_id, ttl, auth_time, created_at, expires_at, last_seen_at,
+            user_agent, ip
+       FROM sessions
+      WHERE id = {id} AND expires_at > {now}`,
+    { id: sessionId, now }
+  );
+}
+
 async function findGroupByToken(systemDb, token) {
   if (!token) return null;
   return systemDb.get(

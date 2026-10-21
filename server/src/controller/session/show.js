@@ -27,7 +27,7 @@ export default {
       throw new HttpError(401, 'not_authenticated', 'Not signed in');
     }
     if (
-      hostContext.mode !== 'canonical' &&
+      hostContext.mode === 'realm' &&
       !isSystemAdmin(auth.user) &&
       (!auth.membership || auth.membership.status !== 'active')
     ) {

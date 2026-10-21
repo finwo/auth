@@ -1,5 +1,5 @@
 import { HttpError } from './http/http-error.js';
-import { isVirtualClient } from './oidc/clients.js';
+import { isSystemClient } from './oidc/clients.js';
 import { findClientRealm, findOidcClientHost, findRealmHost, normalizeHost } from './realm.js';
 
 export async function resolveHostContext(req, { publicUrl } = {}) {
@@ -41,11 +41,18 @@ export async function resolveClientForHost(context, clientId) {
     if (value !== context.clientId) {
       throw new HttpError(404, 'unknown_client', 'Unknown client');
     }
-    return { realm: context.realm, clientId: context.clientId };
+    return { realm: context.realm, clientId: context.clientId, systemClient: false };
   }
 
-  if (context.mode === 'realm' && isVirtualClient(value)) {
-    return { realm: context.realm, clientId: value };
+  if (isSystemClient(value)) {
+    if (value === 'admin' && context.mode !== 'canonical') {
+      throw new HttpError(404, 'unknown_client', 'Unknown client');
+    }
+    return {
+      realm: context.mode === 'realm' ? context.realm : null,
+      clientId: value,
+      systemClient: true,
+    };
   }
 
   const mapping = await findClientRealm(value);
@@ -64,5 +71,6 @@ export async function resolveClientForHost(context, clientId) {
       owner_user_id: mapping.owner_user_id,
     },
     clientId: value,
+    systemClient: false,
   };
 }

@@ -1,7 +1,7 @@
 import { app } from '../app.js';
 import { HttpError } from './http/http-error.js';
 import { resolveHostContext } from './host-context.js';
-import { canonicalIssuer } from './oidc/context.js';
+import { systemIssuer } from './oidc/context.js';
 import { verifyToken } from './oidc/keys.js';
 import { isRealmAdmin, isSystemAdmin } from './policy.js';
 import { getSystemDatabase, openRealmDatabase, resolveRealm } from './realm.js';
@@ -16,25 +16,22 @@ export async function authenticateAdminRequest(req, { realmSlug }) {
   const hostContext = await resolveHostContext(req, {
     publicUrl: app.config.server.public_url,
   });
-  if (hostContext.mode === 'client') {
+  if (hostContext.mode !== 'canonical') {
     throw new HttpError(404, 'not_found', 'Not found');
   }
 
-  const realm = await resolveRealm({
-    host: hostContext.host,
-    slug: realmSlug,
-  });
-  const realmDb = await openRealmDatabase(realm);
   const token = bearerToken(req);
   if (!token) {
     throw new HttpError(401, 'invalid_token', 'A bearer token is required');
   }
 
+  const systemDb = getSystemDatabase();
   let payload;
   try {
-    payload = await verifyToken(realmDb, token, {
-      issuer: canonicalIssuer(app.config.server.public_url, realm.slug),
+    payload = await verifyToken(systemDb, token, {
+      issuer: systemIssuer(app.config.server.public_url),
       audience: 'admin',
+      table: 'system_signing_keys',
     });
   } catch {
     throw new HttpError(401, 'invalid_token', 'The access token is invalid');
@@ -44,7 +41,6 @@ export async function authenticateAdminRequest(req, { realmSlug }) {
     throw new HttpError(401, 'invalid_token', 'The access token is invalid');
   }
 
-  const systemDb = getSystemDatabase();
   const user = await findUserById(systemDb, payload.sub);
   if (!user || user.status !== 'active') {
     throw new HttpError(401, 'invalid_token', 'The user is not available');
@@ -60,6 +56,8 @@ export async function authenticateAdminRequest(req, { realmSlug }) {
     throw new HttpError(401, 'invalid_token', 'The admin session is not active');
   }
 
+  const realm = await resolveRealm({ slug: realmSlug });
+  const realmDb = await openRealmDatabase(realm);
   const membership = await getMembership(realmDb, user.id);
   const roles = await getUserRoles(realmDb, user.id);
   if (

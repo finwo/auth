@@ -1,0 +1,15 @@
+{
+  "name": "auth-login",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node esbuild.cjs",
+    "assets:hex": "node scripts/generate-hex-grid.js"
+  },
+  "dependencies": {
+    "mithril": "^2.3.8"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2"
+  }
+}

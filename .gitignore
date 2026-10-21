@@ -1,3 +1,4 @@
 node_modules/
-server/web/dist/
+app/*/node_modules/
+app/*/dist/
 server/data/

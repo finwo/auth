@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 
 // require('dotenv').config();
-const cpy     = require('cpy').default;
 const fs      = require('node:fs');
 const esbuild = require('esbuild');
 // const { nodeModulesPolyfillPlugin } = require('esbuild-plugins-node-modules-polyfill');
@@ -52,15 +51,13 @@ const config = {
 };
 
 const buildList = [];
-const styles    = ['assets/global.css'];
+const styles    = [];
 
 esbuild
   .build(config)
   .then(async () => {
 
-    try { fs.mkdirSync('./dist/assets'); } catch { /* empty */ }
     // Already rendered at every size by util/icon.js, so only copied here.
-    await cpy(__dirname + '/src/assets/**/*', __dirname + '/dist/assets');
     for(const name of Object.keys(entryPoints)) {
       buildList.push(`${name}.js`);
       try {
@@ -77,10 +74,11 @@ esbuild
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=0">
     <title>auth</title>
-    ${styles.map(name => `<link rel="stylesheet" href="/${name}"/>`).join('\n    ')}
+    ${styles.map(name => `<style>/* ${name} */ ${fs.readFileSync(`${config.outdir}/${name}`, 'utf8')}</style>`).join('\n    ')}
   </head>
   <body>
-    ${buildList.map(name => `<script src="/${name}" defer></script>`).join('\n    ')}
+    Loading...
+    ${buildList.map(name => `<script>/* ${name} */ ${fs.readFileSync(`${config.outdir}/${name}`, 'utf8')}</script>`).join('\n    ')}
   </body>
 </html>
 `);
