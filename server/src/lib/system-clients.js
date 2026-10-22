@@ -1,5 +1,5 @@
 import { isSystemAdmin } from './policy.js';
-import { openRealmDatabase } from './realm.js';
+import { openRealmDatabase, realmMetadata } from './realm.js';
 import { getMembership, getUserRoles } from './users.js';
 
 export async function listAdminRealms(systemDb, user) {
@@ -21,6 +21,23 @@ export async function listAdminRealms(systemDb, user) {
     }
   }
   return accessible;
+}
+
+export async function listAdminRealmOptions(systemDb, user) {
+  const realms = await listAdminRealms(systemDb, user);
+  const options = [];
+  for (const realm of realms) {
+    try {
+      const metadata = await realmMetadata(realm);
+      options.push({
+        slug: realm.slug,
+        display_name: metadata.display_name,
+      });
+    } catch {
+      continue;
+    }
+  }
+  return options;
 }
 
 export async function canUseSystemClient(systemDb, { user, client }) {

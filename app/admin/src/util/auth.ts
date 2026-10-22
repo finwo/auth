@@ -1,9 +1,13 @@
 import {
+  adminApi,
   appUrl,
   exchangeCode,
   getDiscovery,
   getUserInfo,
   refreshAccessToken,
+  type AdminRealm,
+  type AdminSession,
+  type ApiError,
   type TokenResponse,
   type UserInfo,
 } from './api';
@@ -146,6 +150,60 @@ export async function ensureAdminAccessToken() {
   if (!tokens) throw new Error('The admin session has expired');
   if (tokens.expires_at > Date.now() + 30_000) return tokens.access_token;
   return (await refreshAdminTokens()).access_token;
+}
+
+async function adminJson<T>(path: string, init: RequestInit = {}): Promise<T> {
+  let accessToken = await ensureAdminAccessToken();
+  let response = await adminApi(path, accessToken, init);
+  if (response.status === 401) {
+    accessToken = (await refreshAdminTokens()).access_token;
+    response = await adminApi(path, accessToken, init);
+  }
+
+  let payload: any = null;
+  try {
+    payload = await response.json();
+  } catch {
+    payload = null;
+  }
+  if (!response.ok) {
+    const error = new Error(
+      payload?.error_description || payload?.error?.message || response.statusText
+    ) as ApiError;
+    error.code = payload?.error?.code || payload?.error;
+    error.status = response.status;
+    throw error;
+  }
+  return payload as T;
+}
+
+export async function loadAdminRealms(): Promise<AdminRealm[]> {
+  const response = await adminJson<{ realms: AdminRealm[] }>('/api/v1/admin/realms');
+  return response.realms;
+}
+
+export async function loadAdminSessions(realmSlug: string): Promise<AdminSession[]> {
+  const realm = encodeURIComponent(realmSlug);
+  const response = await adminJson<{ sessions: AdminSession[] }>(
+    `/api/v1/admin/realms/${realm}/sessions`
+  );
+  return response.sessions;
+}
+
+export async function revokeAdminSessionRealm(realmSlug: string, publicId: string) {
+  const realm = encodeURIComponent(realmSlug);
+  const session = encodeURIComponent(publicId);
+  await adminJson(`/api/v1/admin/realms/${realm}/sessions/${session}/realm`, {
+    method: 'DELETE',
+  });
+}
+
+export async function terminateAdminSession(realmSlug: string, publicId: string) {
+  const realm = encodeURIComponent(realmSlug);
+  const session = encodeURIComponent(publicId);
+  await adminJson(`/api/v1/admin/realms/${realm}/sessions/${session}`, {
+    method: 'DELETE',
+  });
 }
 
 export async function loadAdminUser(): Promise<UserInfo> {

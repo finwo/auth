@@ -34,6 +34,35 @@ export interface UserInfo {
   is_system_admin: boolean;
 }
 
+export interface AdminRealm {
+  slug: string;
+  display_name: string;
+}
+
+export interface AdminSession {
+  public_id: string;
+  user: {
+    id: string;
+    username: string;
+    display_name: string;
+    home_realm_id: string | null;
+    status: string;
+  };
+  scope: {
+    type: string;
+    host: string | null;
+    client_id: string | null;
+  };
+  created_at: number;
+  last_seen_at: number;
+  expires_at: number;
+  user_agent: string;
+  ip: string;
+  revoked_at: number | null;
+  revoked_by: string | null;
+  can_terminate: boolean;
+}
+
 export interface ApiError extends Error {
   code?: string;
   status?: number;

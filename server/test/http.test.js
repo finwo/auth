@@ -2197,6 +2197,65 @@ test('HTTP realm, login, OIDC and logout flows', async (t) => {
       assert.ok(refreshed.json.refresh_token);
     });
 
+    await t.test('admin realm APIs list only accessible realms', async () => {
+      const missing = await identity({ path: '/api/v1/admin/realms' });
+      assert.equal(missing.status, 401);
+      assert.equal(missing.json.error.code, 'invalid_token');
+
+      const alice = await accessToken(acme, {
+        clientId: 'internal-app',
+        identifier: 'alice@acme.test',
+        redirectUri: `${origin('app.acme.localhost')}/callback`,
+      });
+      const wrongAudience = await identity({
+        path: '/api/v1/admin/realms',
+        bearer: alice.access_token,
+      });
+      assert.equal(wrongAudience.status, 401);
+      assert.equal(wrongAudience.json.error.code, 'invalid_token');
+
+      const realmHost = await acme({ path: '/api/v1/admin/realms' });
+      assert.equal(realmHost.status, 404);
+
+      const clientHost = await app({ path: '/api/v1/admin/realms' });
+      assert.equal(clientHost.status, 404);
+
+      const system = await identity({
+        path: '/api/v1/admin/realms',
+        bearer: (await adminToken()).access_token,
+      });
+      assert.equal(system.status, 200);
+      assert.equal(system.headers['cache-control'], 'no-store');
+      assert.deepEqual(
+        system.json.realms.map((realm) => realm.slug),
+        ['acme', 'globex']
+      );
+      assert.deepEqual(
+        system.json.realms.map((realm) => realm.display_name),
+        ['Acme', 'Globex']
+      );
+
+      const acmeAdmin = await identity({
+        path: '/api/v1/admin/realms',
+        bearer: (await adminToken('it@acme.test')).access_token,
+      });
+      assert.equal(acmeAdmin.status, 200);
+      assert.deepEqual(
+        acmeAdmin.json.realms.map((realm) => realm.slug),
+        ['acme']
+      );
+
+      const globexAdmin = await identity({
+        path: '/api/v1/admin/realms',
+        bearer: (await adminToken('contractor@personal.test')).access_token,
+      });
+      assert.equal(globexAdmin.status, 200);
+      assert.deepEqual(
+        globexAdmin.json.realms.map((realm) => realm.slug),
+        ['globex']
+      );
+    });
+
     await t.test('admin session APIs require an active admin token', async () => {
       const missing = await identity({ path: '/api/v1/admin/realms/acme/sessions' });
       assert.equal(missing.status, 401);
@@ -2523,6 +2582,13 @@ test('HTTP realm, login, OIDC and logout flows', async (t) => {
       });
 
       try {
+        const realms = await identity({
+          path: '/api/v1/admin/realms',
+          bearer: admin.access_token,
+        });
+        assert.equal(realms.status, 200);
+        assert.deepEqual(realms.json.realms, []);
+
         const response = await identity({
           path: '/api/v1/admin/realms/acme/sessions',
           bearer: admin.access_token,

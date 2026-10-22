@@ -12,7 +12,7 @@ function bearerToken(req) {
   return header.startsWith('Bearer ') ? header.slice(7) : null;
 }
 
-export async function authenticateAdminRequest(req, { realmSlug }) {
+export async function authenticateAdminSession(req) {
   const hostContext = await resolveHostContext(req, {
     publicUrl: app.config.server.public_url,
   });
@@ -55,6 +55,13 @@ export async function authenticateAdminRequest(req, { realmSlug }) {
   if (!session) {
     throw new HttpError(401, 'invalid_token', 'The admin session is not active');
   }
+
+  return { systemDb, user, session };
+}
+
+export async function authenticateAdminRequest(req, { realmSlug }) {
+  const auth = await authenticateAdminSession(req);
+  const { systemDb, user, session } = auth;
 
   const realm = await resolveRealm({ slug: realmSlug });
   const realmDb = await openRealmDatabase(realm);
