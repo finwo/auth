@@ -102,6 +102,28 @@
         line-height: 1.4;
       }
 
+      .danger-link {
+        padding: 0.5rem 0;
+        border: 0;
+        background: none;
+        color: var(--danger);
+        font: inherit;
+        font-size: 0.875rem;
+        cursor: pointer;
+      }
+
+      .danger-link:hover {
+        filter: brightness(1.1);
+      }
+
+      .details + .note {
+        margin-top: 1rem;
+      }
+
+      .note + .note {
+        margin-top: 1rem;
+      }
+
       .panel-heading {
         display: flex;
         align-items: center;
@@ -245,14 +267,6 @@
               <path d="M17.5 14v7" />
             </svg>
             <span>Apps</span>
-          </a>
-          <a class="nav-item" href="#" data-nav="this-app" data-client-only hidden>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <rect x="2" y="3" width="20" height="14" rx="2" />
-              <path d="M8 21h8" />
-              <path d="M12 17v4" />
-            </svg>
-            <span>This app</span>
           </a>
         </nav>
       </aside>
@@ -495,6 +509,10 @@
                 <dl class="details">
                   <div>
                     <dt>Client</dt>
+                    <dd>Acme Portal</dd>
+                  </div>
+                  <div>
+                    <dt>Client ID</dt>
                     <dd>acme-portal</dd>
                   </div>
                   <div>
@@ -502,21 +520,39 @@
                     <dd>Acme</dd>
                   </div>
                   <div>
-                    <dt>Permissions</dt>
-                    <dd>Current client only</dd>
-                  </div>
-                  <div>
-                    <dt>Session</dt>
-                    <dd>Active</dd>
+                    <dt>Scopes</dt>
+                    <dd>openid profile email</dd>
                   </div>
                 </dl>
               </section>
             </div>
 
             <section class="panel panel-wide">
+              <h2>Access</h2>
+              <dl class="details">
+                <div>
+                  <dt>Consent</dt>
+                  <dd>Granted</dd>
+                </div>
+                <div>
+                  <dt>Session</dt>
+                  <dd>Active</dd>
+                </div>
+              </dl>
+              <p class="note">
+                Revoking access removes Acme Portal's consent. The app must ask
+                again the next time it signs you in.
+              </p>
+              <p class="note">
+                <button class="danger-link" type="button">Revoke access</button>
+              </p>
+            </section>
+
+            <section class="panel panel-wide">
               <h2>Full account management</h2>
               <p class="note">
-                Security and app settings are managed on the Acme account host.
+                Manage your identity, security and app permissions on the Acme
+                account host.
               </p>
               <p class="note">
                 <a class="button" href="#">Open full account</a>
@@ -546,9 +582,7 @@
         });
 
         navItems.forEach((item) => {
-          const clientOnly = item.hasAttribute('data-client-only');
-          const visible = isClient ? item.dataset.nav === 'overview' || clientOnly : !clientOnly;
-          item.hidden = !visible;
+          item.hidden = isClient && item.dataset.nav !== 'overview';
           item.classList.toggle('is-active', item.dataset.nav === activeNav);
           if (item.dataset.nav === activeNav) {
             item.setAttribute('aria-current', 'page');
@@ -594,7 +628,7 @@
       navItems.forEach((item) => {
         item.addEventListener('click', (event) => {
           event.preventDefault();
-          setView(item.dataset.nav === 'this-app' ? 'client' : item.dataset.nav);
+          setView(item.dataset.nav);
         });
       });
 
