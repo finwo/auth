@@ -17,16 +17,9 @@ import {
   loadAccountUser,
   startAccountLogin,
 } from '../util/auth';
+import { formatTime } from '@util/format';
 
 type Mode = 'oidc' | 'client';
-
-function formatTime(value: number | null | undefined) {
-  if (!value) return 'Unknown';
-  return new Intl.DateTimeFormat(undefined, {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-  }).format(new Date(value));
-}
 
 function PageHeader(title: string, subtitle: string) {
   return (

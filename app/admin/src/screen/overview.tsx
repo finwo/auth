@@ -1,4 +1,5 @@
 import m from 'mithril';
+import { PageHeader } from '@component/page-header';
 import { appUrl, type AdminRealm, type UserInfo } from '../util/api';
 import { getAdminTokens } from '../util/auth';
 
@@ -18,16 +19,16 @@ export const OverviewPage: m.Component<OverviewAttrs> = {
     const tokens = getAdminTokens();
 
     return (
-      <div class="admin-overview">
-        <div class="admin-page-header">
-          <h1>Overview</h1>
-          <p>Provider summary and administration.</p>
-        </div>
+      <div>
+        <PageHeader
+          title="Overview"
+          subtitle="Provider summary and administration."
+        />
 
-        <div class="admin-grid">
-          <section class="admin-panel">
+        <div class="grid">
+          <section class="panel">
             <h2>Account</h2>
-            <dl class="admin-definition">
+            <dl class="details">
               <div>
                 <dt>User</dt>
                 <dd>{user.name}</dd>
@@ -47,9 +48,9 @@ export const OverviewPage: m.Component<OverviewAttrs> = {
             </dl>
           </section>
 
-          <section class="admin-panel">
+          <section class="panel">
             <h2>Access</h2>
-            <dl class="admin-definition">
+            <dl class="details">
               <div>
                 <dt>Client</dt>
                 <dd>admin</dd>
@@ -69,30 +70,30 @@ export const OverviewPage: m.Component<OverviewAttrs> = {
             </dl>
           </section>
 
-          <section class="admin-panel admin-panel-wide">
+          <section class="panel panel-wide">
             <h2>Administration</h2>
             {realmsError ? (
-              <p class="admin-note" role="alert">
+              <p class="note" role="alert">
                 {realmsError.message}
               </p>
             ) : realms === null ? (
-              <p class="admin-note">Loading realms.</p>
+              <p class="note">Loading realms.</p>
             ) : realms.length === 0 ? (
-              <p class="admin-note">No realms are available for this account.</p>
+              <p class="note">No realms are available for this account.</p>
             ) : (
-              <ul class="admin-realm-list">
+              <ul class="realm-list">
                 {realms.map((realm) => (
                   <li>
                     <a
-                      class="admin-realm-link"
+                      class="realm-link"
                       href={appUrl(`/sessions/${encodeURIComponent(realm.slug)}`)}
                       onclick={(event: Event) => {
                         event.preventDefault();
                         m.route.set(`/sessions/${encodeURIComponent(realm.slug)}`);
                       }}
                     >
-                      <span class="admin-realm-name">{realm.display_name}</span>
-                      <span class="admin-realm-slug">{realm.slug}</span>
+                      <span class="realm-name">{realm.display_name}</span>
+                      <span class="realm-slug">{realm.slug}</span>
                     </a>
                   </li>
                 ))}

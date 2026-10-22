@@ -28,6 +28,14 @@ const config = {
   jsxFactory     : 'm',
   jsxFragment    : '"["',
 
+  alias: {
+    '@util'     : __dirname + '/../shared/util',
+    '@style'    : __dirname + '/../shared/style',
+    '@api'      : __dirname + '/../shared/api',
+    '@component': __dirname + '/../shared/component',
+  },
+  nodePaths: [__dirname + '/node_modules'],
+
   loader: {
     '.eot'  : 'dataurl',
     '.html' : 'text',

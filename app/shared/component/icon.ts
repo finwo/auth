@@ -1,8 +1,8 @@
 import m from 'mithril';
 
-type IconNode = ReadonlyArray<readonly [string, Record<string, string | number>]>;
+export type IconNode = ReadonlyArray<readonly [string, Record<string, string | number>]>;
 
-export function icon(nodes: IconNode, attrs: Record<string, unknown> = {}) {
+export function Icon(nodes: IconNode, attrs: Record<string, unknown> = {}) {
   return m(
     'svg',
     {

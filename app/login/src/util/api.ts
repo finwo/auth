@@ -1,3 +1,5 @@
+import { requestJson } from '@api/http';
+
 export interface RealmInfo {
   slug: string;
   display_name: string;
@@ -102,35 +104,8 @@ export interface ConsentDecision {
   redirect: string;
 }
 
-export interface ApiError extends Error {
-  code?: string;
-  status?: number;
-}
-
-async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const response = await fetch(path, {
-    credentials: 'same-origin',
-    headers: {
-      'content-type': 'application/json',
-    },
-    ...options,
-  });
-
-  let payload: any = null;
-  try {
-    payload = await response.json();
-  } catch {
-    payload = null;
-  }
-
-  if (!response.ok) {
-    const error = new Error(payload?.error?.message || response.statusText) as ApiError;
-    error.code = payload?.error?.code;
-    error.status = response.status;
-    throw error;
-  }
-
-  return payload as T;
+function request<T>(path: string, options: RequestInit = {}): Promise<T> {
+  return requestJson<T>(path, options);
 }
 
 export function getRealm(realm?: string | null): Promise<RealmInfo> {

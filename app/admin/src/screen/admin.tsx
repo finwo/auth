@@ -1,14 +1,11 @@
+import { Activity, LayoutGrid } from 'lucide';
 import m from 'mithril';
-import {
-  Activity,
-  CircleAlert,
-  CircleUserRound,
-  Hexagon,
-  LayoutGrid,
-  LogOut,
-  Settings,
-  Sun,
-} from 'lucide';
+import { AppShell } from '@component/app-shell';
+import { Nav, type NavItem } from '@component/nav';
+import { StatusPage } from '@component/status-page';
+import { Topbar } from '@component/topbar';
+import { UserMenu } from '@component/user-menu';
+import { applyTheme, cycleTheme, getTheme, type Theme } from '@util/theme';
 import {
   adminSignOut,
   clearAdminTokens,
@@ -19,8 +16,6 @@ import {
   startAdminLogin,
 } from '../util/auth';
 import { appUrl, getAuthUrl, type AdminRealm, type UserInfo } from '../util/api';
-import { icon } from '../util/icon';
-import { applyTheme, cycleTheme, getTheme, themeLabel, type Theme } from '../util/theme';
 import { OverviewPage } from './overview';
 import { SessionsPage } from './sessions';
 
@@ -128,138 +123,80 @@ export const Admin: m.Component = {
         ? `/sessions/${encodeURIComponent(this.realms[0].slug)}`
         : '/sessions';
 
+    const navItems: NavItem[] = [
+      {
+        href: appUrl('/'),
+        label: 'Overview',
+        icon: LayoutGrid,
+        active: !sessions,
+        onclick: (event: Event) => {
+          event.preventDefault();
+          m.route.set('/');
+        },
+      },
+      {
+        href: appUrl(sessionsHref),
+        label: 'Sessions',
+        icon: Activity,
+        active: sessions,
+        onclick: (event: Event) => {
+          event.preventDefault();
+          m.route.set(sessionsHref);
+        },
+      },
+    ];
+
     return (
-      <div class="admin-app">
-        <header class="admin-topbar">
-          <a
-            class="admin-brand"
+      <AppShell
+        topbar={
+          <Topbar
             href={appUrl('/')}
             onclick={(event: Event) => {
               event.preventDefault();
               m.route.set('/');
             }}
           >
-            {icon(Hexagon, { class: 'admin-brand-icon' })}
-            <span class="admin-brand-name">Auth</span>
-          </a>
+            <UserMenu
+              name={user?.name || 'Administrator'}
+              meta={user?.email || user?.preferred_username || 'Identity provider'}
+              accountHref={`${this.authUrl}/app/account`}
+              theme={this.theme}
+              onCycleTheme={() => this.cycleTheme()}
+              onSignOut={() => {
+                adminSignOut().catch((error: Error) => {
+                  this.error = error;
+                  m.redraw();
+                });
+              }}
+            />
+          </Topbar>
+        }
+        nav={<Nav label="Administration" ariaLabel="Administration" items={navItems} />}
+      >
+        {this.error ? (
+          <div class="alert" role="alert">
+            {this.error.message}
+          </div>
+        ) : null}
 
-          <details
-            class="admin-user-menu"
-            oncreate={({ dom }: any) => {
-              const close = (event: Event) => {
-                if (dom.open && !dom.contains(event.target as Node)) dom.open = false;
-              };
-              dom.closeOnOutsideClick = close;
-              document.addEventListener('click', close);
-            }}
-            onremove={({ dom }: any) => {
-              document.removeEventListener('click', dom.closeOnOutsideClick);
-            }}
-          >
-            <summary aria-label="Account menu">
-              {icon(CircleUserRound)}
-            </summary>
-            <div class="admin-user-panel">
-              <div class="admin-user-summary">
-                <span class="admin-user-name">{user?.name || 'Administrator'}</span>
-                <span class="admin-user-meta">
-                  {user?.email || user?.preferred_username || 'Identity provider'}
-                </span>
-              </div>
-              <div class="admin-user-menu-list">
-                <a class="admin-user-menu-item" href={`${this.authUrl}/app/account`}>
-                  {icon(Settings)}
-                  <span>Account settings</span>
-                </a>
-                <button
-                  class="admin-user-menu-item"
-                  type="button"
-                  aria-label={`Theme: ${themeLabel(this.theme)}`}
-                  onclick={() => this.cycleTheme()}
-                >
-                  {icon(Sun)}
-                  <span>Theme</span>
-                  <span class="admin-user-menu-value">{themeLabel(this.theme)}</span>
-                </button>
-                <a
-                  class="admin-user-menu-item"
-                  href="#"
-                  onclick={(event: Event) => {
-                    event.preventDefault();
-                    adminSignOut().catch((error: Error) => {
-                      this.error = error;
-                      m.redraw();
-                    });
-                  }}
-                >
-                  {icon(LogOut)}
-                  <span>Sign out</span>
-                </a>
-              </div>
-            </div>
-          </details>
-        </header>
-
-        <div class="admin-body">
-          <aside class="admin-sidebar">
-            <nav class="admin-nav" aria-label="Administration">
-              <p class="admin-nav-label">Administration</p>
-              <a
-                class={`admin-nav-item${sessions ? '' : ' is-active'}`}
-                href={appUrl('/')}
-                aria-current={sessions ? undefined : 'page'}
-                onclick={(event: Event) => {
-                  event.preventDefault();
-                  m.route.set('/');
-                }}
-              >
-                {icon(LayoutGrid)}
-                <span>Overview</span>
-              </a>
-              <a
-                class={`admin-nav-item${sessions ? ' is-active' : ''}`}
-                href={appUrl(sessionsHref)}
-                aria-current={sessions ? 'page' : undefined}
-                onclick={(event: Event) => {
-                  event.preventDefault();
-                  m.route.set(sessionsHref);
-                }}
-              >
-                {icon(Activity)}
-                <span>Sessions</span>
-              </a>
-            </nav>
-          </aside>
-
-          <main class="admin-main">
-            <div class="admin-content">
-              {this.error ? (
-                <div class="admin-alert" role="alert">
-                  {this.error.message}
-                </div>
-              ) : null}
-
-              {!user ? (
-                <div class="admin-loading">Loading session</div>
-              ) : sessions ? (
-                <SessionsPage
-                  key={realmSlug || 'select'}
-                  realmSlug={realmSlug}
-                  realms={this.realms}
-                  realmsError={this.realmsError}
-                  onAuthExpired={() => this.authExpired()}
-                />
-              ) : (
-                <OverviewPage
-                  user={user}
-                  realms={this.realms}
-                  realmsError={this.realmsError}
-                />
-              )}
-            </div>
-          </main>
-        </div>
-      </div>
+        {!user ? (
+          <div class="loading">Loading session</div>
+        ) : sessions ? (
+          <SessionsPage
+            key={realmSlug || 'select'}
+            realmSlug={realmSlug}
+            realms={this.realms}
+            realmsError={this.realmsError}
+            onAuthExpired={() => this.authExpired()}
+          />
+        ) : (
+          <OverviewPage
+            user={user}
+            realms={this.realms}
+            realmsError={this.realmsError}
+          />
+        )}
+      </AppShell>
     );
   },
 };
@@ -284,30 +221,20 @@ export const AdminCallback: m.Component = {
 
   view(this: any) {
     return (
-      <div class="admin-status-page">
-        <div class="admin-status-panel">
-          {this.error ? (
-            icon(CircleAlert, { class: 'admin-status-icon' })
-          ) : (
-            <div class="admin-spinner" aria-hidden="true"></div>
-          )}
-          <h1>{this.error ? 'Sign-in failed' : 'Completing sign-in'}</h1>
-          {this.error ? (
-            <p class="admin-status-error" role="alert">
-              {this.error.message}
-            </p>
-          ) : (
-            <p class="admin-status-note">Establishing the administrative session.</p>
-          )}
-          {this.error ? (
-            <div class="admin-status-actions">
-              <a class="admin-button" href={appUrl('/')}>
-                Return to administration
-              </a>
-            </div>
-          ) : null}
-        </div>
-      </div>
+      <StatusPage
+        title={this.error ? 'Sign-in failed' : 'Completing sign-in'}
+        message={
+          this.error
+            ? this.error.message
+            : 'Establishing the administrative session.'
+        }
+        error={Boolean(this.error)}
+        action={
+          this.error
+            ? { href: appUrl('/'), label: 'Return to administration' }
+            : undefined
+        }
+      />
     );
   },
 };

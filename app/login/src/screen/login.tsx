@@ -1,6 +1,6 @@
 import { Check, CircleUserRound } from 'lucide';
 import m from 'mithril';
-import { icon } from '../util/icon';
+import { Icon } from '@component/icon';
 import {
   decideConsent,
   getClientDiscovery,
@@ -460,7 +460,7 @@ export const Login: m.Component<{ clientId?: string }> = {
         </p>
 
         <div class="auth-consent-account">
-          {icon(CircleUserRound)}
+          {Icon(CircleUserRound)}
           <span class="auth-consent-account-body">
             <span class="auth-consent-account-name">{name}</span>
             <span class="auth-consent-account-meta">{secondary}</span>
@@ -481,8 +481,8 @@ export const Login: m.Component<{ clientId?: string }> = {
         <ul class="auth-consent-scopes">
           {request.scopes.map((scope: string) => (
             <li class="auth-consent-scope">
-              {icon(Check)}
-              <span>{scopeDescription(scope, realmName)}</span>
+          {Icon(Check)}
+          <span>{scopeDescription(scope, realmName)}</span>
             </li>
           ))}
         </ul>

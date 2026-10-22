@@ -2134,7 +2134,7 @@ test('HTTP realm, login, OIDC and logout flows', async (t) => {
       }
       assert.equal(admin.status, 200);
       assert.match(admin.headers['content-type'], /text\/html/);
-      assert.match(admin.text, /admin-app/);
+      assert.match(admin.text, /app-shell/);
 
       const adminRealm = await acme({ path: '/app/admin' });
       assert.equal(adminRealm.status, 404);

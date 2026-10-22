@@ -1,11 +1,12 @@
 import m from 'mithril';
+import { PageHeader } from '@component/page-header';
 import type { AdminRealm, AdminSession } from '../util/api';
 import {
   loadAdminSessions,
   revokeAdminSessionRealm,
   terminateAdminSession,
 } from '../util/auth';
-import { formatTime, scopeLabel } from '../util/format';
+import { formatTime, scopeLabel } from '@util/format';
 
 interface SessionsAttrs {
   realmSlug: string | null;
@@ -130,14 +131,14 @@ export const SessionsPage: m.Component<SessionsAttrs> = {
       realms?.find((realm) => realm.slug === this.attrs.realmSlug) || realms?.[0] || null;
 
     return (
-      <div class="admin-sessions">
-        <div class="admin-page-header admin-page-header-row">
-          <div>
-            <h1>Sessions</h1>
-            <p>Active sessions with access to this realm.</p>
-          </div>
+      <div>
+        <PageHeader
+          row
+          title="Sessions"
+          subtitle="Active sessions with access to this realm."
+        >
           {realms && realms.length > 1 ? (
-            <label class="admin-realm-select">
+            <label class="realm-select">
               <span>Realm</span>
               <select
                 value={selected?.slug || ''}
@@ -153,22 +154,22 @@ export const SessionsPage: m.Component<SessionsAttrs> = {
               </select>
             </label>
           ) : selected ? (
-            <span class="admin-realm-current">{selected.display_name}</span>
+            <span class="realm-current">{selected.display_name}</span>
           ) : null}
-        </div>
+        </PageHeader>
 
         {realmsError ? (
-          <div class="admin-alert" role="alert">
+          <div class="alert" role="alert">
             {realmsError.message}
           </div>
         ) : null}
 
         {this.error ? (
-          <div class="admin-alert" role="alert">
+          <div class="alert" role="alert">
             <p>{this.error.message}</p>
             {this.attrs.realmSlug ? (
               <button
-                class="admin-button-secondary"
+                class="button-secondary"
                 type="button"
                 onclick={() => this.load(this.attrs.realmSlug)}
               >
@@ -179,32 +180,32 @@ export const SessionsPage: m.Component<SessionsAttrs> = {
         ) : null}
 
         {this.notice ? (
-          <div class="admin-notice" role="status">
+          <div class="notice" role="status">
             {this.notice}
           </div>
         ) : null}
 
         {!realms ? (
-          <div class="admin-loading">Loading realms</div>
+          <div class="loading">Loading realms</div>
         ) : realms.length === 0 ? (
-          <div class="admin-empty">
+          <div class="empty">
             <p>No realms are available for this account.</p>
           </div>
         ) : this.loading || this.redirecting ? (
-          <div class="admin-session-stack" aria-busy="true">
-            <div class="admin-session-skeleton">
-              <div class="admin-skeleton admin-skeleton-title"></div>
-              <div class="admin-skeleton"></div>
-              <div class="admin-skeleton admin-skeleton-short"></div>
+          <div class="session-stack" aria-busy="true">
+            <div class="panel">
+              <div class="skeleton skeleton-title"></div>
+              <div class="skeleton"></div>
+              <div class="skeleton skeleton-short"></div>
             </div>
-            <div class="admin-session-skeleton">
-              <div class="admin-skeleton admin-skeleton-title"></div>
-              <div class="admin-skeleton"></div>
-              <div class="admin-skeleton admin-skeleton-short"></div>
+            <div class="panel">
+              <div class="skeleton skeleton-title"></div>
+              <div class="skeleton"></div>
+              <div class="skeleton skeleton-short"></div>
             </div>
           </div>
         ) : this.sessions && this.sessions.length > 0 ? (
-          <div class="admin-session-stack">
+          <div class="session-stack">
             {this.sessions.map((session: AdminSession) => {
               const realmKey = actionKey('realm', session);
               const terminateKey = actionKey('terminate', session);
@@ -213,11 +214,11 @@ export const SessionsPage: m.Component<SessionsAttrs> = {
               const terminatePending = pending === terminateKey;
 
               return (
-                <article class="admin-session">
-                  <div class="admin-session-header">
+                <article class="panel">
+                  <div class="session-header">
                     <div>
                       <h2>{session.user.display_name || session.user.username}</h2>
-                      <p class="admin-session-user">
+                      <p class="session-user">
                         {session.user.username}
                         {session.user.status !== 'active'
                           ? ` · ${session.user.status}`
@@ -225,13 +226,13 @@ export const SessionsPage: m.Component<SessionsAttrs> = {
                       </p>
                     </div>
                     {session.revoked_at ? (
-                      <span class="admin-session-badge">
+                      <span class="session-badge">
                         Realm access revoked {formatTime(session.revoked_at)}
                       </span>
                     ) : null}
                   </div>
 
-                  <dl class="admin-definition admin-session-details">
+                  <dl class="details session-details">
                     <div>
                       <dt>Scope</dt>
                       <dd>{scopeLabel(session.scope.type)}</dd>
@@ -259,15 +260,15 @@ export const SessionsPage: m.Component<SessionsAttrs> = {
                   </dl>
 
                   {session.user_agent ? (
-                    <p class="admin-session-agent">{session.user_agent}</p>
+                    <p class="session-agent">{session.user_agent}</p>
                   ) : null}
 
-                  <div class="admin-session-actions">
+                  <div class="session-actions">
                     {session.revoked_at ? null : this.confirmKey === realmKey ? (
-                      <div class="admin-confirm">
+                      <div class="confirm">
                         <span>Revoke this realm’s access?</span>
                         <button
-                          class="admin-button"
+                          class="button"
                           type="button"
                           disabled={Boolean(pending)}
                           onclick={() => this.act(session, 'realm')}
@@ -275,7 +276,7 @@ export const SessionsPage: m.Component<SessionsAttrs> = {
                           {revokePending ? 'Revoking' : 'Confirm'}
                         </button>
                         <button
-                          class="admin-button-secondary"
+                          class="button-secondary"
                           type="button"
                           disabled={Boolean(pending)}
                           onclick={() => {
@@ -288,7 +289,7 @@ export const SessionsPage: m.Component<SessionsAttrs> = {
                       </div>
                     ) : (
                       <button
-                        class="admin-button-secondary"
+                        class="button-secondary"
                         type="button"
                         disabled={Boolean(pending)}
                         onclick={() => {
@@ -302,10 +303,10 @@ export const SessionsPage: m.Component<SessionsAttrs> = {
 
                     {session.can_terminate ? (
                       this.confirmKey === terminateKey ? (
-                        <div class="admin-confirm">
+                        <div class="confirm">
                           <span>Terminate this session?</span>
                           <button
-                            class="admin-button admin-button-danger"
+                            class="button button-danger"
                             type="button"
                             disabled={Boolean(pending)}
                             onclick={() => this.act(session, 'terminate')}
@@ -313,7 +314,7 @@ export const SessionsPage: m.Component<SessionsAttrs> = {
                             {terminatePending ? 'Terminating' : 'Confirm'}
                           </button>
                           <button
-                            class="admin-button-secondary"
+                            class="button-secondary"
                             type="button"
                             disabled={Boolean(pending)}
                             onclick={() => {
@@ -326,7 +327,7 @@ export const SessionsPage: m.Component<SessionsAttrs> = {
                         </div>
                       ) : (
                         <button
-                          class="admin-button-danger"
+                          class="button-danger"
                           type="button"
                           disabled={Boolean(pending)}
                           onclick={() => {
@@ -344,7 +345,7 @@ export const SessionsPage: m.Component<SessionsAttrs> = {
             })}
           </div>
         ) : (
-          <div class="admin-empty">
+          <div class="empty">
             <p>No active sessions with access to this realm.</p>
           </div>
         )}
