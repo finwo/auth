@@ -2141,7 +2141,7 @@ test('HTTP realm, login, OIDC and logout flows', async (t) => {
 
       const accountCanonical = await identity({ path: '/app/account' });
       assert.equal(accountCanonical.status, 200);
-      assert.match(accountCanonical.text, /account-app/);
+      assert.match(accountCanonical.text, /app-shell/);
 
       const accountRealm = await acme({ path: '/app/account' });
       assert.equal(accountRealm.status, 200);

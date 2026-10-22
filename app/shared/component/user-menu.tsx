@@ -6,7 +6,7 @@ import { Icon } from '@component/icon';
 interface UserMenuAttrs {
   name: string;
   meta: string;
-  accountHref: string;
+  accountHref?: string;
   theme: Theme;
   onCycleTheme: () => void;
   onSignOut: () => void;
@@ -35,10 +35,12 @@ export const UserMenu: m.Component<UserMenuAttrs> = {
             <span class="user-meta">{attrs.meta}</span>
           </div>
           <div class="user-menu-list">
-            <a class="user-menu-item" href={attrs.accountHref}>
-              {Icon(Settings)}
-              <span>Account settings</span>
-            </a>
+            {attrs.accountHref ? (
+              <a class="user-menu-item" href={attrs.accountHref}>
+                {Icon(Settings)}
+                <span>Account settings</span>
+              </a>
+            ) : null}
             <button
               class="user-menu-item"
               type="button"
