@@ -82,6 +82,26 @@ export interface SelectSessionResult {
   pending_auth_request: boolean;
 }
 
+export interface ConsentRequest {
+  client: {
+    id: string;
+    name: string;
+  };
+  realm: RealmInfo | null;
+  user: {
+    id: string;
+    username: string;
+    display_name: string | null;
+  };
+  scopes: string[];
+  consent_mode: 'remembered' | 'trusted';
+}
+
+export interface ConsentDecision {
+  ok: boolean;
+  redirect: string;
+}
+
 export interface ApiError extends Error {
   code?: string;
   status?: number;
@@ -154,6 +174,21 @@ export function signInPassword(
 
 export function getSession(): Promise<SessionInfo> {
   return request<SessionInfo>('/api/v1/session');
+}
+
+export function getConsent(clientId?: string | null): Promise<ConsentRequest> {
+  const query = clientId ? `?client_id=${encodeURIComponent(clientId)}` : '';
+  return request<ConsentRequest>(`/api/v1/consent${query}`);
+}
+
+export function decideConsent(
+  clientId: string,
+  decision: 'allow' | 'deny'
+): Promise<ConsentDecision> {
+  return request<ConsentDecision>('/api/v1/consent', {
+    method: 'POST',
+    body: JSON.stringify({ client_id: clientId, decision }),
+  });
 }
 
 export function selectSession(

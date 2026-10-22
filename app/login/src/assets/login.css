@@ -211,6 +211,85 @@ body {
   cursor: pointer;
 }
 
+.auth-card-consent {
+  width: min(28rem, 100%);
+}
+
+.auth-consent-account {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+  padding: 0.75rem;
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.auth-consent-account svg {
+  flex: none;
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+.auth-consent-account-body {
+  display: grid;
+  gap: 0.125rem;
+  min-width: 0;
+}
+
+.auth-consent-account-name {
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.auth-consent-account-meta {
+  overflow-wrap: anywhere;
+  color: rgba(0, 0, 0, 0.6);
+  font-size: 0.75rem;
+  line-height: 1.4;
+}
+
+.auth-consent-account .auth-link {
+  flex: none;
+  margin-left: auto;
+  font-size: 0.8125rem;
+}
+
+.auth-consent-title {
+  margin: 1.5rem 0 0;
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+.auth-consent-scopes {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0.75rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.auth-consent-scope {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  color: rgba(0, 0, 0, 0.6);
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.auth-consent-scope svg {
+  flex: none;
+  width: 1rem;
+  height: 1rem;
+  margin-top: 0.125rem;
+}
+
+.auth-consent-footer {
+  margin: 1.5rem 0 0;
+}
+
 @media (prefers-color-scheme: dark) {
   :root {
     --auth-surface: #222;
@@ -228,12 +307,18 @@ body {
   .auth-field label,
   .auth-identifier,
   .auth-note,
-  .auth-account-username {
+  .auth-account-username,
+  .auth-consent-account-meta,
+  .auth-consent-scope {
     color: rgba(255, 255, 255, 0.6);
   }
 
   .auth-account {
     border-bottom-color: rgba(255, 255, 255, 0.16);
+  }
+
+  .auth-consent-account {
+    background: rgba(255, 255, 255, 0.08);
   }
 
   .auth-error {

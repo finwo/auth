@@ -5,6 +5,7 @@ import {
   systemClientPostLogoutUris,
   systemClientRedirectUris,
 } from '../lib/apps.js';
+import { consentStatus, getConsent, recordConsent } from '../lib/consents.js';
 import { HttpError } from '../lib/http/http-error.js';
 import {
   authenticateClient,
@@ -31,6 +32,7 @@ import {
   getAuthRequest,
   purgeExpired,
   readAuthRequestId,
+  selectAuthRequestAccount,
   setAuthRequestCookie,
 } from '../lib/oidc/requests.js';
 import { canUseClient } from '../lib/policy.js';
@@ -336,6 +338,41 @@ async function authorize(context, client, req, res) {
     await bindSessionRealm(systemDb, auth.session.id, context.realm.id);
   }
 
+  const consent = client.system_client
+    ? null
+    : await getConsent(systemDb, {
+        userId: auth.user.id,
+        realmId: context.realm.id,
+        clientId: client.client_id,
+      });
+  const consentState = consentStatus({
+    client,
+    user: auth.user,
+    realm: context.realm,
+    consent,
+    scope,
+  });
+
+  if (consentState.required) {
+    await selectAuthRequestAccount(store, pending.id, {
+      userId: auth.user.id,
+      sessionId: auth.session.id,
+      authTime: auth.session.auth_time,
+    });
+    setAuthRequestCookie(res, req, context, pending.id);
+    return redirect(res, endpointUrls(context).consent);
+  }
+
+  if (consentState.autoGrant) {
+    await recordConsent(systemDb, {
+      userId: auth.user.id,
+      realmId: context.realm.id,
+      clientId: client.client_id,
+      scopes: scope,
+      grantedVia: 'trusted',
+    });
+  }
+
   await completeAuthRequest(store, pending.id, {
     userId: auth.user.id,
     sessionId: auth.session.id,
@@ -497,6 +534,33 @@ async function token(context, client, req) {
       }
     }
 
+    if (!client.system_client) {
+      const consent = await getConsent(systemDb, {
+        userId: user.id,
+        realmId: context.realm.id,
+        clientId: client.client_id,
+      });
+      const consentState = consentStatus({
+        client,
+        user,
+        realm: context.realm,
+        consent,
+        scope: code.scope,
+      });
+      if (consentState.required) {
+        return oidcError(400, 'invalid_grant', 'The user has not consented to this client');
+      }
+      if (consentState.autoGrant) {
+        await recordConsent(systemDb, {
+          userId: user.id,
+          realmId: context.realm.id,
+          clientId: client.client_id,
+          scopes: code.scope,
+          grantedVia: 'trusted',
+        });
+      }
+    }
+
     const response = await accessTokenResponse({
       systemDb,
       realmDb,
@@ -539,7 +603,24 @@ async function token(context, client, req) {
 
         const user = await findUserById(tx, row.user_id);
         if (!user || user.status !== 'active') return false;
-        if (!(await canUseSystemClient(tx, { user, client }))) return false;
+
+        if (client.system_client) {
+          if (!(await canUseSystemClient(tx, { user, client }))) return false;
+        } else {
+          const consent = await getConsent(tx, {
+            userId: row.user_id,
+            realmId: row.realm_id,
+            clientId: row.client_id,
+          });
+          const consentState = consentStatus({
+            client,
+            user,
+            realm: context.realm,
+            consent,
+            scope: row.scopes,
+          });
+          if (consentState.required) return false;
+        }
 
         if (row.realm_id) {
           const binding = await getSessionRealmBinding(tx, row.session_id, row.realm_id);
@@ -673,7 +754,7 @@ export default {
       const context = await resolveOidcContext(req, {
         publicUrl: app.config.server.public_url,
       });
-      if (context.action === 'login') {
+      if (context.action === 'login' || context.action === 'consent') {
         serveAppDocument(res, 'login');
         return;
       }

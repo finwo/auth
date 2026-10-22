@@ -134,6 +134,7 @@ async function ensureClient(
     clientSecret = null,
     branding = {},
     requirePkce = true,
+    consentMode = 'remembered',
   }
 ) {
   const mapping = await findClientRealm(clientId);
@@ -149,11 +150,11 @@ async function ensureClient(
       `INSERT INTO oidc_clients
         (id, client_id, name, redirect_uris, scopes, access_mode, enabled, branding,
          client_secret_hash, token_endpoint_auth_method, require_pkce,
-         post_logout_redirect_uris, created_at, updated_at)
+         post_logout_redirect_uris, consent_mode, created_at, updated_at)
        VALUES
         ({id}, {clientId}, {name}, {redirectUris}, 'openid profile email', {accessMode}, 1, {branding},
          {clientSecretHash}, {tokenEndpointAuthMethod}, {requirePkce},
-         {postLogoutRedirectUris}, {createdAt}, {updatedAt})`,
+         {postLogoutRedirectUris}, {consentMode}, {createdAt}, {updatedAt})`,
       {
         id: client.id,
         clientId,
@@ -165,6 +166,7 @@ async function ensureClient(
         tokenEndpointAuthMethod,
         requirePkce: requirePkce ? 1 : 0,
         postLogoutRedirectUris: JSON.stringify(postLogoutRedirectUris),
+        consentMode,
         createdAt: now,
         updatedAt: now,
       }

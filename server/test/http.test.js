@@ -204,6 +204,27 @@ function activeSessionPublicId(env, cookie) {
   });
 }
 
+function clearConsent(env, { username, realm, clientId }) {
+  withSystemDatabase(env, (database) => {
+    database
+      .prepare(
+        `DELETE FROM client_consents
+          WHERE user_id = (SELECT id FROM users WHERE username = ?)
+            AND client_id = ?
+            AND realm_id = (SELECT id FROM realms WHERE slug = ?)`
+      )
+      .run(username, clientId, realm);
+  });
+}
+
+function setConsentMode(env, { realm, clientId, mode }) {
+  withRealmDatabase(env, realm, (database) => {
+    database
+      .prepare('UPDATE oidc_clients SET consent_mode = ? WHERE client_id = ?')
+      .run(mode, clientId);
+  });
+}
+
 function withRealmDatabase(env, slug, fn) {
   const system = new DatabaseSync(env.AUTH_DATABASE_PATH);
   try {
@@ -247,6 +268,36 @@ test('HTTP realm, login, OIDC and logout flows', async (t) => {
     const globex = (options = {}) => request(port, { host: `globex.localhost:${port}`, ...options });
     const app = (options = {}) => request(port, { host: `app.acme.localhost:${port}`, ...options });
 
+    async function completeAuthorization(requester, { path, cookie, clientId }) {
+      let response = await requester({ path, cookie });
+      let jar = cookie || '';
+
+      for (let attempt = 0; attempt < 2; attempt += 1) {
+        if (response.status !== 302) break;
+        const location = locationQuery(response);
+        if (!location.pathname.endsWith('/consent')) break;
+
+        jar = mergeCookies(jar, response);
+        const consent = await requester({
+          path: `/api/v1/consent?client_id=${encodeURIComponent(clientId)}`,
+          cookie: jar,
+        });
+        assert.equal(consent.status, 200);
+        assert.deepEqual(consent.json.client.id, clientId);
+
+        const allow = await requester({
+          method: 'POST',
+          path: '/api/v1/consent',
+          body: { client_id: clientId, decision: 'allow' },
+          cookie: jar,
+        });
+        assert.equal(allow.status, 200);
+        response = await requester({ path: path.split('?')[0], cookie: jar });
+      }
+
+      return { response, cookie: jar };
+    }
+
     async function accessToken(
       requester,
       { clientId, identifier, redirectUri, scope = 'openid profile' }
@@ -269,12 +320,13 @@ test('HTTP realm, login, OIDC and logout flows', async (t) => {
       assert.equal(login.status, 200);
       jar = mergeCookies(jar, login);
 
-      const second = await requester({
+      const completed = await completeAuthorization(requester, {
         path: authorizePath.split('?')[0],
         cookie: jar,
+        clientId,
       });
-      assert.equal(second.status, 302);
-      const code = locationQuery(second).searchParams.get('code');
+      assert.equal(completed.response.status, 302);
+      const code = locationQuery(completed.response).searchParams.get('code');
       assert.ok(code);
 
       const tokenResponse = await requester({
@@ -292,7 +344,7 @@ test('HTTP realm, login, OIDC and logout flows', async (t) => {
       return {
         access_token: tokenResponse.json.access_token,
         refresh_token: tokenResponse.json.refresh_token,
-        cookie: jar,
+        cookie: completed.cookie,
       };
     }
 
@@ -572,9 +624,13 @@ test('HTTP realm, login, OIDC and logout flows', async (t) => {
       assert.equal(selected.json.pending_auth_request, true);
       assert.equal(selected.json.user.username, 'alice');
 
-      const second = await app({ path: authorizePath, cookie: jar });
-      assert.equal(second.status, 302);
-      const redirected = locationQuery(second);
+      const completed = await completeAuthorization(app, {
+        path: authorizePath,
+        cookie: jar,
+        clientId: 'internal-app',
+      });
+      assert.equal(completed.response.status, 302);
+      const redirected = locationQuery(completed.response);
       assert.equal(redirected.searchParams.get('state'), 'state-select');
       const code = redirected.searchParams.get('code');
       assert.ok(code);
@@ -617,9 +673,13 @@ test('HTTP realm, login, OIDC and logout flows', async (t) => {
         `&redirect_uri=${encodeURIComponent(redirectUri)}&scope=openid%20email` +
         `&state=state-revoked&code_challenge=${challenge}&code_challenge_method=S256`;
 
-      const first = await acme({ path: authorizePath, cookie: jar });
-      assert.equal(first.status, 302);
-      assert.ok(locationQuery(first).searchParams.get('code'));
+      const completed = await completeAuthorization(acme, {
+        path: authorizePath,
+        cookie: jar,
+        clientId: 'internal-app',
+      });
+      assert.equal(completed.response.status, 302);
+      assert.ok(locationQuery(completed.response).searchParams.get('code'));
 
       const sessionId = activeSessionId(env, jar);
       const revokedAt = Date.now();
@@ -651,9 +711,13 @@ test('HTTP realm, login, OIDC and logout flows', async (t) => {
       assert.equal(relogin.json.pending_auth_request, true);
       jar = mergeCookies(jar, relogin);
 
-      const second = await acme({ path: authorizePath, cookie: jar });
-      assert.equal(second.status, 302);
-      const code = locationQuery(second).searchParams.get('code');
+      const second = await completeAuthorization(acme, {
+        path: authorizePath,
+        cookie: jar,
+        clientId: 'internal-app',
+      });
+      assert.equal(second.response.status, 302);
+      const code = locationQuery(second.response).searchParams.get('code');
       assert.ok(code);
 
       const binding = withSystemDatabase(env, (database) =>
@@ -722,9 +786,13 @@ test('HTTP realm, login, OIDC and logout flows', async (t) => {
       assert.equal(selected.status, 200);
       assert.equal(selected.json.pending_auth_request, true);
 
-      const authorized = await acme({ path: authorizePath, cookie: jar });
-      assert.equal(authorized.status, 302);
-      assert.ok(locationQuery(authorized).searchParams.get('code'));
+      const authorized = await completeAuthorization(acme, {
+        path: authorizePath,
+        cookie: jar,
+        clientId: 'internal-app',
+      });
+      assert.equal(authorized.response.status, 302);
+      assert.ok(locationQuery(authorized.response).searchParams.get('code'));
 
       const sessionId = activeSessionId(env, jar);
       withSystemDatabase(env, (database) => {
@@ -877,9 +945,13 @@ test('HTTP realm, login, OIDC and logout flows', async (t) => {
       assert.equal(login.json.pending_auth_request, true);
       jar = mergeCookies(jar, login);
 
-      const second = await app({ path: authorizePath, cookie: jar });
-      assert.equal(second.status, 302);
-      const redirected = locationQuery(second);
+      const second = await completeAuthorization(app, {
+        path: authorizePath,
+        cookie: jar,
+        clientId: 'internal-app',
+      });
+      assert.equal(second.response.status, 302);
+      const redirected = locationQuery(second.response);
       assert.equal(redirected.origin + redirected.pathname, redirectUri);
       assert.equal(redirected.searchParams.get('state'), 'state-1');
       const code = redirected.searchParams.get('code');
@@ -959,9 +1031,13 @@ test('HTTP realm, login, OIDC and logout flows', async (t) => {
       assert.equal(login.json.pending_auth_request, true);
       jar = mergeCookies(jar, login);
 
-      const second = await identity({ path: authorizePath, cookie: jar });
-      assert.equal(second.status, 302);
-      const redirected = locationQuery(second);
+      const second = await completeAuthorization(identity, {
+        path: authorizePath,
+        cookie: jar,
+        clientId: 'internal-app',
+      });
+      assert.equal(second.response.status, 302);
+      const redirected = locationQuery(second.response);
       assert.equal(redirected.searchParams.get('state'), 'state-canonical');
       const code = redirected.searchParams.get('code');
       assert.ok(code);
@@ -1022,9 +1098,13 @@ test('HTTP realm, login, OIDC and logout flows', async (t) => {
       assert.equal(login.json.pending_auth_request, true);
       jar = mergeCookies(jar, login);
 
-      const second = await acme({ path: authorizePath, cookie: jar });
-      assert.equal(second.status, 302);
-      const code = locationQuery(second).searchParams.get('code');
+      const second = await completeAuthorization(acme, {
+        path: authorizePath,
+        cookie: jar,
+        clientId: 'acme-public-app',
+      });
+      assert.equal(second.response.status, 302);
+      const code = locationQuery(second.response).searchParams.get('code');
       assert.ok(code);
 
       const tokenResponse = await acme({
@@ -1039,6 +1119,365 @@ test('HTTP realm, login, OIDC and logout flows', async (t) => {
         },
       });
       assert.equal(tokenResponse.status, 200);
+    });
+
+    await t.test('remembered consent prompts once and can be denied', async () => {
+      clearConsent(env, { username: 'alice', realm: 'acme', clientId: 'internal-app' });
+
+      const login = await acme({
+        method: 'POST',
+        path: '/api/v1/login/password',
+        body: { client_id: 'internal-app', identifier: 'alice@acme.test', password: 'demo' },
+      });
+      let jar = mergeCookies('', login);
+
+      const { verifier, challenge } = pkce();
+      const redirectUri = `${origin('app.acme.localhost')}/callback`;
+      const authorizePath =
+        `/oidc/internal-app/authorize?response_type=code&client_id=internal-app` +
+        `&redirect_uri=${encodeURIComponent(redirectUri)}&scope=openid%20email` +
+        `&state=consent-once&code_challenge=${challenge}&code_challenge_method=S256`;
+
+      const prompt = await acme({ path: authorizePath, cookie: jar });
+      assert.equal(prompt.status, 302);
+      assert.equal(locationQuery(prompt).pathname, '/oidc/internal-app/consent');
+      jar = mergeCookies(jar, prompt);
+
+      const request = await acme({
+        path: '/api/v1/consent?client_id=internal-app',
+        cookie: jar,
+      });
+      assert.equal(request.status, 200);
+      assert.equal(request.json.client.id, 'internal-app');
+      assert.equal(request.json.user.username, 'alice');
+      assert.ok(request.json.scopes.includes('email'));
+
+      const allow = await acme({
+        method: 'POST',
+        path: '/api/v1/consent',
+        body: { client_id: 'internal-app', decision: 'allow' },
+        cookie: jar,
+      });
+      assert.equal(allow.status, 200);
+      assert.equal(new URL(allow.json.redirect).pathname, '/oidc/internal-app/authorize');
+
+      const approved = await acme({ path: authorizePath.split('?')[0], cookie: jar });
+      assert.equal(approved.status, 302);
+      assert.ok(locationQuery(approved).searchParams.get('code'));
+
+      const stored = withSystemDatabase(env, (database) =>
+        database
+          .prepare(
+            `SELECT scopes, granted_via, revoked_at
+               FROM client_consents
+              WHERE user_id = (SELECT id FROM users WHERE username = 'alice')
+                AND client_id = 'internal-app'
+                AND realm_id = (SELECT id FROM realms WHERE slug = 'acme')`
+          )
+          .get()
+      );
+      assert.equal(stored.granted_via, 'user');
+      assert.equal(stored.revoked_at, null);
+      assert.ok(stored.scopes.includes('email'));
+
+      const repeat = pkce();
+      const repeatPath =
+        `/oidc/internal-app/authorize?response_type=code&client_id=internal-app` +
+        `&redirect_uri=${encodeURIComponent(redirectUri)}&scope=openid%20email` +
+        `&state=consent-repeat&code_challenge=${repeat.challenge}&code_challenge_method=S256`;
+      const direct = await acme({ path: repeatPath, cookie: jar });
+      assert.equal(direct.status, 302);
+      assert.ok(locationQuery(direct).searchParams.get('code'));
+
+      clearConsent(env, { username: 'alice', realm: 'acme', clientId: 'internal-app' });
+      const denied = pkce();
+      const denyPath =
+        `/oidc/internal-app/authorize?response_type=code&client_id=internal-app` +
+        `&redirect_uri=${encodeURIComponent(redirectUri)}&scope=openid%20email` +
+        `&state=consent-deny&code_challenge=${denied.challenge}&code_challenge_method=S256`;
+      const denyPrompt = await acme({ path: denyPath, cookie: jar });
+      assert.equal(locationQuery(denyPrompt).pathname, '/oidc/internal-app/consent');
+      jar = mergeCookies(jar, denyPrompt);
+
+      const deny = await acme({
+        method: 'POST',
+        path: '/api/v1/consent',
+        body: { client_id: 'internal-app', decision: 'deny' },
+        cookie: jar,
+      });
+      assert.equal(deny.status, 200);
+      const deniedRedirect = new URL(deny.json.redirect);
+      assert.equal(deniedRedirect.searchParams.get('error'), 'access_denied');
+      assert.equal(deniedRedirect.searchParams.get('state'), 'consent-deny');
+
+      const missing = await acme({
+        path: '/api/v1/consent?client_id=internal-app',
+        cookie: jar,
+      });
+      assert.equal(missing.status, 400);
+    });
+
+    await t.test('consent scope upgrades require a new prompt', async () => {
+      clearConsent(env, { username: 'alice', realm: 'acme', clientId: 'internal-app' });
+
+      const login = await acme({
+        method: 'POST',
+        path: '/api/v1/login/password',
+        body: { client_id: 'internal-app', identifier: 'alice@acme.test', password: 'demo' },
+      });
+      let jar = mergeCookies('', login);
+      const redirectUri = `${origin('app.acme.localhost')}/callback`;
+
+      const base = pkce();
+      const basePath =
+        `/oidc/internal-app/authorize?response_type=code&client_id=internal-app` +
+        `&redirect_uri=${encodeURIComponent(redirectUri)}&scope=openid%20profile` +
+        `&state=scope-base&code_challenge=${base.challenge}&code_challenge_method=S256`;
+      const approved = await completeAuthorization(acme, {
+        path: basePath,
+        cookie: jar,
+        clientId: 'internal-app',
+      });
+      jar = approved.cookie;
+      assert.ok(locationQuery(approved.response).searchParams.get('code'));
+
+      const upgrade = pkce();
+      const upgradePath =
+        `/oidc/internal-app/authorize?response_type=code&client_id=internal-app` +
+        `&redirect_uri=${encodeURIComponent(redirectUri)}&scope=openid%20profile%20email` +
+        `&state=scope-upgrade&code_challenge=${upgrade.challenge}&code_challenge_method=S256`;
+      const prompt = await acme({ path: upgradePath, cookie: jar });
+      assert.equal(prompt.status, 302);
+      assert.equal(locationQuery(prompt).pathname, '/oidc/internal-app/consent');
+    });
+
+    await t.test('trusted clients skip consent for home users but guests still prompt', async () => {
+      setConsentMode(env, { realm: 'acme', clientId: 'acme-members-app', mode: 'trusted' });
+      clearConsent(env, { username: 'alice', realm: 'acme', clientId: 'acme-members-app' });
+      try {
+        const login = await acme({
+          method: 'POST',
+          path: '/api/v1/login/password',
+          body: {
+            client_id: 'acme-members-app',
+            identifier: 'alice@acme.test',
+            password: 'demo',
+          },
+        });
+        const jar = mergeCookies('', login);
+        const home = pkce();
+        const homePath =
+          `/oidc/acme-members-app/authorize?response_type=code&client_id=acme-members-app` +
+          `&redirect_uri=${encodeURIComponent(`${origin('members.localhost')}/callback`)}` +
+          `&scope=openid%20email&state=trusted-home` +
+          `&code_challenge=${home.challenge}&code_challenge_method=S256`;
+        const direct = await acme({ path: homePath, cookie: jar });
+        assert.equal(direct.status, 302);
+        assert.ok(locationQuery(direct).searchParams.get('code'));
+
+        const stored = withSystemDatabase(env, (database) =>
+          database
+            .prepare(
+              `SELECT granted_via
+                 FROM client_consents
+                WHERE user_id = (SELECT id FROM users WHERE username = 'alice')
+                  AND client_id = 'acme-members-app'
+                  AND realm_id = (SELECT id FROM realms WHERE slug = 'acme')`
+            )
+            .get()
+        );
+        assert.equal(stored.granted_via, 'trusted');
+
+        setConsentMode(env, {
+          realm: 'acme',
+          clientId: 'acme-members-app',
+          mode: 'remembered',
+        });
+        const changed = pkce();
+        const changedPath =
+          `/oidc/acme-members-app/authorize?response_type=code&client_id=acme-members-app` +
+          `&redirect_uri=${encodeURIComponent(`${origin('members.localhost')}/callback`)}` +
+          `&scope=openid%20email&state=trusted-changed` +
+          `&code_challenge=${changed.challenge}&code_challenge_method=S256`;
+        const prompt = await acme({ path: changedPath, cookie: jar });
+        assert.equal(prompt.status, 302);
+        assert.equal(locationQuery(prompt).pathname, '/oidc/acme-members-app/consent');
+      } finally {
+        setConsentMode(env, {
+          realm: 'acme',
+          clientId: 'acme-members-app',
+          mode: 'remembered',
+        });
+        clearConsent(env, {
+          username: 'alice',
+          realm: 'acme',
+          clientId: 'acme-members-app',
+        });
+      }
+
+      setConsentMode(env, { realm: 'acme', clientId: 'acme-public-app', mode: 'trusted' });
+      clearConsent(env, {
+        username: 'contractor',
+        realm: 'acme',
+        clientId: 'acme-public-app',
+      });
+      try {
+        const guest = pkce();
+        const guestPath =
+          `/oidc/acme-public-app/authorize?response_type=code&client_id=acme-public-app` +
+          `&redirect_uri=${encodeURIComponent(`${origin('public.localhost')}/callback`)}` +
+          `&scope=openid%20email&state=trusted-guest` +
+          `&code_challenge=${guest.challenge}&code_challenge_method=S256`;
+        const first = await acme({ path: guestPath });
+        let jar = mergeCookies('', first);
+        const login = await acme({
+          method: 'POST',
+          path: '/api/v1/login/password',
+          body: {
+            client_id: 'acme-public-app',
+            identifier: 'contractor@personal.test',
+            password: 'demo',
+          },
+          cookie: jar,
+        });
+        assert.equal(login.status, 200);
+        assert.equal(login.json.pending_auth_request, true);
+        jar = mergeCookies(jar, login);
+
+        const prompt = await acme({ path: guestPath, cookie: jar });
+        assert.equal(prompt.status, 302);
+        assert.equal(locationQuery(prompt).pathname, '/oidc/acme-public-app/consent');
+      } finally {
+        setConsentMode(env, {
+          realm: 'acme',
+          clientId: 'acme-public-app',
+          mode: 'remembered',
+        });
+        clearConsent(env, {
+          username: 'contractor',
+          realm: 'acme',
+          clientId: 'acme-public-app',
+        });
+      }
+    });
+
+    await t.test('client-host account shows and revokes current app consent', async () => {
+      clearConsent(env, { username: 'alice', realm: 'acme', clientId: 'internal-app' });
+
+      const login = await app({
+        method: 'POST',
+        path: '/api/v1/login/password',
+        body: { client_id: 'internal-app', identifier: 'alice@acme.test', password: 'demo' },
+      });
+      let jar = mergeCookies('', login);
+      const redirectUri = `${origin('app.acme.localhost')}/callback`;
+      const { challenge } = pkce();
+      const authorizePath =
+        `/oidc/authorize?response_type=code&client_id=internal-app` +
+        `&redirect_uri=${encodeURIComponent(redirectUri)}&scope=openid%20email` +
+        `&state=client-consent&code_challenge=${challenge}&code_challenge_method=S256`;
+
+      const prompt = await app({ path: authorizePath, cookie: jar });
+      assert.equal(prompt.status, 302);
+      assert.equal(locationQuery(prompt).pathname, '/oidc/consent');
+      jar = mergeCookies(jar, prompt);
+
+      const allow = await app({
+        method: 'POST',
+        path: '/api/v1/consent',
+        body: { client_id: 'internal-app', decision: 'allow' },
+        cookie: jar,
+      });
+      assert.equal(allow.status, 200);
+      const approved = await app({ path: authorizePath.split('?')[0], cookie: jar });
+      assert.ok(locationQuery(approved).searchParams.get('code'));
+
+      const current = await app({
+        path: '/api/v1/account/clients/internal-app/consent',
+        cookie: jar,
+      });
+      assert.equal(current.status, 200);
+      assert.equal(current.json.active, true);
+      assert.equal(current.json.client.id, 'internal-app');
+      assert.equal(current.json.account_url, `${publicUrl}/app/account`);
+
+      const wrongClient = await app({
+        path: '/api/v1/account/clients/acme-members-app/consent',
+        cookie: jar,
+      });
+      assert.equal(wrongClient.status, 404);
+
+      const revoked = await app({
+        method: 'DELETE',
+        path: '/api/v1/account/clients/internal-app/consent',
+        cookie: jar,
+      });
+      assert.equal(revoked.status, 200);
+      assert.equal(revoked.json.ok, true);
+      assert.equal(revoked.json.active, false);
+
+      const session = await app({ path: '/api/v1/session', cookie: jar });
+      assert.equal(session.status, 200);
+
+      const next = pkce();
+      const nextPath =
+        `/oidc/authorize?response_type=code&client_id=internal-app` +
+        `&redirect_uri=${encodeURIComponent(redirectUri)}&scope=openid%20email` +
+        `&state=client-revoked&code_challenge=${next.challenge}&code_challenge_method=S256`;
+      const reprompt = await app({ path: nextPath, cookie: jar });
+      assert.equal(reprompt.status, 302);
+      assert.equal(locationQuery(reprompt).pathname, '/oidc/consent');
+    });
+
+    await t.test('revoking consent after authorization blocks the code exchange', async () => {
+      clearConsent(env, { username: 'alice', realm: 'acme', clientId: 'internal-app' });
+
+      const login = await acme({
+        method: 'POST',
+        path: '/api/v1/login/password',
+        body: { client_id: 'internal-app', identifier: 'alice@acme.test', password: 'demo' },
+      });
+      const jar = mergeCookies('', login);
+      const { verifier, challenge } = pkce();
+      const redirectUri = `${origin('app.acme.localhost')}/callback`;
+      const authorizePath =
+        `/oidc/internal-app/authorize?response_type=code&client_id=internal-app` +
+        `&redirect_uri=${encodeURIComponent(redirectUri)}&scope=openid%20email` +
+        `&state=revoked-code&code_challenge=${challenge}&code_challenge_method=S256`;
+
+      const approved = await completeAuthorization(acme, {
+        path: authorizePath,
+        cookie: jar,
+        clientId: 'internal-app',
+      });
+      const code = locationQuery(approved.response).searchParams.get('code');
+      assert.ok(code);
+
+      withSystemDatabase(env, (database) => {
+        database
+          .prepare(
+            `UPDATE client_consents
+                SET revoked_at = ?
+              WHERE user_id = (SELECT id FROM users WHERE username = 'alice')
+                AND client_id = 'internal-app'
+                AND realm_id = (SELECT id FROM realms WHERE slug = 'acme')`
+          )
+          .run(Date.now());
+      });
+
+      const tokenResponse = await acme({
+        method: 'POST',
+        path: '/oidc/internal-app/token',
+        form: {
+          grant_type: 'authorization_code',
+          code,
+          redirect_uri: redirectUri,
+          client_id: 'internal-app',
+          code_verifier: verifier,
+        },
+      });
+      assert.equal(tokenResponse.status, 400);
+      assert.equal(tokenResponse.json.error, 'invalid_grant');
     });
 
     await t.test('system admins can use the admin client on the canonical host', async () => {
@@ -1588,8 +2027,12 @@ test('HTTP realm, login, OIDC and logout flows', async (t) => {
         cookie: jar,
       });
       jar = mergeCookies(jar, login);
-      const second = await acme({ path: authorizePath, cookie: jar });
-      const code = locationQuery(second).searchParams.get('code');
+      const second = await completeAuthorization(acme, {
+        path: authorizePath,
+        cookie: jar,
+        clientId: 'confidential-app',
+      });
+      const code = locationQuery(second.response).searchParams.get('code');
 
       const tokenResponse = await acme({
         method: 'POST',

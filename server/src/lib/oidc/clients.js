@@ -59,7 +59,7 @@ export async function getClient(db, clientId) {
   const row = await db.get(
     `SELECT id, client_id, name, redirect_uris, scopes, access_mode, enabled,
             client_secret_hash, token_endpoint_auth_method, require_pkce,
-            post_logout_redirect_uris, branding
+            post_logout_redirect_uris, branding, consent_mode
        FROM oidc_clients
       WHERE client_id = {clientId}`,
     { clientId }

@@ -173,6 +173,49 @@ body {
   font-size: 0.875rem;
 }
 
+.account-notice {
+  margin: 0 0 1.5rem;
+  padding: 0.75rem 1rem;
+  border: 1pt solid var(--account-border);
+  border-left: 3pt solid var(--account-accent);
+  background: var(--account-surface);
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.account-card-note {
+  margin-top: 1rem;
+}
+
+.account-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.account-danger {
+  padding: 0.5rem 0.75rem;
+  border: 1pt solid var(--account-danger);
+  border-radius: 0;
+  background: transparent;
+  color: var(--account-danger);
+  font: inherit;
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+.account-danger:hover:not(:disabled) {
+  background: var(--account-danger);
+  color: var(--account-surface);
+}
+
+.account-danger:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
 .account-status-page {
   display: grid;
   place-items: center;

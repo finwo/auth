@@ -74,6 +74,7 @@ export function endpointUrls(context) {
     openid_configuration: `${base}/openid-configuration`,
     login: `${base}/login`,
     authorize: `${base}/authorize`,
+    consent: `${base}/consent`,
     token: `${base}/token`,
     userinfo: `${base}/userinfo`,
     jwks: `${base}/jwks`,

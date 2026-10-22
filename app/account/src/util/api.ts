@@ -57,6 +57,32 @@ export interface SessionInfo {
   accounts: unknown[];
 }
 
+export interface ClientConsentInfo {
+  client: {
+    id: string;
+    name: string;
+  };
+  realm: {
+    slug: string;
+    display_name: string;
+    branding: Record<string, string>;
+  } | null;
+  user: {
+    id: string;
+    username: string;
+    display_name: string | null;
+  };
+  scopes: string[];
+  account_url: string;
+  active: boolean;
+  consent: {
+    granted_via: 'user' | 'trusted';
+    created_at: number;
+    updated_at: number;
+    revoked_at: number | null;
+  } | null;
+}
+
 export interface ApiError extends Error {
   code?: string;
   status?: number;
@@ -216,4 +242,45 @@ export async function getClientSession(): Promise<SessionInfo> {
     throw error;
   }
   return payload as SessionInfo;
+}
+
+async function clientConsentRequest(
+  clientId: string,
+  method = 'GET'
+): Promise<ClientConsentInfo> {
+  const response = await fetch(
+    `/api/v1/account/clients/${encodeURIComponent(clientId)}/consent`,
+    {
+      method,
+      credentials: 'same-origin',
+    }
+  );
+  let payload: any = null;
+  try {
+    payload = await response.json();
+  } catch {
+    payload = null;
+  }
+  if (!response.ok) {
+    const error = new Error(
+      payload?.error?.message || response.statusText
+    ) as ApiError;
+    error.code = payload?.error?.code;
+    error.status = response.status;
+    throw error;
+  }
+  return payload as ClientConsentInfo;
+}
+
+export function getClientConsent(clientId: string): Promise<ClientConsentInfo> {
+  return clientConsentRequest(clientId);
+}
+
+export function revokeClientConsent(clientId: string): Promise<ClientConsentInfo> {
+  return clientConsentRequest(clientId, 'DELETE');
+}
+
+export async function getFullAccountUrl() {
+  const authUrl = (await getAuthUrl()).replace(/\/+$/, '');
+  return `${authUrl}/app/account`;
 }

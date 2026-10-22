@@ -1,8 +1,12 @@
 import m from 'mithril';
 import {
   appUrl,
+  getClientConsent,
   getClientSession,
   getDiscovery,
+  getFullAccountUrl,
+  revokeClientConsent,
+  type ClientConsentInfo,
   type SessionInfo,
   type UserInfo,
 } from '../util/api';
@@ -37,8 +41,12 @@ export const Account: m.Component = {
   mode: null as Mode | null,
   user: null as UserInfo | null,
   session: null as SessionInfo | null,
+  consent: null as ClientConsentInfo | null,
+  fullAccountUrl: null as string | null,
+  notice: null as string | null,
   error: null as Error | null,
   pending: false,
+  revokePending: false,
 
   oninit(this: any) {
     this.load();
@@ -50,6 +58,11 @@ export const Account: m.Component = {
       if (!discovery) {
         this.mode = 'client';
         this.session = await getClientSession();
+        const clientId = this.session.scope.client_id;
+        if (clientId) {
+          this.consent = await getClientConsent(clientId);
+        }
+        this.fullAccountUrl = this.consent?.account_url || (await getFullAccountUrl());
         document.title = 'Account';
       } else if (!getAccountTokens()) {
         await startAccountLogin();
@@ -97,6 +110,22 @@ export const Account: m.Component = {
     await accountSignOut();
   },
 
+  async revokeConsent(this: any) {
+    const clientId = this.session?.scope.client_id;
+    if (!clientId) return;
+    this.revokePending = true;
+    this.error = null;
+    this.notice = null;
+    try {
+      this.consent = await revokeClientConsent(clientId);
+      this.notice = 'Access revoked. You can still use your account here.';
+    } catch (e) {
+      this.error = e as Error;
+    }
+    this.revokePending = false;
+    m.redraw();
+  },
+
   view(this: any) {
     const tokens = getAccountTokens();
     const user = this.user;
@@ -125,6 +154,12 @@ export const Account: m.Component = {
           {this.error ? (
             <div class="account-alert" role="alert">
               {this.error.message}
+            </div>
+          ) : null}
+
+          {this.notice ? (
+            <div class="account-notice" role="status">
+              {this.notice}
             </div>
           ) : null}
 
@@ -171,17 +206,81 @@ export const Account: m.Component = {
                   </div>
                   <div>
                     <dt>Permissions</dt>
-                    <dd>{session ? 'Current client' : 'Full account'}</dd>
+                    <dd>
+                      {session
+                        ? this.consent?.active
+                          ? 'Granted'
+                          : 'Not granted'
+                        : 'Full account'}
+                    </dd>
                   </div>
                 </dl>
               </section>
 
-              <section class="account-card account-card-wide">
-                <h2>Permissions</h2>
-                <p class="account-note">
-                  App permissions and consent management arrive in the next account slice.
-                </p>
-              </section>
+              {this.mode === 'client' ? (
+                <section class="account-card account-card-wide">
+                  <h2>App access</h2>
+                  <dl class="account-definition">
+                    <div>
+                      <dt>App</dt>
+                      <dd>{this.consent?.client.name || session?.scope.client_id}</dd>
+                    </div>
+                    <div>
+                      <dt>Scopes</dt>
+                      <dd>
+                        {this.consent?.scopes.length
+                          ? this.consent.scopes.join(', ')
+                          : 'None'}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>Granted</dt>
+                      <dd>
+                        {this.consent?.consent
+                          ? formatTime(this.consent.consent.created_at)
+                          : 'Not granted'}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>Revoked</dt>
+                      <dd>
+                        {this.consent?.consent?.revoked_at
+                          ? formatTime(this.consent.consent.revoked_at)
+                          : 'Not revoked'}
+                      </dd>
+                    </div>
+                  </dl>
+                  <p class="account-note account-card-note">
+                    {this.consent?.active
+                      ? `${this.consent.client.name} can use the access above. Revoking it does not sign you out here.`
+                      : `${session?.scope.client_id || 'This app'} no longer has access to your account.`}
+                  </p>
+                  <div class="account-actions">
+                    {this.consent?.active ? (
+                      <button
+                        class="account-danger"
+                        type="button"
+                        disabled={this.revokePending}
+                        onclick={() => this.revokeConsent()}
+                      >
+                        {this.revokePending ? 'Revoking' : 'Revoke access'}
+                      </button>
+                    ) : null}
+                    {this.fullAccountUrl ? (
+                      <a class="account-link" href={this.fullAccountUrl}>
+                        Open full account
+                      </a>
+                    ) : null}
+                  </div>
+                </section>
+              ) : (
+                <section class="account-card account-card-wide">
+                  <h2>Permissions</h2>
+                  <p class="account-note">
+                    App permissions and consent management arrive in the next account slice.
+                  </p>
+                </section>
+              )}
             </div>
           )}
         </main>
