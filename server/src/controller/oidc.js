@@ -5,6 +5,7 @@ import {
   systemClientPostLogoutUris,
   systemClientRedirectUris,
 } from '../lib/apps.js';
+import { isUserBanned } from '../lib/bans.js';
 import { consentStatus, getConsent, recordConsent } from '../lib/consents.js';
 import { HttpError } from '../lib/http/http-error.js';
 import {
@@ -263,17 +264,25 @@ async function authorize(context, client, req, res) {
     context,
   });
 
-  const allowed = auth
-    ? client.system_client
-      ? await canUseSystemClient(systemDb, { user: auth.user, client })
-      : canUseClient({
+  let allowed = false;
+  if (auth) {
+    if (client.system_client) {
+      allowed = await canUseSystemClient(systemDb, { user: auth.user, client });
+    } else {
+      allowed =
+        canUseClient({
           user: auth.user,
           membership: auth.membership,
           roles: auth.roles,
           client,
           realm: context.realm,
-        })
-    : false;
+        }) &&
+        !(await isUserBanned(realmDb, {
+          userId: auth.user.id,
+          clientId: client.client_id,
+        }));
+    }
+  }
 
   if (auth && !allowed) {
     if (pending) {
@@ -528,7 +537,11 @@ async function token(context, client, req) {
           roles,
           client,
           realm: context.realm,
-        })
+        }) ||
+        (await isUserBanned(realmDb, {
+          userId: user.id,
+          clientId: client.client_id,
+        }))
       ) {
         return oidcError(400, 'invalid_grant', 'The user no longer has access to this client');
       }
@@ -623,6 +636,16 @@ async function token(context, client, req) {
         }
 
         if (row.realm_id) {
+          if (
+            !client.system_client &&
+            (!realmDb ||
+              (await isUserBanned(realmDb, {
+                userId: row.user_id,
+                clientId: row.client_id,
+              })))
+          ) {
+            return false;
+          }
           const binding = await getSessionRealmBinding(tx, row.session_id, row.realm_id);
           if (!binding || binding.revoked_at) return false;
         }
@@ -691,6 +714,16 @@ async function userinfo(context, client, req) {
     return oidcError(401, 'invalid_token', 'The user is not available');
   }
   if (client.system_client && !(await canUseSystemClient(systemDb, { user, client }))) {
+    return oidcError(401, 'invalid_token', 'The user no longer has access to this client');
+  }
+  if (
+    !client.system_client &&
+    (!realmDb ||
+      (await isUserBanned(realmDb, {
+        userId: user.id,
+        clientId: client.client_id,
+      })))
+  ) {
     return oidcError(401, 'invalid_token', 'The user no longer has access to this client');
   }
 

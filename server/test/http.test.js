@@ -225,6 +225,60 @@ function setConsentMode(env, { realm, clientId, mode }) {
   });
 }
 
+function userId(env, username) {
+  return withSystemDatabase(env, (database) =>
+    database.prepare('SELECT id FROM users WHERE username = ?').get(username).id
+  );
+}
+
+function realmId(env, slug) {
+  return withSystemDatabase(env, (database) =>
+    database.prepare('SELECT id FROM realms WHERE slug = ?').get(slug).id
+  );
+}
+
+function clearBans(env, { username, realm, clientId = null }) {
+  const id = userId(env, username);
+  withRealmDatabase(env, realm, (database) => {
+    if (clientId) {
+      database
+        .prepare('DELETE FROM app_bans WHERE user_id = ? AND client_id = ?')
+        .run(id, clientId);
+    } else {
+      database.prepare('DELETE FROM app_bans WHERE user_id = ?').run(id);
+    }
+  });
+}
+
+function insertRefreshToken(
+  env,
+  { sessionId, userId: tokenUserId, realmId: tokenRealmId, clientId, scopes = 'openid' }
+) {
+  const id = crypto.randomUUID();
+  const now = Date.now();
+  withSystemDatabase(env, (database) => {
+    database
+      .prepare(
+        `INSERT INTO refresh_tokens
+          (id, family_id, session_id, user_id, realm_id, client_id, scopes,
+           created_at, expires_at, consumed_at, replaced_by, revoked_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL, NULL)`
+      )
+      .run(
+        id,
+        crypto.randomUUID(),
+        sessionId,
+        tokenUserId,
+        tokenRealmId,
+        clientId,
+        scopes,
+        now,
+        now + 60_000
+      );
+  });
+  return id;
+}
+
 function withRealmDatabase(env, slug, fn) {
   const system = new DatabaseSync(env.AUTH_DATABASE_PATH);
   try {
@@ -1478,6 +1532,483 @@ test('HTTP realm, login, OIDC and logout flows', async (t) => {
       });
       assert.equal(tokenResponse.status, 400);
       assert.equal(tokenResponse.json.error, 'invalid_grant');
+    });
+
+    await t.test('admin consent revocation applies to realm users and forces consent', async () => {
+      const aliceId = userId(env, 'alice');
+      clearConsent(env, { username: 'alice', realm: 'acme', clientId: 'internal-app' });
+      const admin = await adminToken('it@acme.test');
+      const redirectUri = `${origin('app.acme.localhost')}/callback`;
+
+      try {
+        const alice = await accessToken(acme, {
+          clientId: 'internal-app',
+          identifier: 'alice@acme.test',
+          redirectUri,
+        });
+
+        const before = withSystemDatabase(env, (database) =>
+          database
+            .prepare(
+              `SELECT revoked_at
+                 FROM client_consents
+                WHERE user_id = ?
+                  AND realm_id = (SELECT id FROM realms WHERE slug = 'acme')
+                  AND client_id = 'internal-app'`
+            )
+            .get(aliceId)
+        );
+        assert.equal(before.revoked_at, null);
+
+        const revoked = await identity({
+          method: 'DELETE',
+          path: `/api/v1/admin/realms/acme/users/${aliceId}/consents/internal-app`,
+          bearer: admin.access_token,
+        });
+        assert.equal(revoked.status, 200);
+        assert.equal(revoked.json.ok, true);
+        assert.equal(revoked.json.consent.client_id, 'internal-app');
+        assert.ok(revoked.json.consent.revoked_at);
+        assert.deepEqual(revoked.json.consent.scopes, ['openid', 'profile']);
+
+        const repeated = await identity({
+          method: 'DELETE',
+          path: `/api/v1/admin/realms/acme/users/${aliceId}/consents/internal-app`,
+          bearer: admin.access_token,
+        });
+        assert.equal(repeated.status, 200);
+
+        const { challenge } = pkce();
+        const authorizePath =
+          `/oidc/internal-app/authorize?response_type=code&client_id=internal-app` +
+          `&redirect_uri=${encodeURIComponent(redirectUri)}&scope=openid%20profile` +
+          `&state=admin-revoked&code_challenge=${challenge}&code_challenge_method=S256`;
+        const prompt = await acme({ path: authorizePath, cookie: alice.cookie });
+        assert.equal(prompt.status, 302);
+        assert.equal(locationQuery(prompt).pathname, '/oidc/internal-app/consent');
+      } finally {
+        clearConsent(env, {
+          username: 'alice',
+          realm: 'acme',
+          clientId: 'internal-app',
+        });
+      }
+    });
+
+    await t.test('admin consent revocation forces a prompt for trusted clients', async () => {
+      setConsentMode(env, {
+        realm: 'acme',
+        clientId: 'acme-members-app',
+        mode: 'trusted',
+      });
+      clearConsent(env, {
+        username: 'alice',
+        realm: 'acme',
+        clientId: 'acme-members-app',
+      });
+      const aliceId = userId(env, 'alice');
+      const admin = await adminToken('it@acme.test');
+
+      try {
+        const revoked = await identity({
+          method: 'DELETE',
+          path: `/api/v1/admin/realms/acme/users/${aliceId}/consents/acme-members-app`,
+          bearer: admin.access_token,
+        });
+        assert.equal(revoked.status, 200);
+        assert.ok(revoked.json.consent.revoked_at);
+
+        const login = await acme({
+          method: 'POST',
+          path: '/api/v1/login/password',
+          body: {
+            client_id: 'acme-members-app',
+            identifier: 'alice@acme.test',
+            password: 'demo',
+          },
+        });
+        const jar = mergeCookies('', login);
+        const { challenge } = pkce();
+        const authorizePath =
+          `/oidc/acme-members-app/authorize?response_type=code` +
+          `&client_id=acme-members-app&redirect_uri=${encodeURIComponent(
+            `${origin('members.localhost')}/callback`
+          )}&scope=openid%20email&state=trusted-revoked` +
+          `&code_challenge=${challenge}&code_challenge_method=S256`;
+        const prompt = await acme({ path: authorizePath, cookie: jar });
+        assert.equal(prompt.status, 302);
+        assert.equal(
+          locationQuery(prompt).pathname,
+          '/oidc/acme-members-app/consent'
+        );
+      } finally {
+        setConsentMode(env, {
+          realm: 'acme',
+          clientId: 'acme-members-app',
+          mode: 'remembered',
+        });
+        clearConsent(env, {
+          username: 'alice',
+          realm: 'acme',
+          clientId: 'acme-members-app',
+        });
+      }
+    });
+
+    await t.test('exact app bans block authorization, code exchange and userinfo', async () => {
+      const aliceId = userId(env, 'alice');
+      const acmeId = realmId(env, 'acme');
+      const itId = userId(env, 'acme-it');
+      const redirectUri = `${origin('app.acme.localhost')}/callback`;
+      clearConsent(env, { username: 'alice', realm: 'acme', clientId: 'internal-app' });
+      clearBans(env, { username: 'alice', realm: 'acme' });
+      const admin = await adminToken('it@acme.test');
+
+      try {
+        const alice = await accessToken(acme, {
+          clientId: 'internal-app',
+          identifier: 'alice@acme.test',
+          redirectUri,
+        });
+        const beforeUserinfo = await acme({
+          path: '/oidc/internal-app/userinfo',
+          bearer: alice.access_token,
+        });
+        assert.equal(beforeUserinfo.status, 200);
+
+        const { verifier, challenge } = pkce();
+        const authorizePath =
+          `/oidc/internal-app/authorize?response_type=code&client_id=internal-app` +
+          `&redirect_uri=${encodeURIComponent(redirectUri)}&scope=openid%20profile` +
+          `&state=exact-ban-code&code_challenge=${challenge}` +
+          `&code_challenge_method=S256`;
+        const approved = await completeAuthorization(acme, {
+          path: authorizePath,
+          cookie: alice.cookie,
+          clientId: 'internal-app',
+        });
+        const code = locationQuery(approved.response).searchParams.get('code');
+        assert.ok(code);
+
+        const sessionId = activeSessionId(env, alice.cookie);
+        const refreshId = insertRefreshToken(env, {
+          sessionId,
+          userId: aliceId,
+          realmId: acmeId,
+          clientId: 'internal-app',
+        });
+
+        const ban = await identity({
+          method: 'POST',
+          path: `/api/v1/admin/realms/acme/users/${aliceId}/bans`,
+          bearer: admin.access_token,
+          body: { client_id: 'internal-app' },
+        });
+        assert.equal(ban.status, 200);
+        assert.equal(ban.json.ok, true);
+        assert.equal(ban.json.ban.user_id, aliceId);
+        assert.equal(ban.json.ban.client_id, 'internal-app');
+        assert.equal(ban.json.ban.created_by, itId);
+        assert.ok(ban.json.ban.created_at);
+
+        const duplicate = await identity({
+          method: 'POST',
+          path: `/api/v1/admin/realms/acme/users/${aliceId}/bans`,
+          bearer: admin.access_token,
+          body: { client_id: 'internal-app' },
+        });
+        assert.equal(duplicate.status, 200);
+        assert.equal(duplicate.json.ban.created_at, ban.json.ban.created_at);
+
+        const stored = withRealmDatabase(env, 'acme', (database) =>
+          database
+            .prepare(
+              'SELECT user_id, client_id, created_by, created_at FROM app_bans WHERE user_id = ? AND client_id = ?'
+            )
+            .get(aliceId, 'internal-app')
+        );
+        assert.equal(stored.created_by, itId);
+
+        const storedRefresh = withSystemDatabase(env, (database) =>
+          database.prepare('SELECT revoked_at FROM refresh_tokens WHERE id = ?').get(refreshId)
+        );
+        assert.ok(storedRefresh.revoked_at);
+
+        withSystemDatabase(env, (database) => {
+          database
+            .prepare(
+              `UPDATE client_consents
+                  SET revoked_at = NULL
+                WHERE user_id = ? AND realm_id = ? AND client_id = 'internal-app'`
+            )
+            .run(aliceId, acmeId);
+        });
+
+        const bannedUserinfo = await acme({
+          path: '/oidc/internal-app/userinfo',
+          bearer: alice.access_token,
+        });
+        assert.equal(bannedUserinfo.status, 401);
+        assert.equal(bannedUserinfo.json.error, 'invalid_token');
+
+        const tokenResponse = await acme({
+          method: 'POST',
+          path: '/oidc/internal-app/token',
+          form: {
+            grant_type: 'authorization_code',
+            code,
+            redirect_uri: redirectUri,
+            client_id: 'internal-app',
+            code_verifier: verifier,
+          },
+        });
+        assert.equal(tokenResponse.status, 400);
+        assert.equal(tokenResponse.json.error, 'invalid_grant');
+
+        const denied = await acme({ path: authorizePath, cookie: alice.cookie });
+        assert.equal(denied.status, 302);
+        assert.equal(locationQuery(denied).searchParams.get('error'), 'access_denied');
+
+        const adminSessions = await identity({
+          path: '/api/v1/admin/realms/acme/sessions',
+          bearer: admin.access_token,
+        });
+        assert.equal(adminSessions.status, 200);
+
+        const revoked = await identity({
+          method: 'DELETE',
+          path: `/api/v1/admin/realms/acme/users/${aliceId}/consents/internal-app`,
+          bearer: admin.access_token,
+        });
+        assert.equal(revoked.status, 200);
+
+        const unbanned = await identity({
+          method: 'DELETE',
+          path: `/api/v1/admin/realms/acme/users/${aliceId}/bans/internal-app`,
+          bearer: admin.access_token,
+        });
+        assert.equal(unbanned.status, 200);
+        assert.equal(unbanned.json.removed, true);
+
+        const prompt = await acme({ path: authorizePath, cookie: alice.cookie });
+        assert.equal(prompt.status, 302);
+        assert.equal(locationQuery(prompt).pathname, '/oidc/internal-app/consent');
+      } finally {
+        clearBans(env, { username: 'alice', realm: 'acme' });
+        clearConsent(env, {
+          username: 'alice',
+          realm: 'acme',
+          clientId: 'internal-app',
+        });
+      }
+    });
+
+    await t.test('wildcard app bans block every client in the realm only', async () => {
+      const aliceId = userId(env, 'alice');
+      const acmeId = realmId(env, 'acme');
+      const acmeRedirect = `${origin('app.acme.localhost')}/callback`;
+      clearConsent(env, { username: 'alice', realm: 'acme', clientId: 'internal-app' });
+      clearConsent(env, {
+        username: 'alice',
+        realm: 'acme',
+        clientId: 'acme-public-app',
+      });
+      clearConsent(env, {
+        username: 'alice',
+        realm: 'globex',
+        clientId: 'globex-members-app',
+      });
+      clearBans(env, { username: 'alice', realm: 'acme' });
+      const admin = await adminToken('it@acme.test');
+
+      try {
+        const alice = await accessToken(acme, {
+          clientId: 'internal-app',
+          identifier: 'alice@acme.test',
+          redirectUri: acmeRedirect,
+        });
+        const account = await accessToken(acme, {
+          clientId: 'account',
+          identifier: 'alice@acme.test',
+          redirectUri: `${origin('acme.localhost')}/app/account/callback`,
+        });
+        assert.ok(account.refresh_token);
+
+        const ban = await identity({
+          method: 'POST',
+          path: `/api/v1/admin/realms/acme/users/${aliceId}/bans`,
+          bearer: admin.access_token,
+          body: { client_id: '*' },
+        });
+        assert.equal(ban.status, 200);
+        assert.equal(ban.json.ban.client_id, '*');
+
+        const accountRefresh = withSystemDatabase(env, (database) =>
+          database
+            .prepare(
+              `SELECT revoked_at
+                 FROM refresh_tokens
+                WHERE user_id = ? AND realm_id = ? AND client_id = 'account'
+                ORDER BY created_at DESC
+                LIMIT 1`
+            )
+            .get(aliceId, acmeId)
+        );
+        assert.equal(accountRefresh.revoked_at, null);
+
+        const accountRefreshed = await acme({
+          method: 'POST',
+          path: '/oidc/account/token',
+          form: {
+            grant_type: 'refresh_token',
+            client_id: 'account',
+            refresh_token: account.refresh_token,
+          },
+        });
+        assert.equal(accountRefreshed.status, 200);
+        assert.ok(accountRefreshed.json.access_token);
+
+        const internal = pkce();
+        const internalPath =
+          `/oidc/internal-app/authorize?response_type=code&client_id=internal-app` +
+          `&redirect_uri=${encodeURIComponent(acmeRedirect)}&scope=openid%20profile` +
+          `&state=wildcard-internal&code_challenge=${internal.challenge}` +
+          `&code_challenge_method=S256`;
+        const deniedInternal = await acme({ path: internalPath, cookie: alice.cookie });
+        assert.equal(deniedInternal.status, 302);
+        assert.equal(
+          locationQuery(deniedInternal).searchParams.get('error'),
+          'access_denied'
+        );
+
+        const publicRequest = pkce();
+        const publicPath =
+          `/oidc/acme-public-app/authorize?response_type=code` +
+          `&client_id=acme-public-app&redirect_uri=${encodeURIComponent(
+            `${origin('public.localhost')}/callback`
+          )}&scope=openid&state=wildcard-public` +
+          `&code_challenge=${publicRequest.challenge}&code_challenge_method=S256`;
+        const deniedPublic = await acme({ path: publicPath, cookie: alice.cookie });
+        assert.equal(deniedPublic.status, 302);
+        assert.equal(locationQuery(deniedPublic).searchParams.get('error'), 'access_denied');
+
+        const globexToken = await accessToken(globex, {
+          clientId: 'globex-members-app',
+          identifier: 'alice@acme.test',
+          redirectUri: `${origin('members.localhost')}/callback`,
+        });
+        assert.ok(globexToken.access_token);
+
+        const removed = await identity({
+          method: 'DELETE',
+          path: `/api/v1/admin/realms/acme/users/${aliceId}/bans/*`,
+          bearer: admin.access_token,
+        });
+        assert.equal(removed.status, 200);
+        assert.equal(removed.json.removed, true);
+
+        const next = pkce();
+        const nextPath =
+          `/oidc/internal-app/authorize?response_type=code&client_id=internal-app` +
+          `&redirect_uri=${encodeURIComponent(acmeRedirect)}&scope=openid%20profile` +
+          `&state=wildcard-unbanned&code_challenge=${next.challenge}` +
+          `&code_challenge_method=S256`;
+        const prompt = await acme({ path: nextPath, cookie: alice.cookie });
+        assert.equal(prompt.status, 302);
+        assert.equal(locationQuery(prompt).pathname, '/oidc/internal-app/consent');
+      } finally {
+        clearBans(env, { username: 'alice', realm: 'acme' });
+        clearConsent(env, { username: 'alice', realm: 'acme', clientId: 'internal-app' });
+        clearConsent(env, {
+          username: 'alice',
+          realm: 'acme',
+          clientId: 'acme-public-app',
+        });
+        clearConsent(env, {
+          username: 'alice',
+          realm: 'globex',
+          clientId: 'globex-members-app',
+        });
+      }
+    });
+
+    await t.test('admin consent and ban APIs enforce target scope', async () => {
+      const aliceId = userId(env, 'alice');
+      const admin = await adminToken('it@acme.test');
+
+      try {
+        const crossRealm = await identity({
+          method: 'DELETE',
+          path: `/api/v1/admin/realms/globex/users/${aliceId}/consents/globex-members-app`,
+          bearer: admin.access_token,
+        });
+        assert.equal(crossRealm.status, 403);
+
+        const unknownUser = await identity({
+          method: 'DELETE',
+          path: '/api/v1/admin/realms/acme/users/missing-user/consents/internal-app',
+          bearer: admin.access_token,
+        });
+        assert.equal(unknownUser.status, 404);
+        assert.equal(unknownUser.json.error.code, 'user_not_found');
+
+        const crossClient = await identity({
+          method: 'DELETE',
+          path: `/api/v1/admin/realms/acme/users/${aliceId}/consents/globex-members-app`,
+          bearer: admin.access_token,
+        });
+        assert.equal(crossClient.status, 404);
+        assert.equal(crossClient.json.error.code, 'client_not_found');
+
+        const systemClient = await identity({
+          method: 'DELETE',
+          path: `/api/v1/admin/realms/acme/users/${aliceId}/consents/admin`,
+          bearer: admin.access_token,
+        });
+        assert.equal(systemClient.status, 404);
+        assert.equal(systemClient.json.error.code, 'client_not_found');
+
+        const missingBody = await identity({
+          method: 'POST',
+          path: `/api/v1/admin/realms/acme/users/${aliceId}/bans`,
+          bearer: admin.access_token,
+        });
+        assert.equal(missingBody.status, 400);
+        assert.equal(missingBody.json.error.code, 'invalid_request');
+
+        const missingBan = await identity({
+          method: 'DELETE',
+          path: `/api/v1/admin/realms/acme/users/${aliceId}/bans/internal-app`,
+          bearer: admin.access_token,
+        });
+        assert.equal(missingBan.status, 404);
+        assert.equal(missingBan.json.error.code, 'ban_not_found');
+
+        const systemAdmin = await adminToken();
+        const systemBan = await identity({
+          method: 'POST',
+          path: `/api/v1/admin/realms/globex/users/${aliceId}/bans`,
+          bearer: systemAdmin.access_token,
+          body: { client_id: '*' },
+        });
+        assert.equal(systemBan.status, 200);
+        assert.equal(systemBan.json.ban.client_id, '*');
+
+        const systemUnban = await identity({
+          method: 'DELETE',
+          path: `/api/v1/admin/realms/globex/users/${aliceId}/bans/*`,
+          bearer: systemAdmin.access_token,
+        });
+        assert.equal(systemUnban.status, 200);
+      } finally {
+        clearBans(env, { username: 'alice', realm: 'acme' });
+        clearBans(env, { username: 'alice', realm: 'globex' });
+        clearConsent(env, {
+          username: 'alice',
+          realm: 'globex',
+          clientId: 'globex-members-app',
+        });
+      }
     });
 
     await t.test('system admins can use the admin client on the canonical host', async () => {
