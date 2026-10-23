@@ -47,7 +47,8 @@ interface LoginFlow {
 }
 
 interface DiscoveryOptions {
-  authUrl: () => Promise<string>;
+  authUrl?: () => Promise<string>;
+  discoveryUrl?: () => Promise<string>;
   clientId: string;
   unavailableMessage: string;
   allowMissing?: boolean;
@@ -58,11 +59,10 @@ export function createDiscovery(options: DiscoveryOptions) {
   return function getDiscovery(): Promise<Discovery | null> {
     if (!discoveryPromise) {
       discoveryPromise = (async () => {
-        const authUrl = await options.authUrl();
-        const response = await fetch(
-          `${authUrl}/oidc/${encodeURIComponent(options.clientId)}/openid-configuration`,
-          { credentials: 'omit' }
-        );
+        const url = options.discoveryUrl
+          ? await options.discoveryUrl()
+          : `${await options.authUrl!()}/oidc/${encodeURIComponent(options.clientId)}/openid-configuration`;
+        const response = await fetch(url, { credentials: 'omit' });
         if (options.allowMissing && response.status === 404) return null;
         if (!response.ok) throw new Error(options.unavailableMessage);
         return parseJsonResponse<Discovery>(response);

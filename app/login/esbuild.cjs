@@ -21,7 +21,7 @@ const config = {
     '@style': __dirname + '/../shared/style',
     '@api': __dirname + '/../shared/api',
     '@component': __dirname + '/../shared/component',
-    '@template': __dirname + '/../shared/template',
+    '@template': __dirname + '/../shared/lib/template',
   },
   nodePaths: [__dirname + '/node_modules'],
   loader: {

@@ -1,0 +1,393 @@
+.icon {
+  display: inline-block;
+  flex: none;
+  width: 1.125rem;
+  height: 1.125rem;
+  background-color: currentColor;
+  -webkit-mask: var(--icon) center / contain no-repeat;
+  mask: var(--icon) center / contain no-repeat;
+}
+
+.icon-activity { --icon: url('template://asset/activity.svg'); }
+.icon-hexagon { --icon: url('template://asset/hexagon.svg'); }
+.icon-layers { --icon: url('template://asset/layers.svg'); }
+.icon-logout { --icon: url('template://asset/logout.svg'); }
+.icon-overview { --icon: url('template://asset/overview.svg'); }
+.icon-package { --icon: url('template://asset/package.svg'); }
+.icon-settings { --icon: url('template://asset/settings.svg'); }
+.icon-sun { --icon: url('template://asset/sun.svg'); }
+.icon-user { --icon: url('template://asset/user.svg'); }
+
+.nav-item .icon {
+  display: inline-block;
+  width: 1.125rem;
+  height: 1.125rem;
+}
+
+.user-menu summary .icon {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+.panel-heading {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.panel-heading h2 {
+  margin: 0;
+}
+
+.button-small {
+  padding: 0.375rem 0.75rem;
+  font-size: 0.75rem;
+}
+
+.field {
+  display: grid;
+  gap: 0.25rem;
+  color: var(--muted);
+  font-size: 0.75rem;
+  line-height: 1.4;
+}
+
+.field input {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border: 0;
+  border-bottom: 1pt solid var(--field-line);
+  border-radius: 0;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.field input[type="file"] {
+  padding-left: 0;
+  border-bottom: 0;
+  background: transparent;
+  color: var(--muted);
+}
+
+.upload-grid {
+  display: grid;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.upload-actions {
+  display: flex;
+  align-items: end;
+}
+
+.packages-stack,
+.templates-stack {
+  display: grid;
+  gap: 1rem;
+}
+
+.package-list,
+.template-list {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.package-row {
+  display: grid;
+  gap: 1rem;
+}
+
+.package-heading,
+.template-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.package-heading h2,
+.template-heading h3 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.template-heading h3 {
+  font-size: 0.9375rem;
+}
+
+.package-meta,
+.template-meta {
+  margin: 0.25rem 0 0;
+  color: var(--muted);
+  font-size: 0.8125rem;
+  line-height: 1.5;
+}
+
+.package-details {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem 1rem;
+  margin: 0.875rem 0 0;
+}
+
+.package-details dt {
+  color: var(--muted);
+  font-size: 0.75rem;
+  line-height: 1.4;
+}
+
+.package-details dd {
+  margin: 0.125rem 0 0;
+  font-size: 0.8125rem;
+  line-height: 1.4;
+}
+
+.package-actions,
+.template-actions,
+.layer-controls,
+.assignment-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.badge {
+  display: inline-block;
+  padding: 0.125rem 0.5rem;
+  background: var(--row);
+  color: var(--muted);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+.badge-danger {
+  color: var(--danger);
+}
+
+.template-row {
+  display: grid;
+  gap: 0.75rem;
+  padding: 0.875rem 0.75rem;
+  background: var(--row);
+}
+
+.assignment-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.assignment-heading h2 {
+  margin: 0 0 0.25rem;
+}
+
+.layer-list {
+  display: grid;
+  gap: 0.25rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.layer-row {
+  display: grid;
+  grid-template-columns: 1.5rem minmax(0, 1fr);
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  background: var(--row);
+}
+
+.layer-position {
+  color: var(--muted);
+  font-size: 0.8125rem;
+  line-height: 1;
+  text-align: center;
+}
+
+.layer-main {
+  display: grid;
+  gap: 0.125rem;
+  min-width: 0;
+}
+
+.layer-main strong {
+  font-size: 0.9375rem;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.layer-main .template-meta {
+  margin: 0;
+}
+
+.realm-select {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.realm-select > span {
+  color: var(--muted);
+  font-size: 0.75rem;
+  line-height: 1.4;
+}
+
+.realm-select select {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border: 0;
+  border-bottom: 1pt solid var(--field-line);
+  border-radius: 0;
+  background: var(--surface);
+  color: inherit;
+  font: inherit;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.realm-current {
+  color: var(--muted);
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.realm-list {
+  display: grid;
+  gap: 0.25rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.realm-link {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+  padding: 0.875rem 0.75rem;
+  background: var(--row);
+  color: inherit;
+  text-decoration: none;
+}
+
+.realm-link:hover {
+  background: var(--row-hover);
+}
+
+.realm-name {
+  font-size: 0.9375rem;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.realm-slug {
+  color: var(--muted);
+  font-size: 0.8125rem;
+  line-height: 1.4;
+}
+
+.session-stack {
+  display: grid;
+  gap: 1rem;
+}
+
+.session-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.session-header h2 {
+  margin: 0;
+}
+
+.session-user {
+  margin: 0.25rem 0 0;
+  color: var(--muted);
+  font-size: 0.8125rem;
+  line-height: 1.4;
+}
+
+.session-badge {
+  color: var(--danger);
+  font-size: 0.75rem;
+  line-height: 1.4;
+}
+
+.session-details {
+  margin-top: 1.25rem;
+}
+
+.session-agent {
+  margin: 0.75rem 0 0;
+  color: var(--muted);
+  font-size: 0.75rem;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.session-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 1.25rem;
+}
+
+.confirm {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--muted);
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+summary:focus-visible,
+textarea:focus-visible {
+  outline: 2pt solid var(--accent);
+  outline-offset: 2pt;
+}
+
+@media (min-width: 40em) {
+  .upload-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .package-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: start;
+  }
+
+  .template-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+  }
+
+  .layer-row {
+    grid-template-columns: 1.5rem minmax(0, 1fr) auto;
+  }
+
+  .realm-select select {
+    width: auto;
+  }
+}

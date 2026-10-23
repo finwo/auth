@@ -1,0 +1,79 @@
+{{#> component/shell}}
+<div>
+  <div class="page-header">
+    <div>
+      <h1>Packages</h1>
+      <p>Distribution packages available to the provider.</p>
+    </div>
+  </div>
+
+  {{#if error}}<div class="alert" role="alert">{{error}}</div>{{/if}}
+  {{#if notice}}<div class="notice" role="status">{{notice}}</div>{{/if}}
+
+  <div class="packages-stack">
+    <section class="panel">
+      <div class="panel-heading">
+        <span class="icon icon-package" aria-hidden="true"></span>
+        <h2>Upload distribution package</h2>
+      </div>
+      <p class="note">Upload a zip or tarball containing manifest.json. Template packages become available on the Templates page.</p>
+      <form class="upload-grid" data-form="package-upload">
+        <label class="field">
+          <span>Package file</span>
+          <input type="file" name="file" accept=".zip,.tar,.tar.gz,.tgz">
+        </label>
+        <div class="upload-actions">
+          <button class="button" type="submit" disabled>{{#if pending}}Uploading{{else}}Upload package{{/if}}</button>
+        </div>
+      </form>
+    </section>
+
+    {{#if loading}}
+      <div class="panel">
+        <div class="skeleton skeleton-title"></div>
+        <div class="skeleton"></div>
+        <div class="skeleton skeleton-short"></div>
+      </div>
+    {{else}}
+      {{#if hasPackages}}
+        <div class="package-list">
+          {{#each packages}}
+            <article class="panel package-row">
+              <div class="package-main">
+                <div class="package-heading">
+                  <h2>{{label}}</h2>
+                  {{#if template}}<span class="badge">Template</span>{{/if}}
+                </div>
+                <p class="package-meta">{{type}} · {{author}}{{#if authorEmail}} &lt;{{authorEmail}}&gt;{{/if}}</p>
+                <dl class="package-details">
+                  <div><dt>Size</dt><dd>{{size}}</dd></div>
+                  <div><dt>Files</dt><dd>{{files}}</dd></div>
+                  <div><dt>Uploaded</dt><dd>{{created}}</dd></div>
+                  <div><dt>Usage</dt><dd>{{usage}}</dd></div>
+                </dl>
+              </div>
+              <div class="package-actions">
+                {{#if inUse}}
+                  <button class="button-secondary button-small" type="button" disabled>In use</button>
+                {{else}}
+                  {{#if confirm}}
+                    <div class="confirm">
+                      <span>Delete this package?</span>
+                      <button class="button-danger button-small" type="button" data-action="delete-package" data-package="{{id}}"{{#if ../pending}} disabled{{/if}}>{{#if ../pending}}Deleting{{else}}Confirm{{/if}}</button>
+                      <button class="button-secondary button-small" type="button" data-action="cancel-package-delete"{{#if ../pending}} disabled{{/if}}>Cancel</button>
+                    </div>
+                  {{else}}
+                    <button class="button-secondary button-small" type="button" data-action="confirm-delete-package" data-package="{{id}}"{{#if ../pending}} disabled{{/if}}>Delete</button>
+                  {{/if}}
+                {{/if}}
+              </div>
+            </article>
+          {{/each}}
+        </div>
+      {{else}}
+        <div class="empty"><p>No packages have been uploaded.</p></div>
+      {{/if}}
+    {{/if}}
+  </div>
+</div>
+{{/component/shell}}

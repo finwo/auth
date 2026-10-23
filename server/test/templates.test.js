@@ -2,12 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { gzipSync } from 'node:zlib';
 import { packTar } from 'modern-tar';
-import {
-  normalizeTemplateLabel,
-  validateTemplateArchive,
-} from '../src/lib/templates.js';
+import { validateTemplateArchive } from '../src/lib/template-artifact.js';
 
-async function archive(files) {
+async function archive(files, { gzip = true } = {}) {
   const entries = files.map(({ name, body = '', type = 'file', linkname }) => ({
     header: {
       name,
@@ -17,7 +14,8 @@ async function archive(files) {
     },
     body,
   }));
-  return gzipSync(await packTar(entries));
+  const tar = await packTar(entries);
+  return gzip ? gzipSync(tar) : tar;
 }
 
 function limits(overrides = {}) {
@@ -38,6 +36,17 @@ test('partial overlay archives are valid', async () => {
   assert.deepEqual(await validateTemplateArchive(buffer, limits()), {
     fileCount: 2,
     extractedBytes: 42,
+  });
+});
+
+test('uncompressed template archives are valid', async () => {
+  const buffer = await archive([
+    { name: 'login/identifier.hbs', body: '<h1>Sign in</h1>' },
+  ], { gzip: false });
+
+  assert.deepEqual(await validateTemplateArchive(buffer, limits()), {
+    fileCount: 1,
+    extractedBytes: 16,
   });
 });
 
@@ -101,11 +110,4 @@ test('empty and malformed archives are rejected', async () => {
     validateTemplateArchive(Buffer.from('not a gzip archive'), limits()),
     /archive is invalid/
   );
-});
-
-test('template labels are trimmed and bounded', () => {
-  assert.equal(normalizeTemplateLabel('  Acme theme  '), 'Acme theme');
-  assert.throws(() => normalizeTemplateLabel('   '), /label is required/);
-  assert.throws(() => normalizeTemplateLabel('x'.repeat(81)), /label is too long/);
-  assert.throws(() => normalizeTemplateLabel('bad\nlabel'), /invalid characters/);
 });

@@ -1,0 +1,56 @@
+{{> component/admin-styles}}
+<div class="app-shell">
+  <header class="topbar">
+    <a class="brand" href="{{homeHref}}" data-route="/" aria-label="Auth administration">
+      <span class="brand-icon icon icon-hexagon" aria-hidden="true"></span>
+      <span class="brand-name">Auth</span>
+    </a>
+
+    <details class="user-menu">
+      <summary aria-label="Account menu">
+        <span class="icon icon-user" aria-hidden="true"></span>
+      </summary>
+      <div class="user-panel">
+        <div class="user-summary">
+          <span class="user-name">{{userName}}</span>
+          <span class="user-meta">{{userMeta}}</span>
+        </div>
+        <div class="user-menu-list">
+          <a class="user-menu-item" href="{{accountHref}}">
+            <span class="icon icon-settings" aria-hidden="true"></span>
+            <span>Account settings</span>
+          </a>
+          <button class="user-menu-item" type="button" data-action="cycle-theme" aria-label="Theme: {{themeLabel}}">
+            <span class="icon icon-sun" aria-hidden="true"></span>
+            <span>Theme</span>
+            <span class="user-menu-value">{{themeLabel}}</span>
+          </button>
+          <a class="user-menu-item" href="#" data-action="sign-out">
+            <span class="icon icon-logout" aria-hidden="true"></span>
+            <span>Sign out</span>
+          </a>
+        </div>
+      </div>
+    </details>
+  </header>
+
+  <div class="app">
+    <aside class="sidebar">
+      <nav class="nav" aria-label="Administration">
+        <p class="nav-label">Administration</p>
+        {{#each navItems}}
+          <a class="nav-item{{#if active}} is-active{{/if}}" href="{{href}}" data-route="{{route}}"{{#if active}} aria-current="page"{{/if}}>
+            <span class="icon icon-{{icon}}" aria-hidden="true"></span>
+            <span>{{label}}</span>
+          </a>
+        {{/each}}
+      </nav>
+    </aside>
+
+    <div class="main">
+      <main class="content">
+        {{> @partial-block}}
+      </main>
+    </div>
+  </div>
+</div>

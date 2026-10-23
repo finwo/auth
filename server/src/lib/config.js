@@ -25,8 +25,8 @@ const DEFAULTS = {
     admin: null,
     account: null,
   },
-  templates: {
-    path: './data/templates',
+  packages: {
+    path: './data/packages',
     max_archive_bytes: 2097152,
     max_extracted_bytes: 10485760,
     max_files: 256,
@@ -43,10 +43,10 @@ const ENV_MAP = [
   ['AUTH_REALMS_PATH', 'database.realms', String],
   ['AUTH_ADMIN_APP_URL', 'apps.admin', String],
   ['AUTH_ACCOUNT_APP_URL', 'apps.account', String],
-  ['AUTH_TEMPLATES_PATH', 'templates.path', String],
-  ['AUTH_TEMPLATE_MAX_ARCHIVE_BYTES', 'templates.max_archive_bytes', toInt],
-  ['AUTH_TEMPLATE_MAX_EXTRACTED_BYTES', 'templates.max_extracted_bytes', toInt],
-  ['AUTH_TEMPLATE_MAX_FILES', 'templates.max_files', toInt],
+  ['AUTH_PACKAGES_PATH', 'packages.path', String],
+  ['AUTH_PACKAGE_MAX_ARCHIVE_BYTES', 'packages.max_archive_bytes', toInt],
+  ['AUTH_PACKAGE_MAX_EXTRACTED_BYTES', 'packages.max_extracted_bytes', toInt],
+  ['AUTH_PACKAGE_MAX_FILES', 'packages.max_files', toInt],
 ];
 
 function lower(v) {
@@ -137,14 +137,14 @@ function validate(cfg) {
     }
   }
 
-  if (!cfg.templates?.path) {
-    errors.push('templates.path is required (set templates.path or AUTH_TEMPLATES_PATH)');
+  if (!cfg.packages?.path) {
+    errors.push('packages.path is required (set packages.path or AUTH_PACKAGES_PATH)');
   }
 
   for (const name of ['max_archive_bytes', 'max_extracted_bytes', 'max_files']) {
-    const value = cfg.templates?.[name];
+    const value = cfg.packages?.[name];
     if (!Number.isInteger(value) || value < 1) {
-      errors.push(`templates.${name} must be a positive integer, got ${value}`);
+      errors.push(`packages.${name} must be a positive integer, got ${value}`);
     }
   }
 

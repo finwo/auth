@@ -1,18 +1,10 @@
-export interface LayerSource {
-  id: string;
-  label: string;
+export interface TemplateLayer {
   digest: string;
   url: string;
 }
 
-export interface TemplateManifest {
-  api: number;
-  base: LayerSource;
-  overlays?: LayerSource[];
-}
-
 export interface LoadedLayer {
-  source: LayerSource;
+  source: TemplateLayer;
   files: Map<string, Uint8Array>;
 }
 

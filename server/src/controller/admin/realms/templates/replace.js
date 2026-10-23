@@ -1,7 +1,7 @@
 import { app } from '../../../../app.js';
 import { authenticateSystemAdmin } from '../../../../lib/admin-auth.js';
+import { replaceRealmTemplateLayers } from '../../../../lib/packages.js';
 import { resolveRealm } from '../../../../lib/realm.js';
-import { replaceRealmTemplateLayers } from '../../../../lib/templates.js';
 
 export default {
   method: 'put',
@@ -10,9 +10,11 @@ export default {
   async handler(req) {
     const auth = await authenticateSystemAdmin(req);
     const realm = await resolveRealm({ slug: req.params.realm });
+    const body = req.body || {};
+    const packageIds = body.package_ids ?? body.layer_ids;
     const layers = await replaceRealmTemplateLayers(auth.systemDb, {
       realmId: realm.id,
-      layerIds: (req.body || {}).layer_ids,
+      packageIds,
     });
 
     return new app.HttpOk({ layers }, { 'cache-control': 'no-store' });

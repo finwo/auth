@@ -1,6 +1,6 @@
 import { app } from '../../../app.js';
 import { authenticateSystemAdmin } from '../../../lib/admin-auth.js';
-import { listTemplateLayers, serializeTemplateLayer } from '../../../lib/templates.js';
+import { listTemplatePackages } from '../../../lib/packages.js';
 
 export default {
   method: 'get',
@@ -8,10 +8,10 @@ export default {
   name: 'admin.templates.list',
   async handler(req) {
     const auth = await authenticateSystemAdmin(req);
-    const templates = await listTemplateLayers(auth.systemDb);
+    const templates = await listTemplatePackages(auth.systemDb);
 
     return new app.HttpOk(
-      { templates: templates.map(serializeTemplateLayer) },
+      { templates },
       { 'cache-control': 'no-store' }
     );
   },

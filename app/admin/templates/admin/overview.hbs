@@ -1,0 +1,60 @@
+{{#> component/shell}}
+<div>
+  <div class="page-header">
+    <div>
+      <h1>Overview</h1>
+      <p>Provider summary and administration.</p>
+    </div>
+  </div>
+
+  {{#if error}}<div class="alert" role="alert">{{error}}</div>{{/if}}
+
+  <div class="grid">
+    <section class="panel">
+      <h2>Account</h2>
+      <dl class="details">
+        <div><dt>User</dt><dd>{{userName}}</dd></div>
+        <div><dt>Email</dt><dd>{{email}}</dd></div>
+        <div><dt>Username</dt><dd>{{username}}</dd></div>
+        <div><dt>Role</dt><dd>{{roleLabel}}</dd></div>
+      </dl>
+    </section>
+
+    <section class="panel">
+      <h2>Access</h2>
+      <dl class="details">
+        <div><dt>Client</dt><dd>admin</dd></div>
+        <div><dt>Refresh</dt><dd>Automatic</dd></div>
+        <div><dt>Scope</dt><dd>{{tokenScope}}</dd></div>
+        <div><dt>Session</dt><dd>Active</dd></div>
+      </dl>
+    </section>
+
+    <section class="panel panel-wide">
+      <h2>Administration</h2>
+      {{#if realmsError}}
+        <p class="note" role="alert">{{realmsError}}</p>
+      {{else}}
+        {{#if realms}}
+          {{#if realms.length}}
+            <ul class="realm-list">
+              {{#each realms}}
+                <li>
+                  <a class="realm-link" href="{{sessionsHref}}" data-route="{{sessionsRoute}}">
+                    <span class="realm-name">{{displayName}}</span>
+                    <span class="realm-slug">{{slug}}</span>
+                  </a>
+                </li>
+              {{/each}}
+            </ul>
+          {{else}}
+            <p class="note">No realms are available for this account.</p>
+          {{/if}}
+        {{else}}
+          <p class="note">Loading realms.</p>
+        {{/if}}
+      {{/if}}
+    </section>
+  </div>
+</div>
+{{/component/shell}}

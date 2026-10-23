@@ -1,0 +1,144 @@
+{{#> component/shell}}
+<div>
+  <div class="page-header page-header-row">
+    <div>
+      <h1>Templates</h1>
+      <p>Upload template packages and control which layers apply to {{scopeLabel}}.</p>
+    </div>
+    <label class="realm-select">
+      <span>Scope</span>
+      <select data-route-kind="templates">
+        {{#each realmOptions}}
+          <option value="{{slug}}"{{#if selected}} selected{{/if}}>{{displayName}}</option>
+        {{/each}}
+      </select>
+    </label>
+  </div>
+
+  {{#if realmsError}}<div class="alert" role="alert">{{realmsError}}</div>{{/if}}
+  {{#if error}}<div class="alert" role="alert">{{error}}</div>{{/if}}
+  {{#if notice}}<div class="notice" role="status">{{notice}}</div>{{/if}}
+
+  {{#if loading}}
+    <div class="templates-stack">
+          <div class="panel">
+            <div class="skeleton skeleton-title"></div>
+            <div class="skeleton"></div>
+            <div class="skeleton skeleton-short"></div>
+          </div>
+          <div class="panel">
+            <div class="skeleton skeleton-title"></div>
+            <div class="skeleton"></div>
+          </div>
+        </div>
+      {{else}}
+        <div class="templates-stack">
+          <section class="panel">
+            <div class="panel-heading">
+              <span class="icon icon-layers" aria-hidden="true"></span>
+              <h2>Upload template</h2>
+            </div>
+            <p class="note">Upload a bare .tar or .tar.gz with metadata below, or a template distribution package with internal metadata.</p>
+            <form class="upload-grid" data-form="template-upload">
+              <label class="field">
+                <span>Template file</span>
+                <input type="file" name="file" accept=".tar,.tar.gz,.tgz,.zip">
+              </label>
+              <label class="field">
+                <span>Name</span>
+                <input type="text" name="name" maxlength="80">
+              </label>
+              <label class="field">
+                <span>Version</span>
+                <input type="text" name="version" maxlength="40">
+              </label>
+              <label class="field">
+                <span>Author</span>
+                <input type="text" name="author_name" maxlength="80">
+              </label>
+              <label class="field">
+                <span>Author email</span>
+                <input type="email" name="author_email" maxlength="254">
+              </label>
+              <div class="upload-actions">
+                <button class="button" type="submit" disabled>{{#if uploadPending}}Uploading{{else}}Upload template{{/if}}</button>
+              </div>
+            </form>
+          </section>
+
+          <section class="panel">
+            <h2>Template packages</h2>
+            {{#if hasTemplates}}
+              <div class="template-list">
+                {{#each templates}}
+                  <article class="template-row">
+                    <div class="template-main">
+                      <div class="template-heading">
+                        <h3>{{label}}</h3>
+                        {{#if inUse}}<span class="badge">In use</span>{{/if}}
+                        {{#if broken}}<span class="badge badge-danger">Unavailable</span>{{/if}}
+                      </div>
+                      <p class="template-meta">{{author}}{{#if authorEmail}} &lt;{{authorEmail}}&gt;{{/if}} · {{meta}}</p>
+                      <p class="template-meta">{{usage}}</p>
+                    </div>
+                    <div class="template-actions">
+                      <button class="{{#if assigned}}button-secondary{{else}}button{{/if}} button-small" type="button" data-action="{{#if assigned}}remove-template{{else}}add-template{{/if}}" data-template="{{id}}"{{#if broken}} disabled{{/if}}>{{#if assigned}}Remove{{else}}Add{{/if}}</button>
+                      {{#if inUse}}
+                        <button class="button-secondary button-small" type="button" disabled>In use</button>
+                      {{else}}
+                        {{#if confirm}}
+                          <div class="confirm">
+                            <span>Delete this template?</span>
+                            <button class="button-danger button-small" type="button" data-action="delete-template" data-template="{{id}}"{{#if ../deleting}} disabled{{/if}}>{{#if ../deleting}}Deleting{{else}}Confirm{{/if}}</button>
+                            <button class="button-secondary button-small" type="button" data-action="cancel-template-delete"{{#if ../deleting}} disabled{{/if}}>Cancel</button>
+                          </div>
+                        {{else}}
+                          <button class="button-secondary button-small" type="button" data-action="confirm-delete-template" data-template="{{id}}"{{#if ../deleting}} disabled{{/if}}>Delete</button>
+                        {{/if}}
+                      {{/if}}
+                    </div>
+                  </article>
+                {{/each}}
+              </div>
+            {{else}}
+              <p class="note">No template packages have been uploaded.</p>
+            {{/if}}
+          </section>
+
+          <section class="panel">
+            <div class="assignment-heading">
+              <div>
+                <h2>Active layers</h2>
+                <p class="note">Layers apply after the built-in base. Later layers override earlier layers.</p>
+              </div>
+              <div class="assignment-actions">
+                <button class="button-secondary" type="button" data-action="clear-templates"{{#if saving}} disabled{{/if}}{{#if hasLayers}}{{else}} disabled{{/if}}>Clear</button>
+                <button class="button" type="button" data-action="save-templates"{{#if dirty}}{{else}} disabled{{/if}}{{#if saving}} disabled{{/if}}>{{#if saving}}Saving{{else}}Save assignment{{/if}}</button>
+              </div>
+            </div>
+
+            {{#if hasLayers}}
+              <ol class="layer-list">
+                {{#each layers}}
+                  <li class="layer-row">
+                    <span class="layer-position">{{position}}</span>
+                    <div class="layer-main">
+                      <strong>{{label}}</strong>
+                      <span class="template-meta">{{author}}</span>
+                    </div>
+                    <div class="layer-controls">
+                      <button class="button-secondary button-small" type="button" data-action="move-template-earlier" data-template="{{id}}" aria-label="Move earlier"{{#if first}} disabled{{/if}}{{#if ../saving}} disabled{{/if}}>Earlier</button>
+                      <button class="button-secondary button-small" type="button" data-action="move-template-later" data-template="{{id}}" aria-label="Move later"{{#if last}} disabled{{/if}}{{#if ../saving}} disabled{{/if}}>Later</button>
+                      <button class="button-secondary button-small" type="button" data-action="remove-template" data-template="{{id}}"{{#if ../saving}} disabled{{/if}}>Remove</button>
+                    </div>
+                  </li>
+                {{/each}}
+              </ol>
+            {{else}}
+              <p class="note">No realm overlays are selected.</p>
+            {{/if}}
+          </section>
+        </div>
+  {{/if}}
+</div>
+{{/component/shell}}

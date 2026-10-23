@@ -4,8 +4,10 @@ import {
   adminApi,
   appUrl,
   getDiscovery,
+  type AdminPackage,
   type AdminRealm,
   type AdminSession,
+  type AdminTemplateLayer,
 } from './api';
 
 export type AdminTokens = StoredTokens;
@@ -67,4 +69,112 @@ export async function terminateAdminSession(realmSlug: string, publicId: string)
   await adminJson(`/api/v1/admin/realms/${realm}/sessions/${session}`, {
     method: 'DELETE',
   });
+}
+
+export interface AdminTemplateUpload {
+  file: File;
+  name?: string;
+  version?: string;
+  authorName?: string;
+  authorEmail?: string;
+}
+
+function fileForm(file: File) {
+  const form = new FormData();
+  form.append('file', file, file.name);
+  return form;
+}
+
+export async function loadAdminPackages(): Promise<AdminPackage[]> {
+  const response = await adminJson<{ packages: AdminPackage[] }>('/api/v1/admin/packages');
+  return response.packages;
+}
+
+export async function uploadAdminPackage(file: File): Promise<AdminPackage> {
+  const response = await adminJson<{ package: AdminPackage }>('/api/v1/admin/packages', {
+    method: 'POST',
+    body: fileForm(file),
+  });
+  return response.package;
+}
+
+export async function deleteAdminPackage(id: string) {
+  await adminJson(`/api/v1/admin/packages/${encodeURIComponent(id)}`, {
+    method: 'DELETE',
+  });
+}
+
+export async function loadAdminTemplates(): Promise<AdminPackage[]> {
+  const response = await adminJson<{ templates: AdminPackage[] }>('/api/v1/admin/templates');
+  return response.templates;
+}
+
+export async function uploadAdminTemplate(upload: AdminTemplateUpload): Promise<AdminPackage> {
+  const form = fileForm(upload.file);
+  const values: Array<[string, string | undefined]> = [
+    ['name', upload.name],
+    ['version', upload.version],
+    ['author_name', upload.authorName],
+    ['author_email', upload.authorEmail],
+  ];
+  for (const [name, value] of values) {
+    if (value && value.trim()) form.append(name, value.trim());
+  }
+
+  const response = await adminJson<{ template: AdminPackage }>('/api/v1/admin/templates', {
+    method: 'POST',
+    body: form,
+  });
+  return response.template;
+}
+
+export async function deleteAdminTemplate(id: string) {
+  await adminJson(`/api/v1/admin/templates/${encodeURIComponent(id)}`, {
+    method: 'DELETE',
+  });
+}
+
+export async function loadAdminRealmTemplates(realmSlug: string): Promise<AdminTemplateLayer[]> {
+  const realm = encodeURIComponent(realmSlug);
+  const response = await adminJson<{ layers: AdminTemplateLayer[] }>(
+    `/api/v1/admin/realms/${realm}/templates`
+  );
+  return response.layers;
+}
+
+export async function replaceAdminRealmTemplates(
+  realmSlug: string,
+  packageIds: string[]
+): Promise<AdminTemplateLayer[]> {
+  const realm = encodeURIComponent(realmSlug);
+  const response = await adminJson<{ layers: AdminTemplateLayer[] }>(
+    `/api/v1/admin/realms/${realm}/templates`,
+    {
+      method: 'PUT',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ package_ids: packageIds }),
+    }
+  );
+  return response.layers;
+}
+
+export async function loadAdminSystemTemplates(): Promise<AdminTemplateLayer[]> {
+  const response = await adminJson<{ layers: AdminTemplateLayer[] }>(
+    '/api/v1/admin/system/templates'
+  );
+  return response.layers;
+}
+
+export async function replaceAdminSystemTemplates(
+  packageIds: string[]
+): Promise<AdminTemplateLayer[]> {
+  const response = await adminJson<{ layers: AdminTemplateLayer[] }>(
+    '/api/v1/admin/system/templates',
+    {
+      method: 'PUT',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ package_ids: packageIds }),
+    }
+  );
+  return response.layers;
 }

@@ -2,7 +2,7 @@ import { sha256 as nobleSha256 } from '@noble/hashes/sha2.js';
 import { createTarDecoder } from 'modern-tar';
 import { TemplateCache } from './cache';
 import { extensionOf, normalizePath } from './paths';
-import type { LayerSource, LogFn } from './types';
+import type { TemplateLayer, LogFn } from './types';
 
 const MAX_ARCHIVE_BYTES = 2 * 1024 * 1024;
 const MAX_EXTRACTED_BYTES = 10 * 1024 * 1024;
@@ -34,27 +34,27 @@ function allowedFile(path: string) {
   return ALLOWED_EXTENSIONS.has(extensionOf(path));
 }
 
-async function ensureLayer(layer: LayerSource, cache: TemplateCache, log: LogFn) {
+async function ensureLayer(layer: TemplateLayer, cache: TemplateCache, log: LogFn) {
   if (await cache.hasLayer(layer.digest)) {
-    log('cache', `${layer.label}: cached`);
+    log('cache', `${layer.digest.slice(0, 12)}: cached`);
     return;
   }
 
-  log('network', `${layer.label}: downloading`);
+  log('network', `${layer.digest.slice(0, 12)}: downloading`);
   const response = await fetch(layer.url, { cache: 'force-cache' });
   if (!response.ok) {
-    throw new Error(`${layer.label}: download failed with ${response.status}`);
+    throw new Error(`${layer.digest.slice(0, 12)}: download failed with ${response.status}`);
   }
 
   const buffer = await response.arrayBuffer();
   if (buffer.byteLength > MAX_ARCHIVE_BYTES) {
-    throw new Error(`${layer.label}: archive exceeds the size limit`);
+    throw new Error(`${layer.digest.slice(0, 12)}: archive exceeds the size limit`);
   }
 
   const actualDigest = await sha256Hex(buffer);
   if (actualDigest !== layer.digest) {
     throw new Error(
-      `${layer.label}: digest mismatch, expected ${layer.digest}, got ${actualDigest}`
+      `${layer.digest.slice(0, 12)}: digest mismatch, expected ${layer.digest}, got ${actualDigest}`
     );
   }
 
@@ -62,7 +62,7 @@ async function ensureLayer(layer: LayerSource, cache: TemplateCache, log: LogFn)
 
   try {
     const compressed = new Response(buffer).body;
-    if (!compressed) throw new Error(`${layer.label}: empty response`);
+    if (!compressed) throw new Error(`${layer.digest.slice(0, 12)}: empty response`);
 
     const tar = compressed.pipeThrough(new DecompressionStream('gzip'));
     const decoder = createTarDecoder({ strict: true });
@@ -81,17 +81,17 @@ async function ensureLayer(layer: LayerSource, cache: TemplateCache, log: LogFn)
       }
       if (type !== 'file') {
         await entry.body.cancel();
-        throw new Error(`${layer.label}: unsupported tar entry type ${type}`);
+        throw new Error(`${layer.digest.slice(0, 12)}: unsupported tar entry type ${type}`);
       }
 
       const path = normalizePath(entry.header.name);
       const folded = path.toLowerCase();
 
       if (!allowedFile(path)) {
-        throw new Error(`${layer.label}: file type is not allowed: ${path}`);
+        throw new Error(`${layer.digest.slice(0, 12)}: file type is not allowed: ${path}`);
       }
       if (seen.has(path) || seenFolded.has(folded)) {
-        throw new Error(`${layer.label}: duplicate path: ${path}`);
+        throw new Error(`${layer.digest.slice(0, 12)}: duplicate path: ${path}`);
       }
       seen.add(path);
       seenFolded.add(folded);
@@ -101,21 +101,17 @@ async function ensureLayer(layer: LayerSource, cache: TemplateCache, log: LogFn)
       fileCount += 1;
 
       if (extractedBytes > MAX_EXTRACTED_BYTES) {
-        throw new Error(`${layer.label}: extracted contents exceed the size limit`);
+        throw new Error(`${layer.digest.slice(0, 12)}: extracted contents exceed the size limit`);
       }
       if (fileCount > MAX_FILES) {
-        throw new Error(`${layer.label}: archive contains too many files`);
+        throw new Error(`${layer.digest.slice(0, 12)}: archive contains too many files`);
       }
 
       await cache.writeFile(layer.digest, path, data);
     }
 
-    await cache.finishLayer(layer.digest, {
-      id: layer.id,
-      label: layer.label,
-      source: layer.url,
-    });
-    log('network', `${layer.label}: installed (${fileCount} files)`);
+    await cache.finishLayer(layer.digest, { source: layer.url });
+    log('network', `${layer.digest.slice(0, 12)}: installed (${fileCount} files)`);
   } catch (error) {
     await cache.removeLayer(layer.digest);
     throw error;
@@ -123,7 +119,7 @@ async function ensureLayer(layer: LayerSource, cache: TemplateCache, log: LogFn)
 }
 
 export async function prepareLayers(
-  layers: LayerSource[],
+  layers: TemplateLayer[],
   cache: TemplateCache,
   log: LogFn
 ) {

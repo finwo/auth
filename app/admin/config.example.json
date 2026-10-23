@@ -1,3 +1,5 @@
 {
-  "auth_url": "https://auth.example.com"
+  "auth_url": "https://auth.example.com",
+  "openid_configuration": "https://auth.example.com/oidc/admin/openid-configuration",
+  "templateLayers": []
 }

@@ -1,0 +1,91 @@
+:root {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+  color-scheme: light;
+}
+
+html {
+  background: #fff;
+}
+
+@media (prefers-color-scheme: dark) {
+  html:not([data-theme]) {
+    background: #222;
+    color-scheme: dark;
+  }
+}
+
+html[data-theme="light"] {
+  background: #fff;
+  color-scheme: light;
+}
+
+html[data-theme="dark"] {
+  background: #222;
+  color-scheme: dark;
+}
+
+body {
+  margin: 0;
+  background: inherit;
+  color: #1b1b1b;
+  visibility: hidden;
+}
+
+html[data-template-ready] body {
+  visibility: visible;
+}
+
+.boot-page {
+  display: grid;
+  place-items: center;
+  min-height: 100vh;
+  padding: 0;
+}
+
+.boot-card {
+  width: min(calc(100% - 2rem), 24rem);
+  padding: 2rem;
+}
+
+.boot-card h1 {
+  margin: 0 0 1rem;
+  font-size: 1.5rem;
+  font-weight: 400;
+  line-height: 1.3;
+}
+
+.boot-card p {
+  margin: 0;
+  color: #656a70;
+  font-size: 0.875rem;
+  line-height: 1.6;
+}
+
+.boot-noscript {
+  margin: 2rem;
+  color: #1b1b1b;
+  font: inherit;
+}
+
+@media (prefers-color-scheme: dark) {
+  html:not([data-theme]) body {
+    color: #e7e7e7;
+  }
+
+  html:not([data-theme]) .boot-card p {
+    color: #a0a4a8;
+  }
+
+  html:not([data-theme]) .boot-noscript {
+    color: #e7e7e7;
+  }
+}
+
+html[data-theme="dark"] body,
+html[data-theme="dark"] .boot-noscript {
+  color: #e7e7e7;
+}
+
+html[data-theme="dark"] .boot-card p {
+  color: #a0a4a8;
+}

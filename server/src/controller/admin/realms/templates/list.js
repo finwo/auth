@@ -1,7 +1,7 @@
 import { app } from '../../../../app.js';
 import { authenticateSystemAdmin } from '../../../../lib/admin-auth.js';
 import { resolveRealm } from '../../../../lib/realm.js';
-import { listRealmTemplateLayers } from '../../../../lib/templates.js';
+import { listRealmTemplateLayers } from '../../../../lib/packages.js';
 
 export default {
   method: 'get',

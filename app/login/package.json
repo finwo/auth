@@ -3,8 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build:templates": "node scripts/build-templates.mjs",
-    "build": "npm run build:templates && node esbuild.cjs",
+    "build": "node esbuild.cjs",
     "assets:hex": "node scripts/generate-hex-grid.js"
   },
   "dependencies": {

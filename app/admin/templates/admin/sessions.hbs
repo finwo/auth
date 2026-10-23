@@ -1,0 +1,107 @@
+{{#> component/shell}}
+<div>
+  <div class="page-header page-header-row">
+    <div>
+      <h1>Sessions</h1>
+      <p>Active sessions with access to this realm.</p>
+    </div>
+    {{#if realmOptions.length}}
+      {{#if (ne realmOptions.length 1)}}
+        <label class="realm-select">
+          <span>Realm</span>
+          <select data-route-kind="sessions">
+            {{#each realmOptions}}
+              <option value="{{slug}}"{{#if selected}} selected{{/if}}>{{displayName}}</option>
+            {{/each}}
+          </select>
+        </label>
+      {{else}}
+        <span class="realm-current">{{selected.display_name}}</span>
+      {{/if}}
+    {{/if}}
+  </div>
+
+  {{#if realmsError}}<div class="alert" role="alert">{{realmsError}}</div>{{/if}}
+  {{#if error}}<div class="alert" role="alert">{{error}}</div>{{/if}}
+  {{#if notice}}<div class="notice" role="status">{{notice}}</div>{{/if}}
+
+  {{#if realms}}
+    {{#if realms.length}}
+      {{#if loading}}
+        <div class="session-stack" aria-busy="true">
+          <div class="panel">
+            <div class="skeleton skeleton-title"></div>
+            <div class="skeleton"></div>
+            <div class="skeleton skeleton-short"></div>
+          </div>
+          <div class="panel">
+            <div class="skeleton skeleton-title"></div>
+            <div class="skeleton"></div>
+            <div class="skeleton skeleton-short"></div>
+          </div>
+        </div>
+      {{else}}
+        {{#if sessions.length}}
+          <div class="session-stack">
+            {{#each sessions}}
+              <article class="panel">
+                <div class="session-header">
+                  <div>
+                    <h2>{{name}}</h2>
+                    <p class="session-user">{{username}}{{#if status}} · {{status}}{{/if}}</p>
+                  </div>
+                  {{#if revoked}}<span class="session-badge">{{revokedLabel}}</span>{{/if}}
+                </div>
+
+                <dl class="details session-details">
+                  <div><dt>Scope</dt><dd>{{scope}}</dd></div>
+                  <div><dt>Host</dt><dd>{{host}}</dd></div>
+                  <div><dt>Client</dt><dd>{{client}}</dd></div>
+                  <div><dt>Last seen</dt><dd>{{lastSeen}}</dd></div>
+                  <div><dt>Expires</dt><dd>{{expires}}</dd></div>
+                  <div><dt>Address</dt><dd>{{address}}</dd></div>
+                </dl>
+
+                {{#if userAgent}}<p class="session-agent">{{userAgent}}</p>{{/if}}
+
+                <div class="session-actions">
+                  {{#if revoked}}
+                  {{else}}
+                    {{#if confirmRealm}}
+                      <div class="confirm">
+                        <span>Revoke this realm’s access?</span>
+                        <button class="button button-small" type="button" data-action="revoke-realm" data-session="{{publicId}}"{{#if pending}} disabled{{/if}}>{{#if revokePending}}Revoking{{else}}Confirm{{/if}}</button>
+                        <button class="button-secondary button-small" type="button" data-action="cancel-session"{{#if pending}} disabled{{/if}}>Cancel</button>
+                      </div>
+                    {{else}}
+                      <button class="button-secondary button-small" type="button" data-action="confirm-revoke-realm" data-session="{{publicId}}"{{#if pending}} disabled{{/if}}>Revoke realm access</button>
+                    {{/if}}
+                  {{/if}}
+
+                  {{#if canTerminate}}
+                    {{#if confirmTerminate}}
+                      <div class="confirm">
+                        <span>Terminate this session?</span>
+                        <button class="button-danger button-small" type="button" data-action="terminate-session" data-session="{{publicId}}"{{#if pending}} disabled{{/if}}>{{#if terminatePending}}Terminating{{else}}Confirm{{/if}}</button>
+                        <button class="button-secondary button-small" type="button" data-action="cancel-session"{{#if pending}} disabled{{/if}}>Cancel</button>
+                      </div>
+                    {{else}}
+                      <button class="button-danger button-small" type="button" data-action="confirm-terminate-session" data-session="{{publicId}}"{{#if pending}} disabled{{/if}}>Terminate session</button>
+                    {{/if}}
+                  {{/if}}
+                </div>
+              </article>
+            {{/each}}
+          </div>
+        {{else}}
+          <div class="empty"><p>No active sessions with access to this realm.</p></div>
+        {{/if}}
+      {{/if}}
+    {{else}}
+      <div class="empty"><p>No realms are available for this account.</p></div>
+    {{/if}}
+  {{else}}
+    <div class="loading">Loading realms</div>
+  {{/if}}
+</div>
+{{/component/shell}}

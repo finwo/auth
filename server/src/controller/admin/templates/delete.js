@@ -1,6 +1,6 @@
 import { app } from '../../../app.js';
 import { authenticateSystemAdmin } from '../../../lib/admin-auth.js';
-import { deleteTemplateLayer } from '../../../lib/templates.js';
+import { deleteTemplatePackage } from '../../../lib/packages.js';
 
 export default {
   method: 'delete',
@@ -8,7 +8,7 @@ export default {
   name: 'admin.templates.delete',
   async handler(req) {
     const auth = await authenticateSystemAdmin(req);
-    await deleteTemplateLayer(auth.systemDb, req.params.id);
+    await deleteTemplatePackage(auth.systemDb, req.params.id);
 
     return new app.HttpOk({ ok: true }, { 'cache-control': 'no-store' });
   },

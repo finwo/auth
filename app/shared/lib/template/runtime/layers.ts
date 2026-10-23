@@ -1,9 +1,9 @@
 import { TemplateCache } from './cache';
 import { prepareLayers, sha256Hex } from './tar';
-import type { LayerFile, LayerSource, LoadedLayer, LogFn, TemplateSet } from './types';
+import type { LayerFile, TemplateLayer, LoadedLayer, LogFn, TemplateSet } from './types';
 
 export async function loadTemplateSet(
-  sources: LayerSource[],
+  sources: TemplateLayer[],
   cache: TemplateCache,
   log: LogFn
 ): Promise<TemplateSet> {
@@ -25,7 +25,7 @@ export async function loadTemplateSet(
 
   const compositeDigest = await sha256Hex(
     new TextEncoder().encode(
-      sources.map((layer) => `${layer.id}:${layer.digest}`).join('\n')
+      sources.map((layer) => layer.digest).join('\n')
     )
   );
 

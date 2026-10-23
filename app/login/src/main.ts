@@ -1,4 +1,4 @@
-import { TemplateRuntime } from '@template';
+import { TemplateRuntime, type TemplateLayer } from '@template';
 import { bindActions } from '@template/runtime/actions';
 import { getTheme, applyTheme } from '@util/theme';
 import {
@@ -78,6 +78,7 @@ function errorMessage(error: unknown) {
 class LoginApp {
   private root: HTMLElement;
   private runtime: TemplateRuntime;
+  private templateLayers: TemplateLayer[];
   private clientId: string | null;
   private consentRoute: boolean;
   private reauth: boolean;
@@ -94,9 +95,10 @@ class LoginApp {
   private error: string | null = null;
   private pending = false;
 
-  constructor(root: HTMLElement, runtime: TemplateRuntime) {
+  constructor(root: HTMLElement, runtime: TemplateRuntime, templateLayers: TemplateLayer[]) {
     this.root = root;
     this.runtime = runtime;
+    this.templateLayers = templateLayers;
     const route = routeInfo();
     this.clientId = route.clientId;
     this.consentRoute = route.action === 'consent';
@@ -106,7 +108,7 @@ class LoginApp {
   async start() {
     applyTheme(getTheme());
     try {
-      await this.runtime.install();
+      await this.runtime.install(this.templateLayers);
       this.step = 'loading';
       this.render();
       await this.runtime.stylesReady();
@@ -446,47 +448,77 @@ class LoginApp {
   }
 }
 
-const root = document.querySelector<HTMLElement>('#app');
-if (root) {
-  const runtime = new TemplateRuntime({
-    root,
-    manifestUrl: '/app/templates/manifest.json',
-    scope: 'login',
+async function loadTemplateLayers(): Promise<TemplateLayer[]> {
+  const route = routeInfo();
+  const params = new URLSearchParams();
+  if (route.clientId) params.set('client_id', route.clientId);
+  const query = params.toString();
+  const response = await fetch(`/app/login/config.json${query ? `?${query}` : ''}`, {
+    cache: 'no-cache',
   });
-  const login = new LoginApp(root, runtime);
-
-  bindActions(
-    root,
-    {
-      'select-account': (element) => {
-        void login.selectAccount(element.dataset.account || '');
-      },
-      'different-account': () => login.differentAccount(),
-      'back-to-accounts': () => login.backToAccounts(),
-      back: () => login.back(),
-      'different-consent-account': () => {
-        void login.differentConsentAccount();
-      },
-      'deny-consent': () => {
-        void login.decideConsent('deny');
-      },
-      'allow-consent': () => {
-        void login.decideConsent('allow');
-      },
-      retry: () => login.retry(),
-    },
-    {
-      identifier: (_form, data) => {
-        void login.submitIdentifier(data);
-      },
-      password: (_form, data) => {
-        void login.submitPassword(data);
-      },
-    },
-    () => {}
-  );
-
-  root.addEventListener('input', (event) => login.handleInput(event));
-  root.addEventListener('change', (event) => login.handleChange(event));
-  void login.start();
+  if (!response.ok) throw new Error('Login config is unavailable');
+  const value = await response.json();
+  const templateLayers = value?.templateLayers;
+  if (!Array.isArray(templateLayers)) throw new Error('Login config is invalid');
+  return templateLayers
+    .filter(
+      (layer: any) =>
+        layer &&
+        typeof layer.digest === 'string' &&
+        typeof layer.url === 'string'
+    )
+    .map((layer: any) => ({ digest: layer.digest, url: layer.url }));
 }
+
+async function main() {
+  const root = document.querySelector<HTMLElement>('#app');
+  if (!root) return;
+
+  try {
+    const templateLayers = await loadTemplateLayers();
+    const runtime = new TemplateRuntime({ root, scope: 'login' });
+    const login = new LoginApp(root, runtime, templateLayers);
+
+    bindActions(
+      root,
+      {
+        'select-account': (element) => {
+          void login.selectAccount(element.dataset.account || '');
+        },
+        'different-account': () => login.differentAccount(),
+        'back-to-accounts': () => login.backToAccounts(),
+        back: () => login.back(),
+        'different-consent-account': () => {
+          void login.differentConsentAccount();
+        },
+        'deny-consent': () => {
+          void login.decideConsent('deny');
+        },
+        'allow-consent': () => {
+          void login.decideConsent('allow');
+        },
+        retry: () => login.retry(),
+      },
+      {
+        identifier: (_form, data) => {
+          void login.submitIdentifier(data);
+        },
+        password: (_form, data) => {
+          void login.submitPassword(data);
+        },
+      },
+      () => {}
+    );
+
+    root.addEventListener('input', (event) => login.handleInput(event));
+    root.addEventListener('change', (event) => login.handleChange(event));
+    await login.start();
+  } catch (error) {
+    console.error(error);
+    root.innerHTML =
+      '<main class="boot-page"><section class="boot-card"><h1>Sign-in unavailable</h1><p>The sign-in interface could not be loaded. Try again in a moment.</p></section></main>';
+    document.documentElement.dataset.templateReady = '';
+  }
+}
+
+void main();
