@@ -11,3 +11,9 @@ database:
 apps:
   admin: null
   account: null
+
+templates:
+  path: ./data/templates
+  max_archive_bytes: 2097152
+  max_extracted_bytes: 10485760
+  max_files: 256

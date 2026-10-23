@@ -43,6 +43,10 @@ test('sqlite defaults load without any configuration', async () => {
       assert.equal(cfg.database.dialect, 'sqlite');
       assert.equal(cfg.database.path, './data/system.sqlite');
       assert.equal(cfg.database.realms, './data/realms');
+      assert.equal(cfg.templates.path, './data/templates');
+      assert.equal(cfg.templates.max_archive_bytes, 2097152);
+      assert.equal(cfg.templates.max_extracted_bytes, 10485760);
+      assert.equal(cfg.templates.max_files, 256);
     })
   );
 });
@@ -89,6 +93,34 @@ test('an unsupported dialect is rejected', async () => {
         assert.throws(() => loadConfig(), /database\.dialect/);
       }
     )
+  );
+});
+
+test('template settings load from environment variables', async () => {
+  await inTempDir(() =>
+    withEnv(
+      {
+        AUTH_TEMPLATES_PATH: './data/themes',
+        AUTH_TEMPLATE_MAX_ARCHIVE_BYTES: '1024',
+        AUTH_TEMPLATE_MAX_EXTRACTED_BYTES: '4096',
+        AUTH_TEMPLATE_MAX_FILES: '8',
+      },
+      () => {
+        const cfg = loadConfig();
+        assert.equal(cfg.templates.path, './data/themes');
+        assert.equal(cfg.templates.max_archive_bytes, 1024);
+        assert.equal(cfg.templates.max_extracted_bytes, 4096);
+        assert.equal(cfg.templates.max_files, 8);
+      }
+    )
+  );
+});
+
+test('template limits must be positive integers', async () => {
+  await inTempDir(() =>
+    withEnv({ AUTH_TEMPLATE_MAX_FILES: '0' }, () => {
+      assert.throws(() => loadConfig(), /templates\.max_files/);
+    })
   );
 });
 

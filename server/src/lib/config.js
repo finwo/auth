@@ -25,6 +25,12 @@ const DEFAULTS = {
     admin: null,
     account: null,
   },
+  templates: {
+    path: './data/templates',
+    max_archive_bytes: 2097152,
+    max_extracted_bytes: 10485760,
+    max_files: 256,
+  },
 };
 
 // [environment variable, dotted config path, parser]
@@ -37,6 +43,10 @@ const ENV_MAP = [
   ['AUTH_REALMS_PATH', 'database.realms', String],
   ['AUTH_ADMIN_APP_URL', 'apps.admin', String],
   ['AUTH_ACCOUNT_APP_URL', 'apps.account', String],
+  ['AUTH_TEMPLATES_PATH', 'templates.path', String],
+  ['AUTH_TEMPLATE_MAX_ARCHIVE_BYTES', 'templates.max_archive_bytes', toInt],
+  ['AUTH_TEMPLATE_MAX_EXTRACTED_BYTES', 'templates.max_extracted_bytes', toInt],
+  ['AUTH_TEMPLATE_MAX_FILES', 'templates.max_files', toInt],
 ];
 
 function lower(v) {
@@ -124,6 +134,17 @@ function validate(cfg) {
       }
     } catch {
       errors.push(`apps.${name} must be an absolute URL`);
+    }
+  }
+
+  if (!cfg.templates?.path) {
+    errors.push('templates.path is required (set templates.path or AUTH_TEMPLATES_PATH)');
+  }
+
+  for (const name of ['max_archive_bytes', 'max_extracted_bytes', 'max_files']) {
+    const value = cfg.templates?.[name];
+    if (!Number.isInteger(value) || value < 1) {
+      errors.push(`templates.${name} must be a positive integer, got ${value}`);
     }
   }
 

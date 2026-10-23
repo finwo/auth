@@ -9,7 +9,9 @@ import os from 'node:os';
 import path from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import { fileURLToPath } from 'node:url';
+import { gzipSync } from 'node:zlib';
 import { createLocalJWKSet, jwtVerify } from 'jose';
+import { packTar } from 'modern-tar';
 
 const serverDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -86,7 +88,18 @@ function startServer(env) {
 
 function request(
   port,
-  { method = 'GET', path: requestPath = '/', host, body, form, cookie, bearer, headers: extraHeaders = {} } = {}
+  {
+    method = 'GET',
+    path: requestPath = '/',
+    host,
+    body,
+    form,
+    raw,
+    contentType,
+    cookie,
+    bearer,
+    headers: extraHeaders = {},
+  } = {}
 ) {
   return new Promise((resolve, reject) => {
     let payload = null;
@@ -99,6 +112,10 @@ function request(
       payload = new URLSearchParams(form).toString();
       headers['content-type'] = 'application/x-www-form-urlencoded';
       headers['content-length'] = Buffer.byteLength(payload);
+    } else if (raw !== undefined) {
+      payload = Buffer.from(raw);
+      headers['content-type'] = contentType || 'application/gzip';
+      headers['content-length'] = payload.byteLength;
     }
     if (cookie) headers.cookie = cookie;
     if (bearer) headers.authorization = `Bearer ${bearer}`;
@@ -155,6 +172,14 @@ function pkce() {
   const verifier = crypto.randomBytes(32).toString('base64url');
   const challenge = crypto.createHash('sha256').update(verifier).digest('base64url');
   return { verifier, challenge };
+}
+
+async function templateArchive(files) {
+  const entries = files.map(({ name, body = '' }) => ({
+    header: { name, size: Buffer.byteLength(body) },
+    body,
+  }));
+  return gzipSync(await packTar(entries));
 }
 
 function locationQuery(response) {
@@ -307,6 +332,7 @@ test('HTTP realm, login, OIDC and logout flows', async (t) => {
     AUTH_PUBLIC_URL: publicUrl,
     AUTH_ADMIN_APP_URL: `http://admin.test:${port}`,
     AUTH_ACCOUNT_APP_URL: `http://account.test:${port}`,
+    AUTH_TEMPLATES_PATH: path.join(dir, 'templates'),
   };
 
   const origin = (host) => `http://${host}:${port}`;
@@ -2175,6 +2201,238 @@ test('HTTP realm, login, OIDC and logout flows', async (t) => {
 
       const realmManifest = await acme({ path: '/app/templates/manifest.json' });
       assert.equal(realmManifest.status, 200);
+    });
+
+    await t.test('system admins manage realm template overlays', async (t) => {
+      const available = await identity({ path: '/app/templates/manifest.json' });
+      if (available.status === 503) {
+        t.skip('template build is not available');
+        return;
+      }
+
+      const admin = await adminToken();
+      const realmAdmin = await adminToken('it@acme.test');
+      let first = null;
+      let second = null;
+
+      try {
+        const firstArchive = await templateArchive([
+          { name: 'login/identifier.hbs', body: '<h1>Acme sign in</h1>' },
+        ]);
+        const secondArchive = await templateArchive([
+          { name: 'login/password.hbs', body: '<h1>Acme password</h1>' },
+          { name: 'style/overlay.css', body: '.auth-card { border: 0; }' },
+        ]);
+
+        const missing = await identity({ path: '/api/v1/admin/templates' });
+        assert.equal(missing.status, 401);
+        assert.equal(missing.json.error.code, 'invalid_token');
+
+        const forbidden = await identity({
+          path: '/api/v1/admin/templates',
+          bearer: realmAdmin.access_token,
+        });
+        assert.equal(forbidden.status, 403);
+        assert.equal(forbidden.json.error.code, 'forbidden');
+
+        const forbiddenUpload = await identity({
+          method: 'POST',
+          path: '/api/v1/admin/templates?label=Realm%20theme',
+          raw: firstArchive,
+          bearer: realmAdmin.access_token,
+        });
+        assert.equal(forbiddenUpload.status, 403);
+
+        const wrongType = await identity({
+          method: 'POST',
+          path: '/api/v1/admin/templates?label=Acme%20theme',
+          raw: firstArchive,
+          contentType: 'application/zip',
+          bearer: admin.access_token,
+        });
+        assert.equal(wrongType.status, 415);
+        assert.equal(wrongType.json.error.code, 'unsupported_media_type');
+
+        const missingLabel = await identity({
+          method: 'POST',
+          path: '/api/v1/admin/templates',
+          raw: firstArchive,
+          bearer: admin.access_token,
+        });
+        assert.equal(missingLabel.status, 400);
+        assert.equal(missingLabel.json.error.code, 'invalid_request');
+
+        const invalidArchive = await identity({
+          method: 'POST',
+          path: '/api/v1/admin/templates?label=Broken',
+          raw: Buffer.from('not a gzip archive'),
+          bearer: admin.access_token,
+        });
+        assert.equal(invalidArchive.status, 400);
+        assert.equal(invalidArchive.json.error.code, 'invalid_template');
+
+        const uploadFirst = await identity({
+          method: 'POST',
+          path: '/api/v1/admin/templates?label=Acme%20theme',
+          raw: firstArchive,
+          bearer: admin.access_token,
+        });
+        assert.equal(uploadFirst.status, 201);
+        first = uploadFirst.json.template;
+        assert.equal(first.label, 'Acme theme');
+        assert.match(first.digest, /^[a-f0-9]{64}$/);
+        assert.equal(first.file_count, 1);
+        assert.equal(first.url, `/app/templates/${first.digest}.tar.gz`);
+
+        const duplicate = await identity({
+          method: 'POST',
+          path: '/api/v1/admin/templates?label=Duplicate',
+          raw: firstArchive,
+          bearer: admin.access_token,
+        });
+        assert.equal(duplicate.status, 409);
+        assert.equal(duplicate.json.error.code, 'template_exists');
+
+        const uploadSecond = await identity({
+          method: 'POST',
+          path: '/api/v1/admin/templates?label=Acme%20extra',
+          raw: secondArchive,
+          bearer: admin.access_token,
+        });
+        assert.equal(uploadSecond.status, 201);
+        second = uploadSecond.json.template;
+        assert.equal(second.file_count, 2);
+
+        const list = await identity({
+          path: '/api/v1/admin/templates',
+          bearer: admin.access_token,
+        });
+        assert.equal(list.status, 200);
+        assert.deepEqual(
+          list.json.templates.map((template) => template.id).sort(),
+          [first.id, second.id].sort()
+        );
+
+        const assign = await identity({
+          method: 'PUT',
+          path: '/api/v1/admin/realms/acme/templates',
+          body: { layer_ids: [second.id, first.id] },
+          bearer: admin.access_token,
+        });
+        assert.equal(assign.status, 200);
+        assert.deepEqual(
+          assign.json.layers.map((layer) => [layer.id, layer.position]),
+          [
+            [second.id, 0],
+            [first.id, 1],
+          ]
+        );
+
+        const assignment = await identity({
+          path: '/api/v1/admin/realms/acme/templates',
+          bearer: admin.access_token,
+        });
+        assert.equal(assignment.status, 200);
+        assert.deepEqual(
+          assignment.json.layers.map((layer) => [layer.id, layer.position]),
+          [
+            [second.id, 0],
+            [first.id, 1],
+          ]
+        );
+
+        const forbiddenAssignment = await identity({
+          path: '/api/v1/admin/realms/acme/templates',
+          bearer: realmAdmin.access_token,
+        });
+        assert.equal(forbiddenAssignment.status, 403);
+
+        const realmManifest = await acme({ path: '/app/templates/manifest.json' });
+        assert.equal(realmManifest.status, 200);
+        assert.deepEqual(
+          realmManifest.json.overlays.map((layer) => layer.id),
+          [second.id, first.id]
+        );
+        assert.equal(realmManifest.json.overlays[0].url, second.url);
+        assert.equal(realmManifest.json.overlays[1].label, 'Acme theme');
+
+        const canonicalManifest = await identity({ path: '/app/templates/manifest.json' });
+        assert.deepEqual(canonicalManifest.json.overlays, []);
+
+        const clientManifest = await app({ path: '/app/templates/manifest.json' });
+        assert.deepEqual(
+          clientManifest.json.overlays.map((layer) => layer.id),
+          [second.id, first.id]
+        );
+
+        const overlayArchive = await acme({ path: first.url });
+        assert.equal(overlayArchive.status, 200);
+        assert.match(overlayArchive.headers['content-type'], /application\/gzip/);
+        assert.match(overlayArchive.headers['cache-control'], /immutable/);
+
+        const deleteAssigned = await identity({
+          method: 'DELETE',
+          path: `/api/v1/admin/templates/${first.id}`,
+          bearer: admin.access_token,
+        });
+        assert.equal(deleteAssigned.status, 409);
+        assert.equal(deleteAssigned.json.error.code, 'template_assigned');
+
+        const unknownTemplate = await identity({
+          method: 'PUT',
+          path: '/api/v1/admin/realms/acme/templates',
+          body: { layer_ids: ['missing'] },
+          bearer: admin.access_token,
+        });
+        assert.equal(unknownTemplate.status, 404);
+        assert.equal(unknownTemplate.json.error.code, 'template_not_found');
+
+        const clear = await identity({
+          method: 'PUT',
+          path: '/api/v1/admin/realms/acme/templates',
+          body: { layer_ids: [] },
+          bearer: admin.access_token,
+        });
+        assert.equal(clear.status, 200);
+        assert.deepEqual(clear.json.layers, []);
+
+        const deleteFirst = await identity({
+          method: 'DELETE',
+          path: `/api/v1/admin/templates/${first.id}`,
+          bearer: admin.access_token,
+        });
+        assert.equal(deleteFirst.status, 200);
+
+        const deletedArchive = await acme({ path: first.url });
+        assert.equal(deletedArchive.status, 404);
+
+        const deleteSecond = await identity({
+          method: 'DELETE',
+          path: `/api/v1/admin/templates/${second.id}`,
+          bearer: admin.access_token,
+        });
+        assert.equal(deleteSecond.status, 200);
+        first = null;
+        second = null;
+
+        const afterDelete = await acme({ path: '/app/templates/manifest.json' });
+        assert.deepEqual(afterDelete.json.overlays, []);
+      } finally {
+        await identity({
+          method: 'PUT',
+          path: '/api/v1/admin/realms/acme/templates',
+          body: { layer_ids: [] },
+          bearer: admin.access_token,
+        });
+        for (const template of [first, second]) {
+          if (!template) continue;
+          await identity({
+            method: 'DELETE',
+            path: `/api/v1/admin/templates/${template.id}`,
+            bearer: admin.access_token,
+          });
+        }
+      }
     });
 
     await t.test('account clients work for guests on canonical and realm hosts', async (t) => {

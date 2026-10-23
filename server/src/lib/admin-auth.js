@@ -59,6 +59,14 @@ export async function authenticateAdminSession(req) {
   return { systemDb, user, session };
 }
 
+export async function authenticateSystemAdmin(req) {
+  const auth = await authenticateAdminSession(req);
+  if (!isSystemAdmin(auth.user)) {
+    throw new HttpError(403, 'forbidden', 'System administrator access is required');
+  }
+  return auth;
+}
+
 export async function authenticateAdminRequest(req, { realmSlug }) {
   const auth = await authenticateAdminSession(req);
   const { systemDb, user, session } = auth;
