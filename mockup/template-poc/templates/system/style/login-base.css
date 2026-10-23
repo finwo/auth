@@ -17,16 +17,15 @@ body {
 }
 
 .auth-page {
+  display: grid;
+  place-items: center;
   min-height: 100vh;
-  display: flex;
-  justify-content: center;
-  align-items: flex-start;
-  padding: 12vh 1.5rem 3rem;
+  padding: 0;
   background: var(--auth-surface);
 }
 
 .auth-card {
-  width: min(24rem, 100%);
+  width: min(calc(100% - 2rem), 24rem);
   padding: 2rem;
   background: var(--auth-surface);
   border-radius: 0;
