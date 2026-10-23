@@ -1,0 +1,15 @@
+{{> component/styles}}
+<main class="auth-page">
+  <section class="auth-card">
+    <p class="auth-realm">{{realmLabel}}</p>
+    <h1>Sign in</h1>
+    <p class="auth-identifier">{{identifier}}</p>
+    <p class="auth-note">
+      {{#if providerName}}This account signs in with {{providerName}}.{{else}}This account signs in with an identity provider.{{/if}}
+    </p>
+    <div class="auth-actions">
+      <button class="auth-link auth-back" type="button" data-action="back">Back</button>
+      <button class="button" type="button" disabled>Continue</button>
+    </div>
+  </section>
+</main>

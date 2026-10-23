@@ -2157,6 +2157,26 @@ test('HTTP realm, login, OIDC and logout flows', async (t) => {
       assert.equal(loginRealm.status, 404);
     });
 
+    await t.test('built-in template manifest and archive are served', async (t) => {
+      const manifest = await identity({ path: '/app/templates/manifest.json' });
+      if (manifest.status === 503) {
+        t.skip('template build is not available');
+        return;
+      }
+      assert.equal(manifest.status, 200);
+      assert.equal(manifest.json.api, 1);
+      assert.equal(manifest.json.base.id, 'system');
+      assert.match(manifest.json.base.url, /^\/app\/templates\/[a-f0-9]{64}\.tar\.gz$/);
+
+      const archive = await identity({ path: manifest.json.base.url });
+      assert.equal(archive.status, 200);
+      assert.match(archive.headers['content-type'], /application\/gzip/);
+      assert.match(archive.headers['cache-control'], /immutable/);
+
+      const realmManifest = await acme({ path: '/app/templates/manifest.json' });
+      assert.equal(realmManifest.status, 200);
+    });
+
     await t.test('account clients work for guests on canonical and realm hosts', async (t) => {
       const canonical = await identity({ path: '/oidc/account/openid-configuration' });
       assert.equal(canonical.status, 200);

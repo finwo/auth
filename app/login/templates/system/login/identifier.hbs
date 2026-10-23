@@ -1,0 +1,16 @@
+{{> component/styles}}
+<main class="auth-page">
+  <section class="auth-card">
+    <p class="auth-realm">{{realmLabel}}</p>
+    <h1>Sign in</h1>
+    {{#if reauth}}<p class="auth-note">Confirm your password to continue.</p>{{else}}<p class="auth-note">{{identifierNote}}</p>{{/if}}
+    <form data-form="identifier">
+      {{> component/text-field id="identifier" name="identifier" label="Email or username" type="text" value=identifier autocomplete="username" disabled=pending}}
+      {{#if error}}<p class="auth-error" role="alert">{{error}}</p>{{/if}}
+      <div class="auth-actions">
+        {{#if backToAccounts}}<button class="auth-link auth-back" type="button" data-action="back-to-accounts">Back to accounts</button>{{/if}}
+        <button class="button" type="submit"{{#if nextDisabled}} disabled{{/if}}>{{nextLabel}}</button>
+      </div>
+    </form>
+  </section>
+</main>
