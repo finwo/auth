@@ -1,0 +1,658 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Login mockup</title>
+    <link rel="stylesheet" href="./global.css" />
+    <style>
+      .auth-page {
+        --auth-surface: #fff;
+        display: grid;
+        place-items: center;
+        min-height: 100vh;
+        padding: 0;
+        background: var(--auth-surface);
+      }
+
+      .auth-card,
+      .auth-status-panel {
+        width: min(calc(100% - 2rem), 24rem);
+        padding: 2rem;
+        border-radius: 0;
+        background: var(--auth-surface);
+        color: var(--text);
+      }
+
+      .auth-card-consent,
+      .auth-status-panel {
+        width: min(calc(100% - 2rem), 28rem);
+      }
+
+      .auth-card h1,
+      .auth-status-panel h1 {
+        margin: 0 0 1rem;
+        font-size: 1.5rem;
+        font-weight: 400;
+        line-height: 1.3;
+      }
+
+      .auth-card-consent h1 {
+        margin-bottom: 0.5rem;
+      }
+
+      .auth-realm {
+        margin: 0 0 0.375rem;
+        color: var(--muted);
+        font-size: 0.75rem;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .auth-note {
+        margin: 0 0 1rem;
+        color: var(--muted);
+        font-size: 0.875rem;
+        line-height: 1.6;
+      }
+
+      .auth-card-consent .auth-note {
+        margin-bottom: 0;
+      }
+
+      .auth-field {
+        position: relative;
+        padding-top: 1rem;
+      }
+
+      .auth-input {
+        width: 100%;
+        padding: 0.5rem 0;
+        border: 0;
+        border-bottom: 1pt solid var(--field-line);
+        border-radius: 0;
+        background: transparent;
+        color: var(--text);
+        font: inherit;
+        font-size: 1rem;
+        line-height: 1.5;
+        outline: none;
+      }
+
+      .auth-input:focus {
+        border-bottom-color: var(--accent);
+      }
+
+      .auth-field label {
+        position: absolute;
+        top: 1.5em;
+        left: 0;
+        color: var(--muted);
+        font-size: 1rem;
+        line-height: 1.5;
+        pointer-events: none;
+        transform-origin: left top;
+        transition: top 0.15s ease, font-size 0.15s ease, color 0.15s ease, opacity 0.15s ease;
+      }
+
+      .auth-input:focus + label,
+      .auth-input:not(:placeholder-shown) + label {
+        top: 0;
+        color: var(--text);
+        font-size: 0.85em;
+        font-weight: 500;
+        opacity: 0.8;
+      }
+
+      .auth-identifier {
+        margin: 0 0 0.5rem;
+        color: var(--muted);
+        font-size: 0.875rem;
+        line-height: 1.5;
+      }
+
+      .auth-choice {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-top: 1rem;
+        font-size: 0.875rem;
+        line-height: 1.5;
+        cursor: pointer;
+      }
+
+      .auth-choice input {
+        width: 1rem;
+        height: 1rem;
+        accent-color: var(--accent);
+      }
+
+      .auth-accounts {
+        display: grid;
+        gap: 0.5rem;
+        margin-top: 1rem;
+      }
+
+      .auth-account {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.125rem;
+        width: 100%;
+        padding: 0.75rem 0;
+        border: 0;
+        border-bottom: 1pt solid var(--field-line);
+        border-radius: 0;
+        background: none;
+        color: inherit;
+        font: inherit;
+        text-align: left;
+        cursor: pointer;
+      }
+
+      .auth-account:hover,
+      .auth-account:focus-visible {
+        border-bottom-color: var(--accent);
+      }
+
+      .auth-account-name {
+        font-size: 1rem;
+        line-height: 1.5;
+      }
+
+      .auth-account-username {
+        color: var(--muted);
+        font-size: 0.875rem;
+        line-height: 1.5;
+      }
+
+      .auth-error {
+        margin: 1rem 0 0;
+        color: var(--danger);
+        font-size: 0.875rem;
+        line-height: 1.6;
+      }
+
+      .auth-actions {
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+        gap: 1rem;
+        margin-top: 1.5rem;
+      }
+
+      .auth-back {
+        margin-right: auto;
+      }
+
+      .auth-link {
+        padding: 0.5rem 0;
+        border: 0;
+        background: none;
+        color: var(--accent-text);
+        font: inherit;
+        font-size: 0.875rem;
+        cursor: pointer;
+      }
+
+      .auth-link:hover {
+        color: var(--accent-text-hover);
+      }
+
+      .auth-link:active {
+        color: var(--accent-text-active);
+      }
+
+      .button:disabled {
+        opacity: 0.5;
+        cursor: default;
+      }
+
+      .auth-spinner {
+        width: 2rem;
+        height: 2rem;
+        margin-bottom: 1rem;
+        border: 0.1875rem solid var(--skeleton);
+        border-top-color: var(--text);
+        border-radius: 50%;
+        animation: auth-spin 1s linear infinite;
+      }
+
+      @keyframes auth-spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      .auth-status-icon {
+        width: 2rem;
+        height: 2rem;
+        margin-bottom: 1rem;
+      }
+
+      .auth-consent-account {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        margin-top: 1.5rem;
+        padding: 0.75rem;
+        background: var(--row);
+      }
+
+      .auth-consent-account svg {
+        flex: none;
+        width: 1.5rem;
+        height: 1.5rem;
+      }
+
+      .auth-consent-account-body {
+        display: grid;
+        gap: 0.125rem;
+        min-width: 0;
+      }
+
+      .auth-consent-account-name {
+        font-size: 0.875rem;
+        font-weight: 500;
+        line-height: 1.4;
+      }
+
+      .auth-consent-account-meta {
+        overflow-wrap: anywhere;
+        color: var(--muted);
+        font-size: 0.75rem;
+        line-height: 1.4;
+      }
+
+      .auth-consent-account .auth-link {
+        flex: none;
+        margin-left: auto;
+        font-size: 0.8125rem;
+      }
+
+      .auth-consent-title {
+        margin: 1.5rem 0 0;
+        font-size: 0.875rem;
+        font-weight: 500;
+        line-height: 1.5;
+      }
+
+      .auth-consent-scopes {
+        display: grid;
+        gap: 0.5rem;
+        margin: 0.75rem 0 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .auth-consent-scope {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.5rem;
+        color: var(--muted);
+        font-size: 0.875rem;
+        line-height: 1.5;
+      }
+
+      .auth-consent-scope svg {
+        flex: none;
+        width: 1rem;
+        height: 1rem;
+        margin-top: 0.125rem;
+      }
+
+      .auth-consent-footer {
+        margin: 1.5rem 0 0;
+        color: var(--muted);
+        font-size: 0.8125rem;
+        line-height: 1.6;
+      }
+
+      .mockup-controls {
+        max-height: calc(100vh - 2rem);
+        overflow-y: auto;
+      }
+
+      @media (min-width: 35em) {
+        .auth-page {
+          background-color: var(--auth-surface);
+          background-image: var(--hex);
+          background-position: center;
+          background-repeat: no-repeat;
+          background-size: cover;
+        }
+
+        .auth-card,
+        .auth-status-panel {
+          box-shadow: var(--shadow);
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .auth-spinner {
+          animation: none;
+        }
+      }
+
+      @media (prefers-color-scheme: dark) {
+        :root:not([data-theme]) .auth-page {
+          --auth-surface: #222;
+        }
+      }
+
+      :root[data-theme="dark"] .auth-page {
+        --auth-surface: #222;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="mockup-controls" aria-label="Mockup state">
+      <span class="mockup-label">Mockup</span>
+      <button class="mockup-button is-active" type="button" data-view-target="identifier">Identifier</button>
+      <button class="mockup-button" type="button" data-view-target="password">Password</button>
+      <button class="mockup-button" type="button" data-view-target="password-error">Password error</button>
+      <button class="mockup-button" type="button" data-view-target="accounts">Accounts</button>
+      <button class="mockup-button" type="button" data-view-target="reauth">Reauth</button>
+      <button class="mockup-button" type="button" data-view-target="oidc">OIDC</button>
+      <button class="mockup-button" type="button" data-view-target="consent">Consent</button>
+      <button class="mockup-button" type="button" data-view-target="done">Done</button>
+      <button class="mockup-button" type="button" data-view-target="loading">Loading</button>
+      <button class="mockup-button" type="button" data-view-target="unavailable">Unavailable</button>
+      <span class="mockup-separator" aria-hidden="true"></span>
+      <button class="mockup-button is-active" type="button" data-theme-target="auto">Auto</button>
+      <button class="mockup-button" type="button" data-theme-target="light">Light</button>
+      <button class="mockup-button" type="button" data-theme-target="dark">Dark</button>
+    </div>
+
+    <main>
+      <section class="auth-page" data-view="accounts" hidden>
+        <div class="auth-card">
+          <p class="auth-realm">Acme account</p>
+          <h1>Sign in</h1>
+          <p class="auth-note">Choose an account to continue.</p>
+          <div class="auth-accounts">
+            <button class="auth-account" type="button">
+              <span class="auth-account-name">Alice</span>
+              <span class="auth-account-username">alice@acme.test</span>
+            </button>
+            <button class="auth-account" type="button">
+              <span class="auth-account-name">IT Admin</span>
+              <span class="auth-account-username">it@acme.test</span>
+            </button>
+          </div>
+          <div class="auth-actions">
+            <button class="auth-link" type="button">Different account</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="auth-page" data-view="identifier">
+        <div class="auth-card">
+          <p class="auth-realm">Acme account</p>
+          <h1>Sign in</h1>
+          <p class="auth-note">Continue to Acme Portal.</p>
+          <form>
+            <div class="auth-field">
+              <input
+                class="auth-input"
+                id="identifier"
+                type="text"
+                value="alice@acme.test"
+                placeholder=" "
+                autocomplete="username"
+              />
+              <label for="identifier">Email or username</label>
+            </div>
+            <div class="auth-actions">
+              <button class="auth-link auth-back" type="button">Back to accounts</button>
+              <button class="button" type="submit">Next</button>
+            </div>
+          </form>
+        </div>
+      </section>
+
+      <section class="auth-page" data-view="password" hidden>
+        <div class="auth-card">
+          <p class="auth-realm">Acme account</p>
+          <h1>Sign in</h1>
+          <p class="auth-identifier">alice@acme.test</p>
+          <form>
+            <div class="auth-field">
+              <input
+                class="auth-input"
+                id="password"
+                type="password"
+                value="demo-password"
+                placeholder=" "
+                autocomplete="current-password"
+              />
+              <label for="password">Password</label>
+            </div>
+            <label class="auth-choice">
+              <input type="checkbox" checked />
+              <span>Keep me signed in</span>
+            </label>
+            <div class="auth-actions">
+              <button class="auth-link auth-back" type="button">Back</button>
+              <button class="button" type="submit">Sign in</button>
+            </div>
+          </form>
+        </div>
+      </section>
+
+      <section class="auth-page" data-view="password-error" hidden>
+        <div class="auth-card">
+          <p class="auth-realm">Acme account</p>
+          <h1>Sign in</h1>
+          <p class="auth-identifier">alice@acme.test</p>
+          <form>
+            <div class="auth-field">
+              <input
+                class="auth-input"
+                id="password-error"
+                type="password"
+                value="demo-password"
+                placeholder=" "
+                autocomplete="current-password"
+                aria-invalid="true"
+                aria-describedby="password-error-message"
+              />
+              <label for="password-error">Password</label>
+            </div>
+            <label class="auth-choice">
+              <input type="checkbox" checked />
+              <span>Keep me signed in</span>
+            </label>
+            <p class="auth-error" id="password-error-message" role="alert">
+              The username or password is incorrect.
+            </p>
+            <div class="auth-actions">
+              <button class="auth-link auth-back" type="button">Back</button>
+              <button class="button" type="submit">Sign in</button>
+            </div>
+          </form>
+        </div>
+      </section>
+
+      <section class="auth-page" data-view="reauth" hidden>
+        <div class="auth-card">
+          <p class="auth-realm">Acme account</p>
+          <h1>Sign in</h1>
+          <p class="auth-note">Confirm your password to continue.</p>
+          <p class="auth-identifier">alice@acme.test</p>
+          <form>
+            <div class="auth-field">
+              <input
+                class="auth-input"
+                id="reauth-password"
+                type="password"
+                value="demo-password"
+                placeholder=" "
+                autocomplete="current-password"
+              />
+              <label for="reauth-password">Password</label>
+            </div>
+            <label class="auth-choice">
+              <input type="checkbox" checked />
+              <span>Keep me signed in</span>
+            </label>
+            <div class="auth-actions">
+              <button class="auth-link auth-back" type="button">Back</button>
+              <button class="button" type="submit">Sign in</button>
+            </div>
+          </form>
+        </div>
+      </section>
+
+      <section class="auth-page" data-view="oidc" hidden>
+        <div class="auth-card">
+          <p class="auth-realm">Acme account</p>
+          <h1>Sign in</h1>
+          <p class="auth-identifier">alice@acme.test</p>
+          <p class="auth-note">This account signs in with Example SSO.</p>
+          <div class="auth-actions">
+            <button class="auth-link auth-back" type="button">Back</button>
+            <button class="button" type="button" disabled>Continue</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="auth-page" data-view="consent" hidden>
+        <div class="auth-card auth-card-consent" aria-labelledby="consent-title">
+          <h1 id="consent-title">Authorize Acme Portal</h1>
+          <p class="auth-note">Acme Portal is requesting access to your Acme account.</p>
+
+          <div class="auth-consent-account">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="10" />
+              <circle cx="12" cy="10" r="3" />
+              <path d="M7 20.662V19a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v1.662" />
+            </svg>
+            <span class="auth-consent-account-body">
+              <span class="auth-consent-account-name">Alice</span>
+              <span class="auth-consent-account-meta">alice@acme.test</span>
+            </span>
+            <button class="auth-link" type="button">Not you?</button>
+          </div>
+
+          <p class="auth-consent-title">This will allow Acme Portal to:</p>
+          <ul class="auth-consent-scopes">
+            <li class="auth-consent-scope">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="m5 12 5 5L20 7" />
+              </svg>
+              <span>Sign you in with your Acme account.</span>
+            </li>
+            <li class="auth-consent-scope">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="m5 12 5 5L20 7" />
+              </svg>
+              <span>See your name and username.</span>
+            </li>
+            <li class="auth-consent-scope">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="m5 12 5 5L20 7" />
+              </svg>
+              <span>See your email address.</span>
+            </li>
+          </ul>
+
+          <p class="auth-consent-footer">
+            You can revoke access at any time from your account settings.
+          </p>
+
+          <div class="auth-actions">
+            <button class="auth-link" type="button">Deny</button>
+            <button class="button" type="button">Allow access</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="auth-page" data-view="done" hidden>
+        <div class="auth-card">
+          <p class="auth-realm">Acme account</p>
+          <h1>Signed in</h1>
+          <p class="auth-note">Signed in as Alice.</p>
+        </div>
+      </section>
+
+      <section class="auth-page" data-view="loading" hidden aria-busy="true">
+        <div class="auth-card">
+          <div class="auth-spinner" aria-hidden="true"></div>
+          <h1>Signing in</h1>
+          <p class="auth-note">Loading your sign-in options.</p>
+        </div>
+      </section>
+
+      <section class="auth-page" data-view="unavailable" hidden>
+        <div class="auth-status-panel">
+          <svg class="auth-status-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="10" />
+            <path d="M12 8v4" />
+            <path d="M12 16h.01" />
+          </svg>
+          <h1>Sign-in unavailable</h1>
+          <p class="auth-error" role="alert">
+            The sign-in service could not be reached. Try again in a moment.
+          </p>
+          <div class="auth-actions">
+            <a class="button" href="#">Try again</a>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <script>
+      const root = document.documentElement;
+      const views = document.querySelectorAll('[data-view]');
+      const viewButtons = document.querySelectorAll('[data-view-target]');
+      const themeButtons = document.querySelectorAll('[data-theme-target]');
+      const viewNames = [...views].map((view) => view.dataset.view);
+
+      function setView(name) {
+        views.forEach((view) => {
+          view.hidden = view.dataset.view !== name;
+        });
+
+        viewButtons.forEach((button) => {
+          button.classList.toggle('is-active', button.dataset.viewTarget === name);
+        });
+      }
+
+      function setTheme(value) {
+        if (value === 'auto') {
+          root.removeAttribute('data-theme');
+        } else {
+          root.setAttribute('data-theme', value);
+        }
+
+        themeButtons.forEach((button) => {
+          button.classList.toggle('is-active', button.dataset.themeTarget === value);
+        });
+      }
+
+      viewButtons.forEach((button) => {
+        button.addEventListener('click', () => setView(button.dataset.viewTarget));
+      });
+
+      themeButtons.forEach((button) => {
+        button.addEventListener('click', () => setTheme(button.dataset.themeTarget));
+      });
+
+      document.querySelectorAll('form').forEach((form) => {
+        form.addEventListener('submit', (event) => event.preventDefault());
+      });
+
+      const params = new URLSearchParams(window.location.search);
+      const initialView = params.get('view');
+      const initialTheme = params.get('theme');
+      if (viewNames.includes(initialView)) {
+        setView(initialView);
+      }
+      if (['auto', 'light', 'dark'].includes(initialTheme)) {
+        setTheme(initialTheme);
+      }
+    </script>
+  </body>
+</html>
