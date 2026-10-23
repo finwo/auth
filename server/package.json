@@ -7,7 +7,7 @@
   },
   "dependencies": {
     "@finwo/scandir": "^0.0.3",
-    "body-parser": "^2.3.0",
+    "body-parser": "^2.4.0",
     "cookie": "^2.0.1",
     "cors": "^2.8.6",
     "jose": "^6.2.13",
