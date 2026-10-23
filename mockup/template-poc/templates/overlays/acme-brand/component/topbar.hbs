@@ -1,0 +1,24 @@
+<a class="brand" href="#/account/overview" data-route="/account/overview" aria-label="{{appName}} account">
+  <img class="brand-icon" src="template://asset/acme-logo.svg" alt="">
+  <span class="brand-name">Acme</span>
+</a>
+<details class="user-menu">
+  <summary aria-label="Account menu">{{> component/icon name="user"}}</summary>
+  <div class="user-panel">
+    <div class="user-summary">
+      <span class="user-name">{{user.name}}</span>
+      <span class="user-meta">{{user.email}}</span>
+    </div>
+    <div class="user-menu-list">
+      <button class="user-menu-item" type="button" data-action="cycle-theme">
+        {{> component/icon name="theme"}}
+        <span>Theme</span>
+        <span class="user-menu-value">{{themeLabel theme.value}}</span>
+      </button>
+      <button class="user-menu-item" type="button" data-action="sign-out">
+        {{> component/icon name="signout"}}
+        <span>Sign out</span>
+      </button>
+    </div>
+  </div>
+</details>

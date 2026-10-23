@@ -1,0 +1,18 @@
+{{> component/styles}}
+<div class="auth-page">
+  <section class="auth-card">
+    <p class="auth-realm">{{realm.name}} account</p>
+    <h1>{{title}}</h1>
+    <p class="auth-note">Use your {{realm.name}} account to continue.</p>
+
+    {{#if notice}}<p class="auth-notice" role="status">{{notice}}</p>{{/if}}
+
+    <form data-form="identifier">
+      {{> component/text-field id="identifier" name="identifier" label="Email or username" type="text" autocomplete="username" autofocus=true}}
+      {{#if error}}<p class="auth-error" role="alert">{{error}}</p>{{/if}}
+      <div class="auth-actions">
+        <button class="auth-button" type="submit">Next</button>
+      </div>
+    </form>
+  </section>
+</div>

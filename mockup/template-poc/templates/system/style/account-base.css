@@ -1,0 +1,176 @@
+.summary-list {
+  display: grid;
+  gap: 0.25rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.summary-row {
+  display: grid;
+  grid-template-columns: 1.5rem minmax(0, 1fr);
+  align-items: center;
+  gap: 1rem;
+  padding: 0.875rem 0.75rem;
+  color: inherit;
+  text-decoration: none;
+  cursor: pointer;
+  user-select: none;
+}
+
+.summary-row:hover {
+  background: var(--row-hover);
+}
+
+.summary-row svg {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.summary-body {
+  display: grid;
+  gap: 0.125rem;
+  min-width: 0;
+}
+
+.summary-title {
+  font-size: 0.9375rem;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.summary-meta {
+  color: var(--muted);
+  font-size: 0.8125rem;
+  line-height: 1.4;
+}
+
+.summary-arrow {
+  display: none;
+  color: var(--muted);
+  font-size: 1.125rem;
+  line-height: 1;
+}
+
+.security-stack,
+.apps-stack {
+  display: grid;
+  gap: 1rem;
+  max-width: 56rem;
+  margin: 0 auto;
+}
+
+.surface-row {
+  display: grid;
+  grid-template-columns: 1.5rem minmax(0, 1fr);
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 0.75rem;
+  background: var(--row);
+}
+
+.surface-row svg {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.surface-row strong {
+  display: block;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.surface-row span {
+  color: var(--muted);
+  font-size: 0.8125rem;
+  line-height: 1.4;
+}
+
+.status {
+  display: none;
+  color: var(--muted);
+  font-size: 0.8125rem;
+  line-height: 1.4;
+}
+
+.danger-link {
+  padding: 0.5rem 0;
+  border: 0;
+  background: none;
+  color: var(--danger);
+  font: inherit;
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+.danger-link:hover {
+  filter: brightness(1.1);
+}
+
+.details + .note {
+  margin-top: 1rem;
+}
+
+.note + .note {
+  margin-top: 1rem;
+}
+
+.panel-heading {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.panel-heading svg {
+  flex: none;
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.panel-heading h2 {
+  margin: 0;
+}
+
+.skeleton {
+  height: 0.75rem;
+  background: var(--skeleton);
+}
+
+.skeleton + .skeleton {
+  margin-top: 0.75rem;
+}
+
+.skeleton-title {
+  width: 8rem;
+  height: 1rem;
+}
+
+.skeleton-short {
+  width: 35%;
+}
+
+.skeleton-medium {
+  width: 62%;
+}
+
+@media (min-width: 40em) {
+  .summary-row,
+  .surface-row {
+    grid-template-columns: 1.5rem minmax(0, 1fr) auto;
+  }
+
+  .summary-arrow,
+  .status {
+    display: inline;
+  }
+}
+
+.notice {
+  margin: 0 0 1rem;
+  padding: 0.75rem;
+  background: var(--row);
+  font-size: 0.875rem;
+  line-height: 1.5;
+}

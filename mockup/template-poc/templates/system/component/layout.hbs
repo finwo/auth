@@ -1,0 +1,21 @@
+{{> component/styles}}
+<header class="topbar">{{> component/topbar}}</header>
+<div class="app">
+  <aside class="sidebar">
+    <nav class="nav" aria-label="Account">
+      <p class="nav-label">Account</p>
+      {{#each nav}}
+        <a class="nav-item{{#if active}} is-active{{/if}}" href="#{{route}}" data-route="{{route}}"{{#if active}} aria-current="page"{{/if}}>
+          {{> component/icon name=icon}}
+          <span>{{label}}</span>
+        </a>
+      {{/each}}
+    </nav>
+  </aside>
+  <div class="main">
+    <main class="content">
+      {{#if notice}}<div class="notice" role="status">{{notice}}</div>{{/if}}
+      {{> @partial-block}}
+    </main>
+  </div>
+</div>

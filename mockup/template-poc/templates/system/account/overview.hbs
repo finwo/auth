@@ -1,0 +1,75 @@
+{{#> component/layout}}
+  {{> component/page-header title=page.title subtitle=page.subtitle}}
+
+  <div class="grid">
+    <section class="panel">
+      <h2>Identity</h2>
+      <dl class="details">
+        <div>
+          <dt>Name</dt>
+          <dd>{{identity.name}}</dd>
+        </div>
+        <div>
+          <dt>Username</dt>
+          <dd>{{identity.username}}</dd>
+        </div>
+        <div>
+          <dt>Email</dt>
+          <dd>{{identity.email}}</dd>
+        </div>
+        <div>
+          <dt>Account</dt>
+          <dd>{{identity.account}}</dd>
+        </div>
+      </dl>
+    </section>
+
+    <section class="panel">
+      <h2>Access</h2>
+      <dl class="details">
+        <div>
+          <dt>Client</dt>
+          <dd>{{access.client}}</dd>
+        </div>
+        <div>
+          <dt>Realm</dt>
+          <dd>{{access.realm}}</dd>
+        </div>
+        <div>
+          <dt>Scope</dt>
+          <dd>{{access.scope}}</dd>
+        </div>
+        <div>
+          <dt>Session</dt>
+          <dd>{{access.session}}</dd>
+        </div>
+      </dl>
+    </section>
+  </div>
+
+  <section class="panel panel-wide">
+    <h2>Manage</h2>
+    <ul class="summary-list">
+      <li>
+        <a class="summary-row" href="#/account/security" data-route="/account/security">
+          {{> component/icon name="security"}}
+          <span class="summary-body">
+            <span class="summary-title">Security</span>
+            <span class="summary-meta">Password, multi-factor authentication and sessions.</span>
+          </span>
+          <span class="summary-arrow" aria-hidden="true">&gt;</span>
+        </a>
+      </li>
+      <li>
+        <a class="summary-row" href="#/account/apps" data-route="/account/apps">
+          {{> component/icon name="apps"}}
+          <span class="summary-body">
+            <span class="summary-title">Apps</span>
+            <span class="summary-meta">Applications with access to this account.</span>
+          </span>
+          <span class="summary-arrow" aria-hidden="true">&gt;</span>
+        </a>
+      </li>
+    </ul>
+  </section>
+{{/component/layout}}

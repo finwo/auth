@@ -1,0 +1,26 @@
+<a class="brand" href="#/account/overview" data-route="/account/overview" aria-label="{{appName}} account">
+  <svg class="brand-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+  </svg>
+  <span class="brand-name">{{appName}}</span>
+</a>
+<details class="user-menu">
+  <summary aria-label="Account menu">{{> component/icon name="user"}}</summary>
+  <div class="user-panel">
+    <div class="user-summary">
+      <span class="user-name">{{user.name}}</span>
+      <span class="user-meta">{{user.email}}</span>
+    </div>
+    <div class="user-menu-list">
+      <button class="user-menu-item" type="button" data-action="cycle-theme">
+        {{> component/icon name="theme"}}
+        <span>Theme</span>
+        <span class="user-menu-value">{{themeLabel theme.value}}</span>
+      </button>
+      <button class="user-menu-item" type="button" data-action="sign-out">
+        {{> component/icon name="signout"}}
+        <span>Sign out</span>
+      </button>
+    </div>
+  </div>
+</details>

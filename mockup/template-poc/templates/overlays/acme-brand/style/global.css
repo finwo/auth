@@ -1,0 +1,18 @@
+@import url("template://style/base.css");
+
+:root {
+  --accent: #b3261e;
+  --accent-hover: #cf3a31;
+  --accent-active: #8f1d17;
+  --accent-text: #b3261e;
+  --accent-text-hover: #cf3a31;
+  --accent-text-active: #8f1d17;
+  --auth-surface: #fffaf5;
+}
+
+:root[data-theme="dark"] {
+  --accent-text: #ff8a80;
+  --accent-text-hover: #ffb1a8;
+  --accent-text-active: #ff6b60;
+  --auth-surface: #241a18;
+}

@@ -1,0 +1,21 @@
+{
+  "name": "auth-template-poc",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build:templates": "node scripts/build-templates.mjs",
+    "build": "npm run build:templates && node esbuild.cjs",
+    "start": "serve dist"
+  },
+  "dependencies": {
+    "@noble/hashes": "^2.4.0",
+    "dompurify": "^3.4.17",
+    "handlebars": "^4.7.10",
+    "modern-tar": "^0.8.6",
+    "morphdom": "^2.7.8"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2",
+    "serve": "^14.2.6"
+  }
+}

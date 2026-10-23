@@ -1,0 +1,29 @@
+{{#> component/layout}}
+  {{> component/page-header title=page.title subtitle=page.subtitle}}
+
+  <div class="security-stack">
+    <section class="panel">
+      <div class="panel-heading">
+        {{> component/icon name="shield-check"}}
+        <h2>Password</h2>
+      </div>
+      <p class="note">Password management arrives in a later slice.</p>
+    </section>
+
+    <section class="panel">
+      <div class="panel-heading">
+        {{> component/icon name="computer"}}
+        <h2>Sessions</h2>
+      </div>
+      <div class="surface-row">
+        {{> component/icon name="computer"}}
+        <span>
+          <strong>Current session</strong>
+          <span>{{security.source}} - This device - Active</span>
+        </span>
+        <span class="status">Read-only</span>
+      </div>
+      <p class="note">Session revocation arrives in a later slice.</p>
+    </section>
+  </div>
+{{/component/layout}}

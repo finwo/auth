@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Template runtime PoC</title>
+    <style>
+      html {
+        background-color: #fff;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        html:not([data-theme]) {
+          background-color: #222;
+          color-scheme: dark;
+        }
+      }
+
+      html[data-theme="light"] {
+        background-color: #fff;
+        color-scheme: light;
+      }
+
+      html[data-theme="dark"] {
+        background-color: #222;
+        color-scheme: dark;
+      }
+
+      body {
+        margin: 0;
+        visibility: hidden;
+      }
+
+      html[data-template-ready] body {
+        visibility: visible;
+      }
+    </style>
+    <script>
+      (() => {
+        try {
+          const theme = localStorage.getItem('auth-template-poc:theme');
+          if (theme === 'light' || theme === 'dark') {
+            document.documentElement.dataset.theme = theme;
+          }
+        } catch {}
+      })();
+    </script>
+    <link rel="stylesheet" href="main.css">
+  </head>
+  <body>
+    <header class="poc-toolbar">
+      <strong class="poc-title">Template PoC</strong>
+      <button class="poc-button" type="button" data-demo-page="/account/overview">Account</button>
+      <button class="poc-button" type="button" data-demo-page="/login">Login</button>
+      <span id="poc-status" class="poc-status" data-state="loading">Idle</span>
+    </header>
+
+    <div id="app"></div>
+
+    <aside class="poc-console" aria-label="Runtime controls">
+      <details open>
+        <summary>Runtime</summary>
+        <div id="poc-layers" class="poc-layers"></div>
+        <div class="poc-actions">
+          <button class="poc-button" type="button" data-reload-templates>Reinstall</button>
+          <button class="poc-button" type="button" data-clear-opfs>Clear OPFS</button>
+          <button class="poc-button" type="button" data-clear-meta>Clear metadata</button>
+        </div>
+        <pre id="poc-log" class="poc-log"></pre>
+      </details>
+    </aside>
+
+    <script type="module" src="main.js"></script>
+  </body>
+</html>
