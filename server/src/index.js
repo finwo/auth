@@ -44,7 +44,7 @@ app.use(
     },
   })
 );
-app.use(bodyParser.json({ limit: '16kb' }));
+app.use(bodyParser.json({ limit: '64kb' }));
 app.use(bodyParser.urlencoded({ extended: false, limit: '16kb' }));
 
 const routes = [];

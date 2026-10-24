@@ -1,4 +1,4 @@
-import { Activity, LayoutGrid } from 'lucide';
+import { Activity, AppWindow, LayoutGrid } from 'lucide';
 import m from 'mithril';
 import { AppShell } from '@component/app-shell';
 import { Nav, type NavItem } from '@component/nav';
@@ -18,6 +18,8 @@ import {
 import { appUrl, getAuthUrl, type AdminRealm, type UserInfo } from '../util/api';
 import { OverviewPage } from './overview';
 import { SessionsPage } from './sessions';
+import { ClientEditPage } from './client-edit';
+import { ClientsPage } from './clients';
 
 function currentPath() {
   return (m.route.get() || '/').split('?')[0];
@@ -28,6 +30,33 @@ function sessionsRealm() {
   if (!path.startsWith('/sessions/')) return null;
   try {
     return decodeURIComponent(path.slice('/sessions/'.length));
+  } catch {
+    return null;
+  }
+}
+
+function clientsRealm() {
+  const path = currentPath();
+  if (path !== '/clients' && !path.startsWith('/clients/')) return null;
+  const suffix = path.slice('/clients/'.length);
+  if (!suffix) return null;
+  const slug = suffix.split('/')[0];
+  try {
+    return decodeURIComponent(slug);
+  } catch {
+    return null;
+  }
+}
+
+function clientEditPath() {
+  const path = currentPath();
+  const match = /^\/clients\/([^/]+)\/edit\/(.+)$/.exec(path);
+  if (!match) return null;
+  try {
+    return {
+      realmSlug: decodeURIComponent(match[1]),
+      clientId: decodeURIComponent(match[2]),
+    };
   } catch {
     return null;
   }
@@ -104,10 +133,17 @@ export const Admin: m.Component = {
   },
 
   updateTitle(this: any) {
-    document.title =
-      currentPath() === '/sessions' || currentPath().startsWith('/sessions/')
-        ? 'Sessions · Administration'
+    const path = currentPath();
+    const clients = path === '/clients' || path.startsWith('/clients/');
+    const sessions = path === '/sessions' || path.startsWith('/sessions/');
+    const title = clients
+      ? path.includes('/edit/')
+        ? 'Edit client | Administration'
+        : 'Clients | Administration'
+      : sessions
+        ? 'Sessions | Administration'
         : 'Administration';
+    document.title = title;
   },
 
   cycleTheme(this: any) {
@@ -116,22 +152,39 @@ export const Admin: m.Component = {
 
   view(this: any) {
     const user = this.user;
-    const sessions = currentPath() === '/sessions' || currentPath().startsWith('/sessions/');
+    const path = currentPath();
+    const sessions = path === '/sessions' || path.startsWith('/sessions/');
+    const clients = path === '/clients' || path.startsWith('/clients/');
     const realmSlug = sessionsRealm();
-    const sessionsHref =
-      this.realms && this.realms.length > 0
-        ? `/sessions/${encodeURIComponent(this.realms[0].slug)}`
-        : '/sessions';
+    const clientRealmSlug = clientsRealm();
+    const clientEdit = clientEditPath();
+    const firstRealm = this.realms && this.realms.length > 0 ? this.realms[0].slug : null;
+    const sessionsHref = firstRealm
+      ? `/sessions/${encodeURIComponent(firstRealm)}`
+      : '/sessions';
+    const clientsHref = firstRealm
+      ? `/clients/${encodeURIComponent(firstRealm)}`
+      : '/clients';
 
     const navItems: NavItem[] = [
       {
         href: appUrl('/'),
         label: 'Overview',
         icon: LayoutGrid,
-        active: !sessions,
+        active: !sessions && !clients,
         onclick: (event: Event) => {
           event.preventDefault();
           m.route.set('/');
+        },
+      },
+      {
+        href: appUrl(clientsHref),
+        label: 'Clients',
+        icon: AppWindow,
+        active: clients,
+        onclick: (event: Event) => {
+          event.preventDefault();
+          m.route.set(clientsHref);
         },
       },
       {
@@ -181,9 +234,23 @@ export const Admin: m.Component = {
 
         {!user ? (
           <div class="loading">Loading session</div>
+        ) : clients && clientEdit ? (
+          <ClientEditPage
+            realmSlug={clientEdit.realmSlug}
+            clientId={clientEdit.clientId}
+            realms={this.realms}
+            realmsError={this.realmsError}
+            onAuthExpired={() => this.authExpired()}
+          />
+        ) : clients ? (
+          <ClientsPage
+            realmSlug={clientRealmSlug}
+            realms={this.realms}
+            realmsError={this.realmsError}
+            onAuthExpired={() => this.authExpired()}
+          />
         ) : sessions ? (
           <SessionsPage
-            key={realmSlug || 'select'}
             realmSlug={realmSlug}
             realms={this.realms}
             realmsError={this.realmsError}

@@ -10,6 +10,59 @@ export interface AdminRealm {
   display_name: string;
 }
 
+export interface AdminRole {
+  slug: string;
+  name: string;
+}
+
+export interface AdminClient {
+  client_id: string;
+  name: string;
+  logo_url: string | null;
+  access_mode: 'internal' | 'members' | 'public';
+  enabled: boolean;
+  scopes: string;
+  required_roles: string[];
+  redirect_uris: string[];
+  post_logout_redirect_uris: string[];
+  token_endpoint_auth_method: 'none' | 'client_secret_basic';
+  require_pkce: boolean;
+  consent_mode: 'remembered' | 'trusted';
+  has_secret: boolean;
+  created_at: number;
+  updated_at: number;
+}
+
+export interface AdminClientInput {
+  name: string;
+  access_mode: AdminClient['access_mode'];
+  enabled: boolean;
+  scopes: string;
+  required_roles: string[];
+  redirect_uris: string[];
+  post_logout_redirect_uris: string[];
+  token_endpoint_auth_method: AdminClient['token_endpoint_auth_method'];
+  require_pkce: boolean;
+  consent_mode: AdminClient['consent_mode'];
+}
+
+export interface AdminClientCreateInput extends AdminClientInput {
+  client_id: string;
+}
+
+export interface AdminClientResponse {
+  ok: boolean;
+  client: AdminClient;
+  client_secret?: string;
+}
+
+export interface AdminClientSecretResponse {
+  ok: boolean;
+  client_id: string;
+  client: AdminClient;
+  client_secret: string;
+}
+
 export interface AdminSession {
   public_id: string;
   user: {
@@ -64,6 +117,7 @@ export async function adminApi(path: string, accessToken: string, init: RequestI
   const authUrl = await getAuthUrl();
   const headers = new Headers(init.headers);
   headers.set('authorization', `Bearer ${accessToken}`);
+  if (init.body !== undefined) headers.set('content-type', 'application/json');
   return fetch(`${authUrl}${path}`, {
     ...init,
     credentials: 'omit',

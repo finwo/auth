@@ -4,7 +4,13 @@ import {
   adminApi,
   appUrl,
   getDiscovery,
+  type AdminClient,
+  type AdminClientCreateInput,
+  type AdminClientInput,
+  type AdminClientResponse,
+  type AdminClientSecretResponse,
   type AdminRealm,
+  type AdminRole,
   type AdminSession,
 } from './api';
 
@@ -67,4 +73,70 @@ export async function terminateAdminSession(realmSlug: string, publicId: string)
   await adminJson(`/api/v1/admin/realms/${realm}/sessions/${session}`, {
     method: 'DELETE',
   });
+}
+
+export async function loadAdminRoles(realmSlug: string): Promise<AdminRole[]> {
+  const realm = encodeURIComponent(realmSlug);
+  const response = await adminJson<{ roles: AdminRole[] }>(
+    `/api/v1/admin/realms/${realm}/roles`
+  );
+  return response.roles;
+}
+
+export async function loadAdminClients(realmSlug: string): Promise<AdminClient[]> {
+  const realm = encodeURIComponent(realmSlug);
+  const response = await adminJson<{ clients: AdminClient[] }>(
+    `/api/v1/admin/realms/${realm}/clients`
+  );
+  return response.clients;
+}
+
+export async function createAdminClient(
+  realmSlug: string,
+  input: AdminClientCreateInput
+): Promise<AdminClientResponse> {
+  const realm = encodeURIComponent(realmSlug);
+  return adminJson<AdminClientResponse>(`/api/v1/admin/realms/${realm}/clients`, {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
+}
+
+export async function updateAdminClient(
+  realmSlug: string,
+  clientId: string,
+  input: AdminClientInput
+): Promise<AdminClientResponse> {
+  const realm = encodeURIComponent(realmSlug);
+  const client = encodeURIComponent(clientId);
+  return adminJson<AdminClientResponse>(
+    `/api/v1/admin/realms/${realm}/clients/${client}`,
+    {
+      method: 'PATCH',
+      body: JSON.stringify(input),
+    }
+  );
+}
+
+export async function deleteAdminClient(realmSlug: string, clientId: string) {
+  const realm = encodeURIComponent(realmSlug);
+  const client = encodeURIComponent(clientId);
+  return adminJson(`/api/v1/admin/realms/${realm}/clients/${client}`, {
+    method: 'DELETE',
+  });
+}
+
+export async function rotateAdminClientSecret(
+  realmSlug: string,
+  clientId: string
+): Promise<AdminClientSecretResponse> {
+  const realm = encodeURIComponent(realmSlug);
+  const client = encodeURIComponent(clientId);
+  return adminJson<AdminClientSecretResponse>(
+    `/api/v1/admin/realms/${realm}/clients/${client}/secret`,
+    {
+      method: 'POST',
+      body: JSON.stringify({}),
+    }
+  );
 }

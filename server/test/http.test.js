@@ -410,6 +410,60 @@ test('HTTP realm, login, OIDC and logout flows', async (t) => {
       });
     }
 
+    const adminRequest = (admin, options) =>
+      identity({ bearer: admin.access_token, ...options });
+
+    async function createAdminClient(admin, realm, body) {
+      return adminRequest(admin, {
+        method: 'POST',
+        path: `/api/v1/admin/realms/${realm}/clients`,
+        body,
+      });
+    }
+
+    async function updateAdminClient(admin, realm, clientId, body) {
+      return adminRequest(admin, {
+        method: 'PATCH',
+        path: `/api/v1/admin/realms/${realm}/clients/${encodeURIComponent(clientId)}`,
+        body,
+      });
+    }
+
+    async function deleteAdminClient(admin, realm, clientId) {
+      return adminRequest(admin, {
+        method: 'DELETE',
+        path: `/api/v1/admin/realms/${realm}/clients/${encodeURIComponent(clientId)}`,
+      });
+    }
+
+    async function authorizeCodeForClient(
+      requester,
+      { clientId, identifier, redirectUri, scope = 'openid profile', state }
+    ) {
+      const { verifier, challenge } = pkce();
+      const authorizePath =
+        `/oidc/${clientId}/authorize?response_type=code&client_id=${clientId}` +
+        `&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scope)}` +
+        `&state=${state}&code_challenge=${challenge}&code_challenge_method=S256`;
+      const first = await requester({ path: authorizePath });
+      let jar = mergeCookies('', first);
+      const login = await requester({
+        method: 'POST',
+        path: '/api/v1/login/password',
+        body: { client_id: clientId, identifier, password: 'demo' },
+        cookie: jar,
+      });
+      jar = mergeCookies(jar, login);
+      const completed = await completeAuthorization(requester, {
+        path: authorizePath.split('?')[0],
+        cookie: jar,
+        clientId,
+      });
+      const code = locationQuery(completed.response).searchParams.get('code');
+      assert.ok(code);
+      return { verifier, code };
+    }
+
     await t.test('realm metadata is served for a realm hostname', async () => {
       const response = await acme({ path: '/api/v1/realm' });
       assert.equal(response.status, 200);
@@ -2604,6 +2658,502 @@ test('HTTP realm, login, OIDC and logout flows', async (t) => {
             .prepare('INSERT INTO membership_roles (user_id, role_id) VALUES (?, ?)')
             .run(actor.id, role.id);
         });
+      }
+    });
+
+    await t.test('admin clients list roles and create realm clients', async () => {
+      const admin = await adminToken('it@acme.test');
+      const roles = await adminRequest(admin, {
+        path: '/api/v1/admin/realms/acme/roles',
+      });
+      assert.equal(roles.status, 200);
+      assert.ok(roles.json.roles.some((role) => role.slug === 'realm-admin'));
+
+      const list = await adminRequest(admin, {
+        path: '/api/v1/admin/realms/acme/clients',
+      });
+      assert.equal(list.status, 200);
+      const listed = new Map(list.json.clients.map((client) => [client.client_id, client]));
+      assert.ok(listed.has('internal-app'));
+      assert.equal(listed.has('admin'), false);
+      assert.equal(listed.get('acme-public-app').has_secret, false);
+      assert.equal(listed.get('confidential-app').has_secret, true);
+      assert.equal(listed.get('confidential-app').logo_url, null);
+
+      const clientId = 'admin-created-public';
+      const oldUri = `${origin('created.localhost')}/callback`;
+      const newUri = `${origin('created2.localhost')}/callback`;
+      try {
+        const created = await createAdminClient(admin, 'acme', {
+          client_id: clientId,
+          name: 'Admin Created Public',
+          access_mode: 'members',
+          redirect_uris: [oldUri],
+          required_roles: ['realm-admin'],
+        });
+        assert.equal(created.status, 200);
+        assert.equal(created.json.ok, true);
+        assert.equal(created.json.client.client_id, clientId);
+        assert.equal(created.json.client.required_roles.length, 1);
+        assert.equal(created.json.client.require_pkce, true);
+        assert.equal(created.json.client.logo_url, null);
+        assert.equal(created.json.client_secret, undefined);
+
+        const duplicate = await createAdminClient(admin, 'acme', {
+          client_id: clientId,
+          name: 'Duplicate',
+          redirect_uris: [newUri],
+        });
+        assert.equal(duplicate.status, 409);
+        assert.equal(duplicate.json.error.code, 'client_id_exists');
+
+        const updated = await updateAdminClient(admin, 'acme', clientId, {
+          name: 'Renamed Public',
+          access_mode: 'public',
+          redirect_uris: [newUri],
+          required_roles: [],
+        });
+        assert.equal(updated.status, 200);
+        assert.equal(updated.json.client.name, 'Renamed Public');
+        assert.equal(updated.json.client.access_mode, 'public');
+        assert.deepEqual(updated.json.client.required_roles, []);
+
+        const { challenge } = pkce();
+        const denied = await acme({
+          path:
+            `/oidc/${clientId}/authorize?response_type=code&client_id=${clientId}` +
+            `&redirect_uri=${encodeURIComponent(oldUri)}&scope=openid&state=old-uri` +
+            `&code_challenge=${challenge}&code_challenge_method=S256`,
+        });
+        assert.equal(denied.status, 400);
+        assert.equal(denied.json.error, 'invalid_request');
+
+        const token = await accessToken(acme, {
+          clientId,
+          identifier: 'alice@acme.test',
+          redirectUri: newUri,
+        });
+        assert.ok(token.access_token);
+      } finally {
+        const cleanup = await deleteAdminClient(admin, 'acme', clientId);
+        assert.ok(cleanup.status === 200 || cleanup.status === 404);
+      }
+    });
+
+    await t.test('admin clients rotate confidential client secrets', async () => {
+      const admin = await adminToken('it@acme.test');
+      const clientId = 'admin-created-confidential';
+      const redirectUri = `${origin('created-conf.localhost')}/callback`;
+      try {
+        const created = await createAdminClient(admin, 'acme', {
+          client_id: clientId,
+          name: 'Admin Created Confidential',
+          access_mode: 'members',
+          token_endpoint_auth_method: 'client_secret_basic',
+          redirect_uris: [redirectUri],
+        });
+        assert.equal(created.status, 200);
+        assert.match(created.json.client_secret, /^[A-Za-z0-9_-]{43}$/);
+        assert.equal(created.json.client.has_secret, true);
+
+        const initial = await authorizeCodeForClient(acme, {
+          clientId,
+          identifier: 'alice@acme.test',
+          redirectUri,
+          state: 'conf-initial',
+        });
+        const initialToken = await acme({
+          method: 'POST',
+          path: `/oidc/${clientId}/token`,
+          form: {
+            grant_type: 'authorization_code',
+            code: initial.code,
+            redirect_uri: redirectUri,
+            code_verifier: initial.verifier,
+          },
+          headers: {
+            authorization: `Basic ${Buffer.from(`${clientId}:${created.json.client_secret}`).toString('base64')}`,
+          },
+        });
+        assert.equal(initialToken.status, 200);
+
+        const rotated = await adminRequest(admin, {
+          method: 'POST',
+          path: `/api/v1/admin/realms/acme/clients/${clientId}/secret`,
+        });
+        assert.equal(rotated.status, 200);
+        assert.match(rotated.json.client_secret, /^[A-Za-z0-9_-]{43}$/);
+        assert.notEqual(rotated.json.client_secret, created.json.client_secret);
+        assert.equal(rotated.json.client.token_endpoint_auth_method, 'client_secret_basic');
+
+        const second = await authorizeCodeForClient(acme, {
+          clientId,
+          identifier: 'alice@acme.test',
+          redirectUri,
+          state: 'conf-old-secret',
+        });
+        const oldDenied = await acme({
+          method: 'POST',
+          path: `/oidc/${clientId}/token`,
+          form: {
+            grant_type: 'authorization_code',
+            code: second.code,
+            redirect_uri: redirectUri,
+            code_verifier: second.verifier,
+          },
+          headers: {
+            authorization: `Basic ${Buffer.from(`${clientId}:${created.json.client_secret}`).toString('base64')}`,
+          },
+        });
+        assert.equal(oldDenied.status, 401);
+        assert.equal(oldDenied.json.error, 'invalid_client');
+
+        const newAllowed = await acme({
+          method: 'POST',
+          path: `/oidc/${clientId}/token`,
+          form: {
+            grant_type: 'authorization_code',
+            code: second.code,
+            redirect_uri: redirectUri,
+            code_verifier: second.verifier,
+          },
+          headers: {
+            authorization: `Basic ${Buffer.from(`${clientId}:${rotated.json.client_secret}`).toString('base64')}`,
+          },
+        });
+        assert.equal(newAllowed.status, 200);
+
+        const cleared = await updateAdminClient(admin, 'acme', clientId, {
+          token_endpoint_auth_method: 'none',
+        });
+        assert.equal(cleared.status, 200);
+        assert.equal(cleared.json.client.has_secret, false);
+        assert.equal(cleared.json.client.require_pkce, true);
+
+        const discovery = await acme({ path: `/oidc/${clientId}/openid-configuration` });
+        assert.deepEqual(discovery.json.token_endpoint_auth_methods_supported, ['none']);
+
+        const publicAccess = await authorizeCodeForClient(acme, {
+          clientId,
+          identifier: 'alice@acme.test',
+          redirectUri,
+          state: 'conf-to-public',
+        });
+        const publicToken = await acme({
+          method: 'POST',
+          path: `/oidc/${clientId}/token`,
+          form: {
+            grant_type: 'authorization_code',
+            code: publicAccess.code,
+            redirect_uri: redirectUri,
+            client_id: clientId,
+            code_verifier: publicAccess.verifier,
+          },
+        });
+        assert.equal(publicToken.status, 200);
+      } finally {
+        const cleanup = await deleteAdminClient(admin, 'acme', clientId);
+        assert.ok(cleanup.status === 200 || cleanup.status === 404);
+      }
+    });
+
+    await t.test('admin client APIs enforce validation and target scope', async () => {
+      const acmeAdmin = await adminToken('it@acme.test');
+      const systemAdmin = await adminToken();
+      const redirectUri = `${origin('created-scope.localhost')}/callback`;
+
+      const crossRealm = await adminRequest(acmeAdmin, {
+        path: '/api/v1/admin/realms/globex/clients',
+      });
+      assert.equal(crossRealm.status, 403);
+
+      const reserved = await createAdminClient(acmeAdmin, 'acme', {
+        client_id: 'admin',
+        name: 'Reserved',
+        redirect_uris: [redirectUri],
+      });
+      assert.equal(reserved.status, 400);
+      assert.equal(reserved.json.error.code, 'reserved_client_id');
+
+      const invalidId = await createAdminClient(acmeAdmin, 'acme', {
+        client_id: 'Bad App',
+        name: 'Invalid',
+        redirect_uris: [redirectUri],
+      });
+      assert.equal(invalidId.status, 400);
+      assert.equal(invalidId.json.error.code, 'invalid_client_id');
+
+      const invalidRedirect = await createAdminClient(acmeAdmin, 'acme', {
+        client_id: 'admin-invalid-redirect',
+        name: 'Invalid Redirect',
+        redirect_uris: ['/relative'],
+      });
+      assert.equal(invalidRedirect.status, 400);
+      assert.equal(invalidRedirect.json.error.code, 'invalid_request');
+
+      const missingOpenid = await createAdminClient(acmeAdmin, 'acme', {
+        client_id: 'admin-invalid-scope',
+        name: 'Invalid Scope',
+        scopes: 'email profile',
+        redirect_uris: [redirectUri],
+      });
+      assert.equal(missingOpenid.status, 400);
+      assert.equal(missingOpenid.json.error.code, 'invalid_request');
+
+      const unknownRole = await createAdminClient(acmeAdmin, 'acme', {
+        client_id: 'admin-unknown-role',
+        name: 'Unknown Role',
+        required_roles: ['missing-role'],
+        redirect_uris: [redirectUri],
+      });
+      assert.equal(unknownRole.status, 400);
+      assert.equal(unknownRole.json.error.code, 'unknown_role');
+
+      const globalClient = 'admin-global-unique';
+      try {
+        const created = await createAdminClient(acmeAdmin, 'acme', {
+          client_id: globalClient,
+          name: 'Global Unique',
+          redirect_uris: [redirectUri],
+        });
+        assert.equal(created.status, 200);
+
+        const duplicate = await createAdminClient(systemAdmin, 'globex', {
+          client_id: globalClient,
+          name: 'Duplicate Realm',
+          redirect_uris: [redirectUri],
+        });
+        assert.equal(duplicate.status, 409);
+        assert.equal(duplicate.json.error.code, 'client_id_exists');
+
+        const systemUpdate = await updateAdminClient(systemAdmin, 'acme', 'admin', {
+          name: 'Cannot Update',
+        });
+        assert.equal(systemUpdate.status, 404);
+
+        const missingUpdate = await updateAdminClient(acmeAdmin, 'acme', 'missing-client', {
+          name: 'Missing',
+        });
+        assert.equal(missingUpdate.status, 404);
+
+        const publicClient = 'admin-secret-patch';
+        try {
+          const publicCreated = await createAdminClient(acmeAdmin, 'acme', {
+            client_id: publicClient,
+            name: 'Public Patch',
+            redirect_uris: [redirectUri],
+          });
+          assert.equal(publicCreated.status, 200);
+
+          const secretRequired = await updateAdminClient(acmeAdmin, 'acme', publicClient, {
+            token_endpoint_auth_method: 'client_secret_basic',
+          });
+          assert.equal(secretRequired.status, 409);
+          assert.equal(secretRequired.json.error.code, 'client_secret_required');
+
+          const pkceDenied = await updateAdminClient(acmeAdmin, 'acme', publicClient, {
+            require_pkce: false,
+          });
+          assert.equal(pkceDenied.status, 400);
+          assert.equal(pkceDenied.json.error.code, 'invalid_request');
+        } finally {
+          const cleanup = await deleteAdminClient(acmeAdmin, 'acme', publicClient);
+          assert.ok(cleanup.status === 200 || cleanup.status === 404);
+        }
+      } finally {
+        const cleanup = await deleteAdminClient(acmeAdmin, 'acme', globalClient);
+        assert.ok(cleanup.status === 200 || cleanup.status === 404);
+      }
+    });
+
+    await t.test('admin client deletion cleans related client state', async () => {
+      const admin = await adminToken('it@acme.test');
+      const clientId = 'admin-delete-flow';
+      const host = 'delete-flow.localhost';
+      const redirectUri = `${origin(host)}/callback`;
+      const deleteRequest = (options = {}) =>
+        request(port, { host: `${host}:${port}`, ...options });
+      clearBans(env, { username: 'alice', realm: 'acme' });
+
+      try {
+        const created = await createAdminClient(admin, 'acme', {
+          client_id: clientId,
+          name: 'Delete Flow',
+          access_mode: 'members',
+          redirect_uris: [redirectUri],
+        });
+        assert.equal(created.status, 200);
+
+        withSystemDatabase(env, (database) => {
+          database
+            .prepare(
+              'INSERT INTO oidc_client_hosts (host, client_id, created_at) VALUES (?, ?, ?)'
+            )
+            .run(host, clientId, Date.now());
+        });
+
+        const login = await deleteRequest({
+          method: 'POST',
+          path: '/api/v1/login/password',
+          body: { client_id: clientId, identifier: 'alice@acme.test', password: 'demo' },
+        });
+        assert.equal(login.status, 200);
+        const cookie = mergeCookies('', login);
+        const beforeSession = await deleteRequest({ path: '/api/v1/session', cookie });
+        assert.equal(beforeSession.status, 200);
+        assert.equal(beforeSession.json.scope.client_id, clientId);
+
+        const { verifier, challenge } = pkce();
+        const authorizePath =
+          `/oidc/authorize?response_type=code&client_id=${clientId}` +
+          `&redirect_uri=${encodeURIComponent(redirectUri)}&scope=openid%20profile` +
+          `&state=delete-flow&code_challenge=${challenge}&code_challenge_method=S256`;
+        const approved = await completeAuthorization(deleteRequest, {
+          path: authorizePath,
+          cookie,
+          clientId,
+        });
+        const code = locationQuery(approved.response).searchParams.get('code');
+        assert.ok(code);
+        const token = await deleteRequest({
+          method: 'POST',
+          path: '/oidc/token',
+          form: {
+            grant_type: 'authorization_code',
+            code,
+            redirect_uri: redirectUri,
+            client_id: clientId,
+            code_verifier: verifier,
+          },
+        });
+        assert.equal(token.status, 200);
+
+        const aliceId = userId(env, 'alice');
+        const acmeId = realmId(env, 'acme');
+        const sessionId = activeSessionId(env, cookie);
+        insertRefreshToken(env, {
+          sessionId,
+          userId: aliceId,
+          realmId: acmeId,
+          clientId,
+        });
+
+        withRealmDatabase(env, 'acme', (database) => {
+          const now = Date.now();
+          database
+            .prepare(
+              `INSERT INTO app_bans (user_id, client_id, created_by, created_at)
+               VALUES (?, ?, ?, ?)`
+            )
+            .run(aliceId, clientId, userId(env, 'acme-it'), now);
+          database
+            .prepare(
+              `INSERT OR REPLACE INTO app_bans (user_id, client_id, created_by, created_at)
+               VALUES (?, '*', ?, ?)`
+            )
+            .run(aliceId, userId(env, 'acme-it'), now);
+          database
+            .prepare(
+              `INSERT INTO auth_requests
+                (id, client_id, redirect_uri, scope, state, nonce, code_challenge,
+                 code_challenge_method, session_id, user_id, auth_time, created_at,
+                 expires_at, completed_at)
+               VALUES (?, ?, ?, ?, ?, ?, NULL, NULL, NULL, ?, NULL, ?, ?, NULL)`
+            )
+            .run('delete-flow-auth', clientId, redirectUri, 'openid', 'state', 'nonce', aliceId, now, now + 60_000);
+          database
+            .prepare(
+              `INSERT INTO authorization_codes
+                (id, auth_request_id, client_id, user_id, redirect_uri, scope, nonce,
+                 code_challenge, code_challenge_method, session_id, auth_time, created_at,
+                 expires_at, consumed_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, NULL, NULL, NULL, 1, ?, ?, NULL)`
+            )
+            .run(
+              'delete-flow-code',
+              'delete-flow-code-request',
+              clientId,
+              aliceId,
+              redirectUri,
+              'openid',
+              'nonce',
+              now,
+              now + 60_000
+            );
+        });
+
+        const deleted = await deleteAdminClient(admin, 'acme', clientId);
+        assert.equal(deleted.status, 200);
+        assert.equal(deleted.json.removed, true);
+        assert.equal(deleted.json.client_id, clientId);
+
+        assert.equal(
+          withSystemDatabase(env, (database) =>
+            database.prepare('SELECT COUNT(*) AS count FROM sessions WHERE id = ?').get(sessionId).count
+          ),
+          0
+        );
+        assert.equal(
+          withSystemDatabase(env, (database) =>
+            database.prepare('SELECT COUNT(*) AS count FROM client_realms WHERE client_id = ?').get(clientId).count
+          ),
+          0
+        );
+        assert.equal(
+          withSystemDatabase(env, (database) =>
+            database.prepare('SELECT COUNT(*) AS count FROM oidc_client_hosts WHERE client_id = ?').get(clientId).count
+          ),
+          0
+        );
+        assert.equal(
+          withSystemDatabase(env, (database) =>
+            database.prepare('SELECT COUNT(*) AS count FROM client_consents WHERE client_id = ?').get(clientId).count
+          ),
+          0
+        );
+        assert.equal(
+          withSystemDatabase(env, (database) =>
+            database.prepare('SELECT COUNT(*) AS count FROM refresh_tokens WHERE client_id = ?').get(clientId).count
+          ),
+          0
+        );
+        assert.equal(
+          withRealmDatabase(env, 'acme', (database) =>
+            database.prepare('SELECT COUNT(*) AS count FROM oidc_clients WHERE client_id = ?').get(clientId).count
+          ),
+          0
+        );
+        assert.equal(
+          withRealmDatabase(env, 'acme', (database) =>
+            database.prepare('SELECT COUNT(*) AS count FROM auth_requests WHERE client_id = ?').get(clientId).count
+          ),
+          0
+        );
+        assert.equal(
+          withRealmDatabase(env, 'acme', (database) =>
+            database.prepare('SELECT COUNT(*) AS count FROM authorization_codes WHERE client_id = ?').get(clientId).count
+          ),
+          0
+        );
+        assert.equal(
+          withRealmDatabase(env, 'acme', (database) =>
+            database.prepare('SELECT COUNT(*) AS count FROM app_bans WHERE client_id = ?').get(clientId).count
+          ),
+          0
+        );
+        assert.equal(
+          withRealmDatabase(env, 'acme', (database) =>
+            database.prepare(`SELECT COUNT(*) AS count FROM app_bans WHERE client_id = '*' AND user_id = ?`).get(aliceId).count
+          ),
+          1
+        );
+
+        const afterDelete = await acme({ path: `/oidc/${clientId}/openid-configuration` });
+        assert.equal(afterDelete.status, 404);
+      } finally {
+        const cleanup = await deleteAdminClient(admin, 'acme', clientId);
+        assert.ok(cleanup.status === 200 || cleanup.status === 404);
+        clearBans(env, { username: 'alice', realm: 'acme' });
       }
     });
 

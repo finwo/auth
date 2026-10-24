@@ -15,15 +15,21 @@ function appDist(name) {
 }
 
 export function appIndex(name) {
-  if (!cache.has(name)) {
-    const file = path.join(appDist(name), 'index.html');
-    try {
-      cache.set(name, fs.readFileSync(file));
-    } catch {
-      cache.set(name, null);
-    }
+  const file = path.join(appDist(name), 'index.html');
+  let modified;
+  try {
+    modified = fs.statSync(file).mtimeMs;
+  } catch {
+    cache.set(name, null);
+    return null;
   }
-  return cache.get(name);
+
+  const cached = cache.get(name);
+  if (cached && cached.modified === modified) return cached.content;
+
+  const content = fs.readFileSync(file);
+  cache.set(name, { modified, content });
+  return content;
 }
 
 export function serveAppDocument(res, name) {

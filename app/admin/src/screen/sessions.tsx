@@ -1,5 +1,6 @@
 import m from 'mithril';
 import { PageHeader } from '@component/page-header';
+import { RealmSelector } from '../component/realm-selector';
 import type { AdminRealm, AdminSession } from '../util/api';
 import {
   loadAdminSessions,
@@ -66,6 +67,9 @@ export const SessionsPage: m.Component<SessionsAttrs> = {
 
     this.redirecting = false;
     if (this.loadedRealm !== realmSlug) {
+      this.notice = null;
+      this.confirmKey = null;
+      this.pendingKey = null;
       this.load(realmSlug);
     }
   },
@@ -137,25 +141,14 @@ export const SessionsPage: m.Component<SessionsAttrs> = {
           title="Sessions"
           subtitle="Active sessions with access to this realm."
         >
-          {realms && realms.length > 1 ? (
-            <label class="realm-select">
-              <span>Realm</span>
-              <select
-                value={selected?.slug || ''}
-                onchange={(event: Event) => {
-                  const value = (event.target as HTMLSelectElement).value;
-                  this.notice = null;
-                  m.route.set(`/sessions/${encodeURIComponent(value)}`);
-                }}
-              >
-                {realms.map((realm) => (
-                  <option value={realm.slug}>{realm.display_name}</option>
-                ))}
-              </select>
-            </label>
-          ) : selected ? (
-            <span class="realm-current">{selected.display_name}</span>
-          ) : null}
+          <RealmSelector
+            realms={realms}
+            selected={selected}
+            onchange={(slug: string) => {
+              this.notice = null;
+              m.route.set(`/sessions/${encodeURIComponent(slug)}`);
+            }}
+          />
         </PageHeader>
 
         {realmsError ? (

@@ -16,6 +16,15 @@ const routes: m.RouteDefs = {
   '/sessions/:realm': {
     render: () => m(Admin, {}),
   },
+  '/clients': {
+    render: () => m(Admin, {}),
+  },
+  '/clients/:realm': {
+    render: () => m(Admin, {}),
+  },
+  '/clients/:realm/edit/:client': {
+    render: () => m(Admin, {}),
+  },
   '/callback': {
     render: () => m(AdminCallback, {}),
   },
