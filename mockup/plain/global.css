@@ -20,6 +20,7 @@
   --row-hover: #0000000d;
   --skeleton: #00000012;
   --danger: #c9190b;
+  --danger-text: #c9190b;
   --field-line: rgba(0, 0, 0, 0.42);
   --shadow: 0 0.125em 0.25em #0008;
   --hex: url('./hex-grid-light.svg');
@@ -256,6 +257,22 @@ body {
   color: var(--muted);
   font-size: 0.875rem;
   line-height: 1.6;
+}
+
+.panel-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.panel-header h2 {
+  margin: 0;
+}
+
+.panel-header .note {
+  margin-top: 0.25rem;
 }
 
 .button {
@@ -596,6 +613,12 @@ body {
   border-bottom: 0;
 }
 
+.data-table-static tbody tr,
+.data-table-static tbody tr:hover {
+  cursor: default;
+  background: transparent;
+}
+
 .table-icon-column {
   width: 1%;
 }
@@ -682,7 +705,7 @@ body {
 }
 
 .danger-zone h2 {
-  color: var(--danger);
+  color: var(--danger-text);
 }
 
 .secret-value {
@@ -796,6 +819,15 @@ body {
   line-height: 1.5;
 }
 
+select.field-control,
+.realm-select select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='0.75em' height='0.75em' viewBox='0 0 24 24' fill='none' stroke='%238a8f95' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  padding-right: 2.25rem;
+}
+
 a:focus-visible,
 button:focus-visible,
 summary:focus-visible {
@@ -874,7 +906,7 @@ summary:focus-visible {
     --row: #ffffff0d;
     --row-hover: #ffffff14;
     --skeleton: #ffffff14;
-    --danger: #f28b82;
+    --danger-text: #f28b82;
     --field-line: rgba(255, 255, 255, 0.42);
     --hex: url('./hex-grid-dark.svg');
     color-scheme: dark;
@@ -896,7 +928,7 @@ summary:focus-visible {
   --row: #ffffff0d;
   --row-hover: #ffffff14;
   --skeleton: #ffffff14;
-  --danger: #f28b82;
+  --danger-text: #f28b82;
   --field-line: rgba(255, 255, 255, 0.42);
   --hex: url('./hex-grid-dark.svg');
   color-scheme: dark;

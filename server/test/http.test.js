@@ -217,6 +217,34 @@ function clearConsent(env, { username, realm, clientId }) {
   });
 }
 
+function setAdminConsent(
+  env,
+  { username, realm, clientId, scopes = 'openid', grantedVia = 'user', revokedAt = null }
+) {
+  const now = Date.now();
+  const targetUserId = userId(env, username);
+  const targetRealmId = realmId(env, realm);
+  withSystemDatabase(env, (database) => {
+    database
+      .prepare(
+        `INSERT OR REPLACE INTO client_consents
+          (user_id, realm_id, client_id, scopes, granted_via, created_at, updated_at, revoked_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+      )
+      .run(
+        targetUserId,
+        targetRealmId,
+        clientId,
+        scopes,
+        grantedVia,
+        now,
+        revokedAt || now,
+        revokedAt
+      );
+  });
+  return revokedAt || now;
+}
+
 function setConsentMode(env, { realm, clientId, mode }) {
   withRealmDatabase(env, realm, (database) => {
     database
@@ -2063,6 +2091,195 @@ test('HTTP realm, login, OIDC and logout flows', async (t) => {
           clientId: 'globex-members-app',
         });
       }
+    });
+
+    await t.test('admin user directory and app restrictions are realm scoped', async () => {
+      const admin = await adminToken('it@acme.test');
+      const systemAdmin = await adminToken();
+      const aliceId = userId(env, 'alice');
+      const acmeId = realmId(env, 'acme');
+      const adminId = userId(env, 'admin');
+
+      clearBans(env, { username: 'alice', realm: 'acme' });
+      clearConsent(env, { username: 'alice', realm: 'acme', clientId: 'internal-app' });
+      clearConsent(env, {
+        username: 'alice',
+        realm: 'acme',
+        clientId: 'acme-members-app',
+      });
+
+      try {
+        setAdminConsent(env, {
+          username: 'alice',
+          realm: 'acme',
+          clientId: 'internal-app',
+          scopes: 'openid profile',
+          grantedVia: 'trusted',
+        });
+        const revokedAt = setAdminConsent(env, {
+          username: 'alice',
+          realm: 'acme',
+          clientId: 'acme-members-app',
+          scopes: '',
+          revokedAt: Date.now(),
+        });
+
+        withRealmDatabase(env, 'acme', (database) => {
+          database
+            .prepare(
+              `INSERT INTO app_bans (user_id, client_id, created_by, created_at)
+               VALUES (?, ?, ?, ?)`
+            )
+            .run(aliceId, 'internal-app', userId(env, 'acme-it'), Date.now());
+        });
+
+        const acmeUsers = await identity({
+          path: '/api/v1/admin/realms/acme/users',
+          bearer: admin.access_token,
+        });
+        assert.equal(acmeUsers.status, 200);
+        assert.deepEqual(
+          acmeUsers.json.users.map((user) => user.username).sort(),
+          ['acme-it', 'alice', 'guest']
+        );
+
+        const acmeAlice = acmeUsers.json.users.find((user) => user.username === 'alice');
+        assert.equal(acmeAlice.relationship, 'home');
+        assert.equal(acmeAlice.membership_status, 'active');
+        assert.equal(acmeAlice.email, 'alice@acme.test');
+        assert.equal(acmeAlice.banned, true);
+        assert.equal(acmeAlice.ban_count, 1);
+
+        const acmeAdminUser = acmeUsers.json.users.find((user) => user.username === 'acme-it');
+        assert.deepEqual(acmeAdminUser.roles, ['realm-admin']);
+
+        const acmeGuest = acmeUsers.json.users.find((user) => user.username === 'guest');
+        assert.equal(acmeGuest.relationship, 'guest');
+
+        const globexUsers = await identity({
+          path: '/api/v1/admin/realms/globex/users',
+          bearer: systemAdmin.access_token,
+        });
+        assert.equal(globexUsers.status, 200);
+        assert.deepEqual(
+          globexUsers.json.users.map((user) => user.username).sort(),
+          ['alice', 'contractor']
+        );
+
+        const detail = await identity({
+          path: `/api/v1/admin/realms/acme/users/${aliceId}`,
+          bearer: admin.access_token,
+        });
+        assert.equal(detail.status, 200);
+        assert.equal(detail.json.user.id, aliceId);
+        assert.equal(detail.json.user.relationship, 'home');
+        assert.equal(detail.json.user.home_realm_id, acmeId);
+        assert.equal(detail.json.user.banned, true);
+
+        const internalConsent = detail.json.consents.find(
+          (consent) => consent.client_id === 'internal-app'
+        );
+        assert.equal(internalConsent.active, true);
+        assert.equal(internalConsent.granted_via, 'trusted');
+        assert.deepEqual(internalConsent.scopes, ['openid', 'profile']);
+        assert.equal(internalConsent.client_name, 'Internal App');
+
+        const revokedConsent = detail.json.consents.find(
+          (consent) => consent.client_id === 'acme-members-app'
+        );
+        assert.equal(revokedConsent.active, false);
+        assert.equal(revokedConsent.revoked_at, revokedAt);
+        assert.deepEqual(revokedConsent.scopes, []);
+
+        const ban = detail.json.bans.find((item) => item.client_id === 'internal-app');
+        assert.equal(ban.client_name, 'Internal App');
+        assert.equal(ban.created_by_username, 'acme-it');
+
+        const outsiderDetail = await identity({
+          path: `/api/v1/admin/realms/acme/users/${adminId}`,
+          bearer: admin.access_token,
+        });
+        assert.equal(outsiderDetail.status, 404);
+        assert.equal(outsiderDetail.json.error.code, 'user_not_found');
+
+        const outsiderBan = await identity({
+          method: 'POST',
+          path: `/api/v1/admin/realms/acme/users/${adminId}/bans`,
+          bearer: admin.access_token,
+          body: { client_id: '*' },
+        });
+        assert.equal(outsiderBan.status, 404);
+        assert.equal(outsiderBan.json.error.code, 'user_not_found');
+        assert.equal(
+          withRealmDatabase(env, 'acme', (database) =>
+            database.prepare('SELECT COUNT(*) AS count FROM app_bans WHERE user_id = ?').get(adminId).count
+          ),
+          0
+        );
+      } finally {
+        clearBans(env, { username: 'alice', realm: 'acme' });
+        clearConsent(env, { username: 'alice', realm: 'acme', clientId: 'internal-app' });
+        clearConsent(env, {
+          username: 'alice',
+          realm: 'acme',
+          clientId: 'acme-members-app',
+        });
+      }
+    });
+
+    await t.test('system admins can manage users outside a realm', async () => {
+      const acmeAdmin = await adminToken('it@acme.test');
+      const systemAdmin = await adminToken();
+      const aliceId = userId(env, 'alice');
+
+      const acmeMe = await identity({
+        path: '/api/v1/admin/me',
+        bearer: acmeAdmin.access_token,
+      });
+      assert.equal(acmeMe.status, 200);
+      assert.equal(acmeMe.json.user.is_system_admin, false);
+
+      const systemMe = await identity({
+        path: '/api/v1/admin/me',
+        bearer: systemAdmin.access_token,
+      });
+      assert.equal(systemMe.status, 200);
+      assert.equal(systemMe.json.user.is_system_admin, true);
+
+      const forbidden = await identity({
+        path: '/api/v1/admin/users',
+        bearer: acmeAdmin.access_token,
+      });
+      assert.equal(forbidden.status, 403);
+      assert.equal(forbidden.json.error.code, 'forbidden');
+
+      const users = await identity({
+        path: '/api/v1/admin/users',
+        bearer: systemAdmin.access_token,
+      });
+      assert.equal(users.status, 200);
+      const usernames = users.json.users.map((user) => user.username);
+      assert.ok(usernames.includes('alice'));
+      assert.ok(usernames.includes('admin'));
+
+      const globalAlice = users.json.users.find((user) => user.username === 'alice');
+      assert.equal(globalAlice.home_realm_slug, 'acme');
+      assert.equal(globalAlice.membership_count, 2);
+
+      const globalAdmin = users.json.users.find((user) => user.username === 'admin');
+      assert.equal(globalAdmin.home_realm_slug, null);
+      assert.equal(globalAdmin.membership_count, 0);
+      assert.equal(globalAdmin.is_system_admin, true);
+
+      const overview = await identity({
+        path: `/api/v1/admin/users/${aliceId}`,
+        bearer: systemAdmin.access_token,
+      });
+      assert.equal(overview.status, 200);
+      assert.deepEqual(
+        overview.json.memberships.map((membership) => [membership.slug, membership.relationship]).sort(),
+        [['acme', 'home'], ['globex', 'guest']]
+      );
     });
 
     await t.test('system admins can use the admin client on the canonical host', async () => {

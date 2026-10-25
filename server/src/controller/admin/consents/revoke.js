@@ -1,5 +1,6 @@
 import { app } from '../../../app.js';
 import { authenticateAdminRequest } from '../../../lib/admin-auth.js';
+import { assertAdminRealmUser } from '../../../lib/admin-users.js';
 import {
   revokeConsent,
   revokeConsentRefreshTokens,
@@ -7,7 +8,6 @@ import {
 } from '../../../lib/consents.js';
 import { HttpError } from '../../../lib/http/http-error.js';
 import { getClient } from '../../../lib/oidc/clients.js';
-import { findUserById } from '../../../lib/users.js';
 
 function serializeConsent(consent) {
   return {
@@ -30,10 +30,12 @@ export default {
     const auth = await authenticateAdminRequest(req, {
       realmSlug: req.params.realm,
     });
-    const user = await findUserById(auth.systemDb, req.params.userId);
-    if (!user) {
-      throw new HttpError(404, 'user_not_found', 'User not found');
-    }
+    const user = await assertAdminRealmUser({
+      systemDb: auth.systemDb,
+      realmDb: auth.realmDb,
+      realmId: auth.realm.id,
+      userId: req.params.userId,
+    });
 
     const client = await getClient(auth.realmDb, req.params.clientId);
     if (!client || client.system_client) {

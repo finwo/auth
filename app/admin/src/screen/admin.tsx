@@ -1,4 +1,4 @@
-import { Activity, AppWindow, LayoutGrid } from 'lucide';
+import { Activity, AppWindow, LayoutGrid, Users } from 'lucide';
 import m from 'mithril';
 import { AppShell } from '@component/app-shell';
 import { Nav, type NavItem } from '@component/nav';
@@ -11,6 +11,7 @@ import {
   clearAdminTokens,
   completeAdminLogin,
   getAdminTokens,
+  loadAdminMe,
   loadAdminRealms,
   loadAdminUser,
   startAdminLogin,
@@ -20,6 +21,9 @@ import { OverviewPage } from './overview';
 import { SessionsPage } from './sessions';
 import { ClientEditPage } from './client-edit';
 import { ClientsPage } from './clients';
+import { GlobalUserPage } from './global-user';
+import { UserPage } from './user';
+import { UsersPage } from './users';
 
 function currentPath() {
   return (m.route.get() || '/').split('?')[0];
@@ -62,8 +66,48 @@ function clientEditPath() {
   }
 }
 
+function usersRealm() {
+  const path = currentPath();
+  if (path !== '/users' && !path.startsWith('/users/')) return null;
+  const suffix = path.slice('/users/'.length);
+  if (!suffix) return null;
+  const slug = suffix.split('/')[0];
+  try {
+    return decodeURIComponent(slug);
+  } catch {
+    return null;
+  }
+}
+
+function userDetailPath() {
+  const path = currentPath();
+  if (path === '/users/global' || path.startsWith('/users/global/')) return null;
+  const match = /^\/users\/([^/]+)\/([^/]+)$/.exec(path);
+  if (!match) return null;
+  try {
+    return {
+      realmSlug: decodeURIComponent(match[1]),
+      userId: decodeURIComponent(match[2]),
+    };
+  } catch {
+    return null;
+  }
+}
+
+function globalUserDetailPath() {
+  const path = currentPath();
+  const match = /^\/users\/global\/([^/]+)$/.exec(path);
+  if (!match) return null;
+  try {
+    return { userId: decodeURIComponent(match[1]) };
+  } catch {
+    return null;
+  }
+}
+
 export const Admin: m.Component = {
   user: null as UserInfo | null,
+  systemAdmin: false,
   realms: null as AdminRealm[] | null,
   realmsError: null as Error | null,
   error: null as Error | null,
@@ -115,6 +159,17 @@ export const Admin: m.Component = {
       this.realms = [];
       this.realmsError = e as Error;
     }
+
+    try {
+      const me = await loadAdminMe();
+      this.systemAdmin = me.is_system_admin;
+    } catch (e: any) {
+      if (e?.status === 401 || e?.status === 400) {
+        await this.login();
+        return;
+      }
+      this.systemAdmin = false;
+    }
     m.redraw();
   },
 
@@ -136,13 +191,18 @@ export const Admin: m.Component = {
     const path = currentPath();
     const clients = path === '/clients' || path.startsWith('/clients/');
     const sessions = path === '/sessions' || path.startsWith('/sessions/');
+    const users = path === '/users' || path.startsWith('/users/');
     const title = clients
       ? path.includes('/edit/')
         ? 'Edit client | Administration'
         : 'Clients | Administration'
       : sessions
         ? 'Sessions | Administration'
-        : 'Administration';
+        : users
+          ? userDetailPath() || globalUserDetailPath()
+            ? 'User | Administration'
+            : 'Users | Administration'
+          : 'Administration';
     document.title = title;
   },
 
@@ -155,9 +215,14 @@ export const Admin: m.Component = {
     const path = currentPath();
     const sessions = path === '/sessions' || path.startsWith('/sessions/');
     const clients = path === '/clients' || path.startsWith('/clients/');
+    const users = path === '/users' || path.startsWith('/users/');
     const realmSlug = sessionsRealm();
     const clientRealmSlug = clientsRealm();
+    const userRealmSlug = usersRealm();
     const clientEdit = clientEditPath();
+    const userDetail = userDetailPath();
+    const globalUser = globalUserDetailPath();
+    const isGlobalUsers = usersRealm() === 'global';
     const firstRealm = this.realms && this.realms.length > 0 ? this.realms[0].slug : null;
     const sessionsHref = firstRealm
       ? `/sessions/${encodeURIComponent(firstRealm)}`
@@ -165,13 +230,14 @@ export const Admin: m.Component = {
     const clientsHref = firstRealm
       ? `/clients/${encodeURIComponent(firstRealm)}`
       : '/clients';
+    const usersHref = firstRealm ? `/users/${encodeURIComponent(firstRealm)}` : '/users';
 
     const navItems: NavItem[] = [
       {
         href: appUrl('/'),
         label: 'Overview',
         icon: LayoutGrid,
-        active: !sessions && !clients,
+        active: !sessions && !clients && !users,
         onclick: (event: Event) => {
           event.preventDefault();
           m.route.set('/');
@@ -192,12 +258,22 @@ export const Admin: m.Component = {
         label: 'Sessions',
         icon: Activity,
         active: sessions,
-        onclick: (event: Event) => {
-          event.preventDefault();
-          m.route.set(sessionsHref);
+          onclick: (event: Event) => {
+            event.preventDefault();
+            m.route.set(sessionsHref);
+          },
         },
-      },
-    ];
+        {
+          href: appUrl(usersHref),
+          label: 'Users',
+          icon: Users,
+          active: users,
+          onclick: (event: Event) => {
+            event.preventDefault();
+            m.route.set(usersHref);
+          },
+        },
+      ];
 
     return (
       <AppShell
@@ -248,6 +324,29 @@ export const Admin: m.Component = {
             realms={this.realms}
             realmsError={this.realmsError}
             onAuthExpired={() => this.authExpired()}
+          />
+        ) : users && globalUser ? (
+          <GlobalUserPage
+            userId={globalUser.userId}
+            realmsError={this.realmsError}
+            onAuthExpired={() => this.authExpired()}
+          />
+        ) : users && userDetail ? (
+          <UserPage
+            realmSlug={userDetail.realmSlug}
+            userId={userDetail.userId}
+            realms={this.realms}
+            realmsError={this.realmsError}
+            onAuthExpired={() => this.authExpired()}
+          />
+        ) : users ? (
+          <UsersPage
+            realmSlug={userRealmSlug}
+            realms={this.realms}
+            realmsError={this.realmsError}
+            onAuthExpired={() => this.authExpired()}
+            isSystemAdmin={Boolean(this.systemAdmin)}
+            isGlobal={isGlobalUsers}
           />
         ) : sessions ? (
           <SessionsPage

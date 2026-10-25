@@ -9,9 +9,15 @@ import {
   type AdminClientInput,
   type AdminClientResponse,
   type AdminClientSecretResponse,
+  type AdminGlobalUser,
+  type AdminGlobalUserDetail,
+  type AdminMeUser,
   type AdminRealm,
+  type AdminRealmUser,
   type AdminRole,
   type AdminSession,
+  type AdminUserBan,
+  type AdminUserDetail,
 } from './api';
 
 export type AdminTokens = StoredTokens;
@@ -44,6 +50,11 @@ async function adminJson<T>(path: string, init: RequestInit = {}): Promise<T> {
     response = await adminApi(path, accessToken, init);
   }
   return parseJsonResponse<T>(response);
+}
+
+export async function loadAdminMe(): Promise<AdminMeUser> {
+  const response = await adminJson<{ user: AdminMeUser }>('/api/v1/admin/me');
+  return response.user;
 }
 
 export async function loadAdminRealms(): Promise<AdminRealm[]> {
@@ -139,4 +150,73 @@ export async function rotateAdminClientSecret(
       body: JSON.stringify({}),
     }
   );
+}
+
+export async function loadAdminUsers(realmSlug: string): Promise<AdminRealmUser[]> {
+  const realm = encodeURIComponent(realmSlug);
+  const response = await adminJson<{ users: AdminRealmUser[] }>(
+    `/api/v1/admin/realms/${realm}/users`
+  );
+  return response.users;
+}
+
+export async function loadAdminGlobalUsers(): Promise<AdminGlobalUser[]> {
+  const response = await adminJson<{ users: AdminGlobalUser[] }>('/api/v1/admin/users');
+  return response.users;
+}
+
+export async function loadAdminGlobalUser(userId: string): Promise<AdminGlobalUserDetail> {
+  const user = encodeURIComponent(userId);
+  return adminJson<AdminGlobalUserDetail>(`/api/v1/admin/users/${user}`);
+}
+
+export async function loadAdminUserDetail(
+  realmSlug: string,
+  userId: string
+): Promise<AdminUserDetail> {
+  const realm = encodeURIComponent(realmSlug);
+  const user = encodeURIComponent(userId);
+  return adminJson<AdminUserDetail>(`/api/v1/admin/realms/${realm}/users/${user}`);
+}
+
+export async function revokeAdminUserConsent(
+  realmSlug: string,
+  userId: string,
+  clientId: string
+) {
+  const realm = encodeURIComponent(realmSlug);
+  const user = encodeURIComponent(userId);
+  const client = encodeURIComponent(clientId);
+  return adminJson(`/api/v1/admin/realms/${realm}/users/${user}/consents/${client}`, {
+    method: 'DELETE',
+  });
+}
+
+export async function createAdminUserBan(
+  realmSlug: string,
+  userId: string,
+  clientId: string
+): Promise<{ ok: boolean; ban: AdminUserBan }> {
+  const realm = encodeURIComponent(realmSlug);
+  const user = encodeURIComponent(userId);
+  return adminJson<{ ok: boolean; ban: AdminUserBan }>(
+    `/api/v1/admin/realms/${realm}/users/${user}/bans`,
+    {
+      method: 'POST',
+      body: JSON.stringify({ client_id: clientId }),
+    }
+  );
+}
+
+export async function deleteAdminUserBan(
+  realmSlug: string,
+  userId: string,
+  clientId: string
+) {
+  const realm = encodeURIComponent(realmSlug);
+  const user = encodeURIComponent(userId);
+  const client = encodeURIComponent(clientId);
+  return adminJson(`/api/v1/admin/realms/${realm}/users/${user}/bans/${client}`, {
+    method: 'DELETE',
+  });
 }

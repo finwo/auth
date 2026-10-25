@@ -63,6 +63,110 @@ export interface AdminClientSecretResponse {
   client_secret: string;
 }
 
+export interface AdminRealmUser {
+  id: string;
+  username: string;
+  display_name: string;
+  email: string | null;
+  status: string;
+  membership_status: string | null;
+  relationship: 'home' | 'guest';
+  roles: string[];
+  is_system_admin: boolean;
+  banned: boolean;
+  ban_count: number;
+  last_login_at: number | null;
+  created_at: number;
+}
+
+export interface AdminUserConsent {
+  client_id: string;
+  client_name: string | null;
+  client_consent_mode: string | null;
+  scopes: string[];
+  granted_via: 'user' | 'trusted' | string;
+  created_at: number;
+  updated_at: number;
+  revoked_at: number | null;
+  active: boolean;
+}
+
+export interface AdminUserBan {
+  client_id: string;
+  client_name: string | null;
+  created_by: string | null;
+  created_by_username: string | null;
+  created_at: number;
+}
+
+export interface AdminUserDetail {
+  user: {
+    id: string;
+    username: string;
+    display_name: string;
+    email: string | null;
+    status: string;
+    membership_status: string | null;
+    relationship: 'home' | 'guest';
+    roles: string[];
+    is_system_admin: boolean;
+    banned: boolean;
+    ban_count: number;
+    home_realm_id: string | null;
+    last_login_at: number | null;
+    created_at: number;
+    updated_at: number;
+  };
+  consents: AdminUserConsent[];
+  bans: AdminUserBan[];
+}
+
+export interface AdminMeUser {
+  id: string;
+  username: string;
+  display_name: string;
+  email: string | null;
+  is_system_admin: boolean;
+}
+
+export interface AdminGlobalUser {
+  id: string;
+  username: string;
+  display_name: string;
+  email: string | null;
+  status: string;
+  is_system_admin: boolean;
+  home_realm_slug: string | null;
+  membership_count: number;
+  last_login_at: number | null;
+  created_at: number;
+}
+
+export interface AdminGlobalUserMembership {
+  slug: string;
+  display_name: string;
+  relationship: 'home' | 'guest';
+  membership_status: string;
+  roles: string[];
+  banned: boolean;
+}
+
+export interface AdminGlobalUserDetail {
+  user: {
+    id: string;
+    username: string;
+    display_name: string;
+    email: string | null;
+    status: string;
+    is_system_admin: boolean;
+    home_realm_slug: string | null;
+    last_login_at: number | null;
+    created_at: number;
+    updated_at: number;
+  };
+  memberships: AdminGlobalUserMembership[];
+}
+
 export interface AdminSession {
   public_id: string;
   user: {

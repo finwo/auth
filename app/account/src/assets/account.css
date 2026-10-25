@@ -98,7 +98,7 @@
   padding: 0.5rem 0;
   border: 0;
   background: none;
-  color: var(--danger);
+  color: var(--danger-text);
   font: inherit;
   font-size: 0.875rem;
   cursor: pointer;

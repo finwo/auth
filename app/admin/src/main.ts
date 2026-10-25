@@ -25,6 +25,21 @@ const routes: m.RouteDefs = {
   '/clients/:realm/edit/:client': {
     render: () => m(Admin, {}),
   },
+  '/users': {
+    render: () => m(Admin, {}),
+  },
+  '/users/global': {
+    render: () => m(Admin, {}),
+  },
+  '/users/global/:userId': {
+    render: () => m(Admin, {}),
+  },
+  '/users/:realm': {
+    render: () => m(Admin, {}),
+  },
+  '/users/:realm/:userId': {
+    render: () => m(Admin, {}),
+  },
   '/callback': {
     render: () => m(AdminCallback, {}),
   },
