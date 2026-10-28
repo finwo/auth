@@ -11,12 +11,14 @@ export default {
     const auth = await authenticateAdminRequest(req, {
       realmSlug: req.params.realm,
     });
-    const detail = await getAdminRealmUserDetail(
-      auth.systemDb,
-      auth.realmDb,
-      auth.realm.id,
-      req.params.userId
-    );
+    const detail = await getAdminRealmUserDetail({
+      systemDb: auth.systemDb,
+      realmDb: auth.realmDb,
+      realmId: auth.realm.id,
+      userId: req.params.userId,
+      actor: auth.user,
+      actorRoles: auth.roles,
+    });
     if (!detail) {
       throw new HttpError(404, 'user_not_found', 'User not found');
     }

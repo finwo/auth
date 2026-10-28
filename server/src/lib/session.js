@@ -634,6 +634,21 @@ export async function revokeRealmSessions(
   return result.changes;
 }
 
+export async function revokeUserRealmSessions(
+  systemDb,
+  { userId, realmId, revokedBy = null, now = Date.now() }
+) {
+  const result = await systemDb.run(
+    `UPDATE session_realms
+        SET revoked_at = {now}, revoked_by = {revokedBy}
+      WHERE realm_id = {realmId}
+        AND revoked_at IS NULL
+        AND session_id IN (SELECT id FROM sessions WHERE user_id = {userId})`,
+    { now, revokedBy, realmId, userId }
+  );
+  return result.changes;
+}
+
 export async function reauthenticateSession(
   systemDb,
   { sessionId, realmId, now = Date.now() }

@@ -6,13 +6,17 @@ import {
   createAdminUserBan,
   deleteAdminUserBan,
   loadAdminClients,
+  loadAdminRoles,
   loadAdminUserDetail,
   revokeAdminUserConsent,
+  updateAdminRealmMembership,
+  updateAdminRealmUserRoles,
 } from '../util/auth';
 import {
   appUrl,
   type AdminClient,
   type AdminRealm,
+  type AdminRole,
   type AdminUserBan,
   type AdminUserConsent,
   type AdminUserDetail,
@@ -51,21 +55,31 @@ function banLabel(ban: AdminUserBan) {
   return ban.client_id === '*' ? 'All apps' : ban.client_name || ban.client_id;
 }
 
-function membershipLabel(detail: AdminUserDetail) {
-  const relationship = detail.user.relationship === 'home' ? 'Home realm' : 'Guest';
-  const status = detail.user.membership_status;
-  return status && status !== 'active' ? `${relationship} · ${status}` : relationship;
+function roleLabel(role: AdminRole) {
+  return role.name || role.slug;
+}
+
+function changedRoles(current: string[], selected: string[]) {
+  return current.length !== selected.length || current.some((role) => !selected.includes(role));
+}
+
+function changedAdminRole(current: string[], selected: string[]) {
+  return current.includes('realm-admin') !== selected.includes('realm-admin');
+}
+
+function membershipActionLabel(status: string | null) {
+  return status === 'suspended' ? 'Reactivate member' : 'Suspend member';
+}
+
+function membershipStatusLabel(status: string | null) {
+  if (!status) return 'Not a member';
+  return status[0].toUpperCase() + status.slice(1);
 }
 
 function statusLabel(detail: AdminUserDetail) {
   if (detail.user.status !== 'active') {
     return detail.user.status === 'disabled' ? 'Disabled' : detail.user.status;
   }
-  if (detail.user.membership_status && detail.user.membership_status !== 'active') {
-    const status = detail.user.membership_status;
-    return status[0].toUpperCase() + status.slice(1);
-  }
-  if (detail.user.banned) return 'Banned';
   return 'Active';
 }
 
@@ -76,10 +90,16 @@ export const UserPage: m.Component<UserAttrs> = {
   redirecting: false,
   detail: null as AdminUserDetail | null,
   clients: [] as AdminClient[],
+  roles: [] as AdminRole[],
+  selectedRoles: [] as string[],
   error: null as Error | null,
   notice: null as string | null,
   confirm: null as UserConfirm | null,
   pendingAction: false,
+  membershipConfirm: false,
+  membershipPending: false,
+  roleConfirm: false,
+  rolePending: false,
   banOpen: false,
   banClientId: '*',
   banPending: false,
@@ -121,10 +141,16 @@ export const UserPage: m.Component<UserAttrs> = {
     this.loadedKey = key;
     this.detail = null;
     this.clients = [];
+    this.roles = [];
+    this.selectedRoles = [];
     this.error = null;
     this.notice = null;
     this.confirm = null;
     this.pendingAction = false;
+    this.membershipConfirm = false;
+    this.membershipPending = false;
+    this.roleConfirm = false;
+    this.rolePending = false;
     this.banOpen = false;
     this.banClientId = '*';
     this.banPending = false;
@@ -138,13 +164,16 @@ export const UserPage: m.Component<UserAttrs> = {
     m.redraw();
 
     try {
-      const [detail, clients] = await Promise.all([
+      const [detail, clients, roles] = await Promise.all([
         loadAdminUserDetail(realmSlug, userId),
         loadAdminClients(realmSlug),
+        loadAdminRoles(realmSlug),
       ]);
       if (this.loadedKey === detailKey(realmSlug, userId)) {
         this.detail = detail;
         this.clients = clients;
+        this.roles = roles;
+        this.selectedRoles = [...detail.user.roles];
       }
     } catch (e: any) {
       if (this.loadedKey !== detailKey(realmSlug, userId)) return;
@@ -218,6 +247,86 @@ export const UserPage: m.Component<UserAttrs> = {
     } finally {
       this.banPending = false;
       m.redraw();
+    }
+  },
+
+  cancelAccessActions(this: any) {
+    this.membershipConfirm = false;
+    this.roleConfirm = false;
+    if (this.detail) this.selectedRoles = [...this.detail.user.roles];
+    m.redraw();
+  },
+
+  applyMembershipUpdate(this: any, response: any) {
+    this.detail = response;
+    this.selectedRoles = [...response.user.roles];
+    this.membershipConfirm = false;
+    this.notice =
+      response.user.membership_status === 'suspended'
+        ? 'Membership suspended. Existing realm access was revoked.'
+        : 'Membership reactivated. Previously revoked authorizations were not restored.';
+  },
+
+  async submitMembership(this: any) {
+    const { realmSlug, userId } = this.attrs;
+    if (!realmSlug || !userId || !this.detail) return;
+
+    const status = this.detail.user.membership_status === 'suspended' ? 'active' : 'suspended';
+    this.membershipPending = true;
+    this.error = null;
+    this.notice = null;
+
+    try {
+      const response = await updateAdminRealmMembership(realmSlug, userId, status);
+      this.applyMembershipUpdate(response);
+    } catch (e: any) {
+      if (e?.status === 401 || e?.status === 400) {
+        this.attrs.onAuthExpired();
+        return;
+      }
+      this.error = e as Error;
+    } finally {
+      this.membershipPending = false;
+      m.redraw();
+    }
+  },
+
+  async submitRoles(this: any) {
+    const { realmSlug, userId } = this.attrs;
+    if (!realmSlug || !userId || !this.detail) return;
+
+    this.rolePending = true;
+    this.error = null;
+    this.notice = null;
+
+    try {
+      const response = await updateAdminRealmUserRoles(
+        realmSlug,
+        userId,
+        [...this.selectedRoles].sort()
+      );
+      this.detail = response;
+      this.selectedRoles = [...response.user.roles];
+      this.roleConfirm = false;
+      this.notice = 'Realm roles updated.';
+    } catch (e: any) {
+      if (e?.status === 401 || e?.status === 400) {
+        this.attrs.onAuthExpired();
+        return;
+      }
+      this.error = e as Error;
+    } finally {
+      this.rolePending = false;
+      m.redraw();
+    }
+  },
+
+  requestRoleSave(this: any) {
+    if (!this.detail) return;
+    if (changedAdminRole(this.detail.user.roles, this.selectedRoles)) {
+      this.roleConfirm = true;
+    } else {
+      this.submitRoles();
     }
   },
 
@@ -308,16 +417,8 @@ export const UserPage: m.Component<UserAttrs> = {
                   <dd>{detail.user.email || 'No verified email'}</dd>
                 </div>
                 <div>
-                  <dt>Realm membership</dt>
-                  <dd>{membershipLabel(detail)}</dd>
-                </div>
-                <div>
                   <dt>Status</dt>
                   <dd>{statusLabel(detail)}</dd>
-                </div>
-                <div>
-                  <dt>Roles</dt>
-                  <dd>{detail.user.roles.length ? detail.user.roles.join(', ') : 'None'}</dd>
                 </div>
                 <div>
                   <dt>System admin</dt>
@@ -328,6 +429,106 @@ export const UserPage: m.Component<UserAttrs> = {
                   <dd>{detail.user.last_login_at ? formatTime(detail.user.last_login_at) : 'Never'}</dd>
                 </div>
               </dl>
+            </section>
+
+            <section class="panel">
+              <div class="panel-header">
+                <div>
+                  <h2>Realm access</h2>
+                  <p class="note">Manage membership and roles in this realm.</p>
+                </div>
+                {detail.permissions.can_suspend_membership ||
+                detail.permissions.can_reactivate_membership ? (
+                  <button
+                    class={
+                      detail.permissions.can_suspend_membership ? 'button-danger' : 'button-secondary'
+                    }
+                    type="button"
+                    disabled={this.membershipPending}
+                    onclick={() => {
+                      if (detail.permissions.can_reactivate_membership) {
+                        this.submitMembership();
+                      } else {
+                        this.membershipConfirm = true;
+                        m.redraw();
+                      }
+                    }}
+                  >
+                    {this.membershipPending
+                      ? 'Applying'
+                      : membershipActionLabel(detail.user.membership_status)}
+                  </button>
+                ) : null}
+              </div>
+              <dl class="details">
+                <div>
+                  <dt>Relationship</dt>
+                  <dd>{detail.user.relationship === 'home' ? 'Home realm' : 'Guest'}</dd>
+                </div>
+                <div>
+                  <dt>Membership</dt>
+                  <dd>{membershipStatusLabel(detail.user.membership_status)}</dd>
+                </div>
+              </dl>
+              {detail.permissions.last_active_realm_admin ? (
+                <div class="notice">
+                  This is the only active realm administrator. System admins can still remove
+                  this access.
+                </div>
+              ) : null}
+              <fieldset class="role-field">
+                <legend>Realm roles</legend>
+                {this.roles.length === 0 ? (
+                  <p class="note">No realm roles are available.</p>
+                ) : (
+                  <div class="checkbox-list">
+                    {this.roles.map((role: AdminRole) => {
+                      const checked = this.selectedRoles.includes(role.slug);
+                      const protectedRole =
+                        !detail.permissions.can_edit_roles ||
+                        (detail.permissions.last_active_realm_admin &&
+                          !detail.permissions.can_remove_last_realm_admin &&
+                          role.slug === 'realm-admin' &&
+                          detail.user.roles.includes(role.slug));
+                      return (
+                        <label class="checkbox-row">
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            disabled={protectedRole}
+                            onchange={(event: Event) => {
+                              const selected = new Set(this.selectedRoles);
+                              if ((event.target as HTMLInputElement).checked) {
+                                selected.add(role.slug);
+                              } else {
+                                selected.delete(role.slug);
+                              }
+                              this.selectedRoles = [...selected].sort();
+                              m.redraw();
+                            }}
+                          />
+                          <span>{roleLabel(role)}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                )}
+              </fieldset>
+              {detail.permissions.can_edit_roles ? (
+                <div class="modal-actions">
+                  <button
+                    class="button"
+                    type="button"
+                    disabled={
+                      this.rolePending ||
+                      !changedRoles(detail.user.roles, this.selectedRoles)
+                    }
+                    onclick={() => this.requestRoleSave()}
+                  >
+                    {this.rolePending ? 'Saving roles' : 'Save roles'}
+                  </button>
+                </div>
+              ) : null}
             </section>
 
             <section class="panel">
@@ -555,6 +756,60 @@ export const UserPage: m.Component<UserAttrs> = {
                 onclick={() => this.submitBan()}
               >
                 {this.banPending ? 'Creating ban' : 'Ban user'}
+              </button>
+            </div>
+          </Modal>
+        ) : null}
+
+        {this.membershipConfirm && detail ? (
+          <Modal title="Suspend membership" onClose={() => this.cancelAccessActions()}>
+            <p class="modal-note">
+              Suspending {displayName} revokes realm consents, refresh tokens and session
+              bindings. Reactivating the membership does not restore those authorizations.
+            </p>
+            <div class="modal-actions">
+              <button
+                class="button-secondary"
+                type="button"
+                disabled={this.membershipPending}
+                onclick={() => this.cancelAccessActions()}
+              >
+                Cancel
+              </button>
+              <button
+                class="button-danger"
+                type="button"
+                disabled={this.membershipPending}
+                onclick={() => this.submitMembership()}
+              >
+                {this.membershipPending ? 'Suspending' : 'Suspend member'}
+              </button>
+            </div>
+          </Modal>
+        ) : null}
+
+        {this.roleConfirm && detail ? (
+          <Modal title="Update realm roles" onClose={() => this.cancelAccessActions()}>
+            <p class="modal-note">
+              Realm-admin access is re-read from the realm database on each request. Changing
+              this role can immediately alter who can administer {selected?.display_name}.
+            </p>
+            <div class="modal-actions">
+              <button
+                class="button-secondary"
+                type="button"
+                disabled={this.rolePending}
+                onclick={() => this.cancelAccessActions()}
+              >
+                Cancel
+              </button>
+              <button
+                class="button"
+                type="button"
+                disabled={this.rolePending}
+                onclick={() => this.submitRoles()}
+              >
+                {this.rolePending ? 'Saving roles' : 'Save roles'}
               </button>
             </div>
           </Modal>

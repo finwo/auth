@@ -99,6 +99,17 @@ export interface AdminUserBan {
   created_at: number;
 }
 
+export interface AdminUserPermissions {
+  is_self: boolean;
+  can_manage_membership: boolean;
+  can_suspend_membership: boolean;
+  can_reactivate_membership: boolean;
+  can_edit_roles: boolean;
+  can_remove_last_realm_admin: boolean;
+  last_active_realm_admin: boolean;
+  reason: string | null;
+}
+
 export interface AdminUserDetail {
   user: {
     id: string;
@@ -119,6 +130,36 @@ export interface AdminUserDetail {
   };
   consents: AdminUserConsent[];
   bans: AdminUserBan[];
+  permissions: AdminUserPermissions;
+}
+
+export interface AdminUserMutationResponse extends AdminUserDetail {
+  ok: boolean;
+}
+
+export interface AdminUserLookup {
+  id: string;
+  username: string;
+  display_name: string;
+  email: string | null;
+  status: string;
+  is_system_admin: boolean;
+  home_realm_slug: string | null;
+  relationship: 'home' | 'guest' | 'none';
+  membership_status: string | null;
+  roles: string[];
+  can_add: boolean;
+  reason: string | null;
+}
+
+export interface AdminRealmAccessRevoked {
+  consents: number;
+  refresh_tokens: number;
+  session_realms: number;
+}
+
+export interface AdminUserMembershipUpdateResponse extends AdminUserMutationResponse {
+  revoked: AdminRealmAccessRevoked;
 }
 
 export interface AdminMeUser {

@@ -171,6 +171,42 @@
 
             <section class="panel">
               <div class="panel-header">
+                <div>
+                  <h2>Realm access</h2>
+                  <p class="note">Manage membership and roles in Acme.</p>
+                </div>
+                <button class="button-danger" type="button" data-dialog-open="member-suspend-dialog">
+                  Suspend member
+                </button>
+              </div>
+              <dl class="details">
+                <div>
+                  <dt>Relationship</dt>
+                  <dd>Home realm</dd>
+                </div>
+                <div>
+                  <dt>Membership</dt>
+                  <dd>Active</dd>
+                </div>
+              </dl>
+              <fieldset class="role-field">
+                <legend>Realm roles</legend>
+                <div class="checkbox-list">
+                  <label class="checkbox-row">
+                    <input type="checkbox" checked />
+                    <span>Realm administrator</span>
+                  </label>
+                </div>
+              </fieldset>
+              <div class="modal-actions">
+                <button class="button" type="button" data-dialog-open="role-save-dialog">
+                  Save roles
+                </button>
+              </div>
+            </section>
+
+            <section class="panel">
+              <div class="panel-header">
                 <h2>Application consents</h2>
               </div>
               <div class="data-table-wrap">
@@ -364,6 +400,54 @@
           <div class="modal-actions">
             <button class="button-secondary" type="button" data-dialog-close>Cancel</button>
             <button class="button-danger" type="button" data-dialog-close>Remove ban</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="member-suspend-dialog" class="modal-overlay" hidden>
+      <div class="modal" role="dialog" aria-modal="true" aria-labelledby="member-suspend-title">
+        <div class="modal-header">
+          <h2 id="member-suspend-title">Suspend membership</h2>
+          <button class="modal-close" type="button" aria-label="Close dialog" data-dialog-close>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M18 6 6 18" />
+              <path d="m6 6 12 12" />
+            </svg>
+          </button>
+        </div>
+        <div class="modal-body">
+          <p class="modal-note">
+            Suspending Alice revokes realm consents, refresh tokens and session bindings.
+            Reactivating the membership does not restore those authorizations.
+          </p>
+          <div class="modal-actions">
+            <button class="button-secondary" type="button" data-dialog-close>Cancel</button>
+            <button class="button-danger" type="button" data-dialog-close>Suspend member</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="role-save-dialog" class="modal-overlay" hidden>
+      <div class="modal" role="dialog" aria-modal="true" aria-labelledby="role-save-title">
+        <div class="modal-header">
+          <h2 id="role-save-title">Update realm roles</h2>
+          <button class="modal-close" type="button" aria-label="Close dialog" data-dialog-close>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M18 6 6 18" />
+              <path d="m6 6 12 12" />
+            </svg>
+          </button>
+        </div>
+        <div class="modal-body">
+          <p class="modal-note">
+            Granting or revoking realm-admin changes the administrative access that is re-read
+            from the realm database on each request.
+          </p>
+          <div class="modal-actions">
+            <button class="button-secondary" type="button" data-dialog-close>Cancel</button>
+            <button class="button" type="button" data-dialog-close>Save roles</button>
           </div>
         </div>
       </div>

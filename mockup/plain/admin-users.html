@@ -114,13 +114,13 @@
           <div class="page-header page-header-row">
             <div>
               <h1>Users</h1>
-              <p>All global user identities.</p>
+              <p>Home and guest members in this realm.</p>
             </div>
             <label class="realm-select">
               <span>Realm</span>
-              <select class="field-control">
-                <option selected>All realms</option>
-                <option>Acme</option>
+              <select>
+                <option>All realms</option>
+                <option selected>Acme</option>
                 <option>Globex</option>
               </select>
             </label>
@@ -132,6 +132,9 @@
               <div class="table-search">
                 <input id="user-search" type="search" aria-label="Search users" placeholder="Search users" />
               </div>
+              <div class="table-actions">
+                <button class="button" type="button" data-dialog-open="user-add-dialog">Add user</button>
+              </div>
             </div>
 
             <div class="data-table-wrap">
@@ -140,13 +143,13 @@
                   <tr>
                     <th class="table-icon-column" scope="col"><span class="sr-only">User</span></th>
                     <th class="data-table-primary" scope="col">User</th>
-                    <th scope="col">Home realm</th>
-                    <th scope="col">Realms</th>
+                    <th scope="col">Membership</th>
+                    <th scope="col">Roles</th>
                     <th scope="col">Status</th>
                   </tr>
                 </thead>
                 <tbody id="user-rows">
-                  <tr data-row-href="./admin-user-global-detail.html" data-search="alice alice alice@acme.test acme 2 active">
+                  <tr data-row-href="./admin-user-detail.html" data-search="alice alice alice@acme.test home realm user active">
                     <td>
                       <span class="table-icon" aria-hidden="true">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -156,15 +159,15 @@
                       </span>
                     </td>
                     <td class="data-table-primary">
-                      <a href="./admin-user-global-detail.html">Alice</a>
+                      <a href="./admin-user-detail.html">Alice</a>
                       <span class="data-table-sub">alice@acme.test</span>
                       <span class="data-table-sub">alice</span>
                     </td>
-                    <td>acme</td>
-                    <td>2</td>
+                    <td>Home</td>
+                    <td>None</td>
                     <td>Active</td>
                   </tr>
-                  <tr data-row-href="./admin-user-global-detail.html" data-search="acme it acme-it it@acme.test acme 1 realm-admin active">
+                  <tr data-row-href="./admin-user-detail.html" data-search="acme it acme-it it@acme.test home realm-admin active">
                     <td>
                       <span class="table-icon" aria-hidden="true">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -174,15 +177,15 @@
                       </span>
                     </td>
                     <td class="data-table-primary">
-                      <a href="./admin-user-global-detail.html">Acme IT</a>
+                      <a href="./admin-user-detail.html">Acme IT</a>
                       <span class="data-table-sub">it@acme.test</span>
                       <span class="data-table-sub">acme-it</span>
                     </td>
-                    <td>acme <span class="data-table-status">Realm admin</span></td>
-                    <td>1</td>
+                    <td>Home</td>
+                    <td><span class="data-table-status">Realm admin</span></td>
                     <td>Active</td>
                   </tr>
-                  <tr data-row-href="./admin-user-global-detail.html" data-search="guest user guest guest@personal.test none 1 active">
+                  <tr data-row-href="./admin-user-detail.html" data-search="guest user guest guest@personal.test guest active">
                     <td>
                       <span class="table-icon" aria-hidden="true">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -192,15 +195,15 @@
                       </span>
                     </td>
                     <td class="data-table-primary">
-                      <a href="./admin-user-global-detail.html">Guest User</a>
+                      <a href="./admin-user-detail.html">Guest User</a>
                       <span class="data-table-sub">guest@personal.test</span>
                       <span class="data-table-sub">guest</span>
                     </td>
+                    <td>Guest</td>
                     <td>None</td>
-                    <td>1</td>
                     <td>Active</td>
                   </tr>
-                  <tr data-row-href="./admin-user-global-detail.html" data-search="contractor contractor contractor@personal.test none 1 realm-admin active">
+                  <tr data-row-href="./admin-user-detail.html" data-search="carol carol carol@example.test guest realm user active">
                     <td>
                       <span class="table-icon" aria-hidden="true">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -210,30 +213,12 @@
                       </span>
                     </td>
                     <td class="data-table-primary">
-                      <a href="./admin-user-global-detail.html">Contractor</a>
-                      <span class="data-table-sub">contractor@personal.test</span>
-                      <span class="data-table-sub">contractor</span>
+                      <a href="./admin-user-detail.html">Carol</a>
+                      <span class="data-table-sub">carol@example.test</span>
+                      <span class="data-table-sub">carol</span>
                     </td>
-                    <td>None <span class="data-table-status">Realm admin</span></td>
-                    <td>1</td>
-                    <td>Active</td>
-                  </tr>
-                  <tr data-row-href="./admin-user-global-detail.html" data-search="system admin admin admin@system.test none 0 system-admin active">
-                    <td>
-                      <span class="table-icon" aria-hidden="true">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                          <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
-                          <circle cx="12" cy="7" r="4" />
-                        </svg>
-                      </span>
-                    </td>
-                    <td class="data-table-primary">
-                      <a href="./admin-user-global-detail.html">System Admin</a>
-                      <span class="data-table-sub">admin@system.test</span>
-                      <span class="data-table-sub">admin</span>
-                    </td>
-                    <td>None <span class="data-table-status">System admin</span></td>
-                    <td>0</td>
+                    <td>Guest</td>
+                    <td>None</td>
                     <td>Active</td>
                   </tr>
                 </tbody>
@@ -244,6 +229,39 @@
             </div>
           </section>
         </main>
+      </div>
+    </div>
+
+    <div id="user-add-dialog" class="modal-overlay" hidden>
+      <div class="modal" role="dialog" aria-modal="true" aria-labelledby="user-add-title">
+        <div class="modal-header">
+          <h2 id="user-add-title">Add user</h2>
+          <button class="modal-close" type="button" aria-label="Close dialog" data-dialog-close>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M18 6 6 18" />
+              <path d="m6 6 12 12" />
+            </svg>
+          </button>
+        </div>
+        <div class="modal-body">
+          <label class="form-field">
+            <span class="field-label">Email or username</span>
+            <input class="field-control" value="carol@example.test" />
+          </label>
+          <div class="notice" role="status">
+            <strong>Carol</strong>
+            <span class="data-table-sub">carol@example.test</span>
+            <span class="data-table-sub">No membership in Acme</span>
+          </div>
+          <p class="modal-note">
+            Exact email or username required. Adding Carol creates a guest membership without
+            roles.
+          </p>
+          <div class="modal-actions">
+            <button class="button-secondary" type="button" data-dialog-close>Cancel</button>
+            <button class="button" type="button" data-dialog-close>Add user</button>
+          </div>
+        </div>
       </div>
     </div>
 

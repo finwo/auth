@@ -1,14 +1,21 @@
 import { Users } from 'lucide';
 import m from 'mithril';
 import { Icon } from '@component/icon';
+import { Modal } from '@component/modal';
 import { PageHeader } from '@component/page-header';
 import { RealmSelector } from '../component/realm-selector';
-import { loadAdminGlobalUsers, loadAdminUsers } from '../util/auth';
+import {
+  addAdminRealmMember,
+  loadAdminGlobalUsers,
+  loadAdminUsers,
+  lookupAdminRealmUser,
+} from '../util/auth';
 import {
   appUrl,
   type AdminGlobalUser,
   type AdminRealm,
   type AdminRealmUser,
+  type AdminUserLookup,
 } from '../util/api';
 
 interface UsersAttrs {
@@ -55,6 +62,14 @@ function userHref(isGlobal: boolean, realmSlug: string | null, userId: string) {
   return `/users/${encodeURIComponent(realmSlug || '')}/${encodedUser}`;
 }
 
+function lookupReason(result: AdminUserLookup) {
+  if (result.reason === 'user_disabled') return 'This global account is disabled.';
+  if (result.relationship === 'home') return 'This user is already a home-realm member.';
+  if (result.relationship === 'guest') return 'This user is already a guest member.';
+  if (result.reason) return 'This user cannot be added to the realm.';
+  return 'No membership in this realm.';
+}
+
 export const UsersPage: m.Component<UsersAttrs> = {
   attrs: null as UsersAttrs | null,
   loadedScope: null as string | null,
@@ -63,6 +78,11 @@ export const UsersPage: m.Component<UsersAttrs> = {
   users: null as AnyUser[] | null,
   search: '',
   error: null as Error | null,
+  addOpen: false,
+  addIdentifier: '',
+  addResult: null as AdminUserLookup | null,
+  addPending: false,
+  addError: null as Error | null,
 
   oninit(this: any, vnode: m.Vnode<UsersAttrs>) {
     this.attrs = vnode.attrs;
@@ -105,8 +125,17 @@ export const UsersPage: m.Component<UsersAttrs> = {
     if (this.loadedScope !== scope) {
       this.search = '';
       this.error = null;
+      this.resetAdd();
       this.load(scope);
     }
+  },
+
+  resetAdd(this: any) {
+    this.addOpen = false;
+    this.addIdentifier = '';
+    this.addResult = null;
+    this.addPending = false;
+    this.addError = null;
   },
 
   async load(this: any, scope: string) {
@@ -128,6 +157,63 @@ export const UsersPage: m.Component<UsersAttrs> = {
       this.error = e as Error;
     } finally {
       if (this.loadedScope === scope) this.loading = false;
+      m.redraw();
+    }
+  },
+
+  async searchAdd(this: any) {
+    const realmSlug = this.attrs?.realmSlug;
+    const identifier = this.addIdentifier.trim();
+    if (!realmSlug || !identifier) {
+      this.addError = new Error('Enter an exact email or username');
+      m.redraw();
+      return;
+    }
+
+    this.addPending = true;
+    this.addError = null;
+    this.addResult = null;
+    m.redraw();
+
+    try {
+      const result = await lookupAdminRealmUser(realmSlug, identifier);
+      if (this.attrs?.realmSlug === realmSlug) this.addResult = result;
+    } catch (e: any) {
+      if (e?.status === 401 || e?.status === 400) {
+        this.attrs?.onAuthExpired();
+        return;
+      }
+      this.addError = e as Error;
+    } finally {
+      this.addPending = false;
+      m.redraw();
+    }
+  },
+
+  async submitAdd(this: any) {
+    const realmSlug = this.attrs?.realmSlug;
+    const result = this.addResult;
+    if (!realmSlug || !result?.can_add) return;
+
+    this.addPending = true;
+    this.addError = null;
+    m.redraw();
+
+    try {
+      await addAdminRealmMember(realmSlug, result.id);
+      this.resetAdd();
+      m.route.set(userHref(false, realmSlug, result.id));
+    } catch (e: any) {
+      if (e?.status === 401 || e?.status === 400) {
+        this.attrs?.onAuthExpired();
+        return;
+      }
+      this.addError = e as Error;
+      if (e?.status === 409) {
+        this.addResult = null;
+      }
+    } finally {
+      this.addPending = false;
       m.redraw();
     }
   },
@@ -195,6 +281,21 @@ export const UsersPage: m.Component<UsersAttrs> = {
                   }}
                 />
               </div>
+              {!isGlobal ? (
+                <div class="table-actions">
+                  <button
+                    class="button"
+                    type="button"
+                    onclick={() => {
+                      this.resetAdd();
+                      this.addOpen = true;
+                      m.redraw();
+                    }}
+                  >
+                    Add user
+                  </button>
+                </div>
+              ) : null}
             </div>
 
             {this.loading || this.redirecting || !this.users ? (
@@ -297,6 +398,86 @@ export const UsersPage: m.Component<UsersAttrs> = {
             )}
           </div>
         )}
+
+        {this.addOpen && realmSlug ? (
+          <Modal title="Add user" onClose={() => this.resetAdd()}>
+            <form
+              onsubmit={(event: Event) => {
+                event.preventDefault();
+                this.searchAdd();
+              }}
+            >
+              <div class="form-field">
+                <label class="field-label" for="add-user-identifier">
+                  Email or username
+                </label>
+                <input
+                  id="add-user-identifier"
+                  class="field-control"
+                  value={this.addIdentifier}
+                  data-modal-autofocus
+                  oninput={(event: Event) => {
+                    this.addIdentifier = (event.target as HTMLInputElement).value;
+                  }}
+                />
+              </div>
+              <div class="modal-actions">
+                <button
+                  class="button-secondary"
+                  type="button"
+                  disabled={this.addPending}
+                  onclick={() => this.resetAdd()}
+                >
+                  Cancel
+                </button>
+                <button class="button" type="submit" disabled={this.addPending}>
+                  {this.addPending ? 'Searching' : 'Search'}
+                </button>
+              </div>
+            </form>
+
+            {this.addError ? (
+              <div class="alert" role="alert">
+                {this.addError.message}
+              </div>
+            ) : null}
+
+            {this.addResult ? (
+              <div>
+                <div class="notice">
+                  <strong>{this.addResult.display_name || this.addResult.username}</strong>
+                  {this.addResult.email ? (
+                    <span class="data-table-sub">{this.addResult.email}</span>
+                  ) : null}
+                  <span class="data-table-sub">{this.addResult.username}</span>
+                  <span class="data-table-sub">{lookupReason(this.addResult)}</span>
+                </div>
+                <div class="modal-actions">
+                  {this.addResult.can_add ? (
+                    <button
+                      class="button"
+                      type="button"
+                      disabled={this.addPending}
+                      onclick={() => this.submitAdd()}
+                    >
+                      {this.addPending ? 'Adding user' : 'Add user'}
+                    </button>
+                  ) : (
+                    <button
+                      class="button-secondary"
+                      type="button"
+                      onclick={() =>
+                        m.route.set(userHref(false, realmSlug, this.addResult.id))
+                      }
+                    >
+                      Open user
+                    </button>
+                  )}
+                </div>
+              </div>
+            ) : null}
+          </Modal>
+        ) : null}
       </div>
     );
   },

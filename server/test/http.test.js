@@ -324,6 +324,85 @@ function withRealmDatabase(env, slug, fn) {
   }
 }
 
+function insertTestUser(
+  env,
+  { username, email = null, displayName = username, status = 'active', isSystemAdmin = false }
+) {
+  const id = crypto.randomUUID();
+  const now = Date.now();
+  withSystemDatabase(env, (database) => {
+    database
+      .prepare(
+        `INSERT INTO users
+          (id, username, username_normalized, display_name, status, home_realm_id,
+           is_system_admin, profile, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, NULL, ?, '{}', ?, ?)`
+      )
+      .run(
+        id,
+        username,
+        username.toLowerCase(),
+        displayName,
+        status,
+        isSystemAdmin ? 1 : 0,
+        now,
+        now
+      );
+    if (email) {
+      database
+        .prepare(
+          `INSERT INTO user_emails
+            (id, user_id, email, email_normalized, verified, is_primary, created_at, verified_at)
+           VALUES (?, ?, ?, ?, 1, 1, ?, ?)`
+        )
+        .run(crypto.randomUUID(), id, email, email.toLowerCase(), now, now);
+    }
+  });
+  return id;
+}
+
+function clearRealmMembership(env, realmSlug, membershipUserId) {
+  withRealmDatabase(env, realmSlug, (database) => {
+    database.prepare('DELETE FROM membership_roles WHERE user_id = ?').run(membershipUserId);
+    database.prepare('DELETE FROM realm_memberships WHERE user_id = ?').run(membershipUserId);
+  });
+}
+
+function clearUserRealmSessions(env, membershipUserId) {
+  withSystemDatabase(env, (database) => {
+    const sessions = database.prepare('SELECT id FROM sessions WHERE user_id = ?').all(membershipUserId);
+    for (const session of sessions) {
+      database.prepare('DELETE FROM session_realms WHERE session_id = ?').run(session.id);
+      database.prepare('DELETE FROM refresh_tokens WHERE session_id = ?').run(session.id);
+    }
+    database.prepare('DELETE FROM sessions WHERE user_id = ?').run(membershipUserId);
+    database
+      .prepare(
+        `DELETE FROM session_groups
+          WHERE id NOT IN (SELECT group_id FROM sessions)`
+      )
+      .run();
+  });
+}
+
+function setTestMembershipStatus(env, realmSlug, membershipUserId, status) {
+  const now = Date.now();
+  withRealmDatabase(env, realmSlug, (database) => {
+    const existing = database
+      .prepare('SELECT user_id FROM realm_memberships WHERE user_id = ?')
+      .get(membershipUserId);
+    if (existing) {
+      database
+        .prepare('UPDATE realm_memberships SET status = ?, updated_at = ? WHERE user_id = ?')
+        .run(status, now, membershipUserId);
+      return;
+    }
+    database
+      .prepare('INSERT INTO realm_memberships (user_id, status, created_at, updated_at) VALUES (?, ?, ?, ?)')
+      .run(membershipUserId, status, now, now);
+  });
+}
+
 test('HTTP realm, login, OIDC and logout flows', async (t) => {
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'auth-http-'));
   const port = await freePort();
@@ -3452,6 +3531,402 @@ test('HTTP realm, login, OIDC and logout flows', async (t) => {
       const response = await acme({ path: '/api/v1/session' });
       assert.equal(response.status, 401);
       assert.equal(response.json.error.code, 'not_authenticated');
+    });
+
+    await t.test('admin realm membership management adds existing users', async () => {
+      const acmeAdmin = await adminToken('it@acme.test');
+      const contractor = await adminToken('contractor@personal.test');
+      const carolId = insertTestUser(env, {
+        username: 'carol',
+        email: 'carol@external.test',
+        displayName: 'Carol',
+      });
+      const danaId = insertTestUser(env, {
+        username: 'dana',
+        email: 'dana@external.test',
+        displayName: 'Dana',
+        status: 'disabled',
+      });
+      const aliceId = userId(env, 'alice');
+
+      try {
+        const lookupEmail = await adminRequest(acmeAdmin, {
+          path: `/api/v1/admin/realms/acme/user-lookup?identifier=${encodeURIComponent('carol@external.test')}`,
+        });
+        assert.equal(lookupEmail.status, 200);
+        assert.equal(lookupEmail.json.ok, true);
+        assert.equal(lookupEmail.json.user.id, carolId);
+        assert.equal(lookupEmail.json.user.username, 'carol');
+        assert.equal(lookupEmail.json.user.relationship, 'none');
+        assert.equal(lookupEmail.json.user.can_add, true);
+        assert.equal(lookupEmail.json.user.reason, null);
+
+        const lookupUsername = await adminRequest(acmeAdmin, {
+          path: '/api/v1/admin/realms/acme/user-lookup?identifier=CAROL',
+        });
+        assert.equal(lookupUsername.status, 200);
+        assert.equal(lookupUsername.json.user.id, carolId);
+
+        const disabled = await adminRequest(acmeAdmin, {
+          path: '/api/v1/admin/realms/acme/user-lookup?identifier=dana@external.test',
+        });
+        assert.equal(disabled.status, 200);
+        assert.equal(disabled.json.user.status, 'disabled');
+        assert.equal(disabled.json.user.can_add, false);
+        assert.equal(disabled.json.user.reason, 'user_disabled');
+
+        const existingHome = await adminRequest(acmeAdmin, {
+          path: '/api/v1/admin/realms/acme/user-lookup?identifier=alice@acme.test',
+        });
+        assert.equal(existingHome.status, 200);
+        assert.equal(existingHome.json.user.relationship, 'home');
+        assert.equal(existingHome.json.user.can_add, false);
+        assert.equal(existingHome.json.user.reason, 'already_member');
+
+        const unknown = await adminRequest(acmeAdmin, {
+          path: '/api/v1/admin/realms/acme/user-lookup?identifier=missing@external.test',
+        });
+        assert.equal(unknown.status, 404);
+        assert.equal(unknown.json.error.code, 'user_not_found');
+
+        const missingIdentifier = await adminRequest(acmeAdmin, {
+          path: '/api/v1/admin/realms/acme/user-lookup',
+        });
+        assert.equal(missingIdentifier.status, 400);
+        assert.equal(missingIdentifier.json.error.code, 'invalid_request');
+
+        const foreignLookup = await identity({
+          path: '/api/v1/admin/realms/acme/user-lookup?identifier=carol',
+          bearer: contractor.access_token,
+        });
+        assert.equal(foreignLookup.status, 403);
+
+        const foreignAdd = await identity({
+          method: 'POST',
+          path: '/api/v1/admin/realms/acme/users',
+          bearer: contractor.access_token,
+          body: { user_id: carolId },
+        });
+        assert.equal(foreignAdd.status, 403);
+
+        const added = await adminRequest(acmeAdmin, {
+          method: 'POST',
+          path: '/api/v1/admin/realms/acme/users',
+          body: { user_id: carolId },
+        });
+        assert.equal(added.status, 200);
+        assert.equal(added.json.ok, true);
+        assert.equal(added.json.user.id, carolId);
+        assert.equal(added.json.user.relationship, 'guest');
+        assert.equal(added.json.user.membership_status, 'active');
+        assert.equal(added.json.permissions.can_manage_membership, true);
+
+        const list = await adminRequest(acmeAdmin, {
+          path: '/api/v1/admin/realms/acme/users',
+        });
+        assert.ok(list.json.users.some((user) => user.username === 'carol'));
+
+        const detail = await adminRequest(acmeAdmin, {
+          path: `/api/v1/admin/realms/acme/users/${carolId}`,
+        });
+        assert.equal(detail.status, 200);
+        assert.equal(detail.json.user.username, 'carol');
+
+        const alreadyMember = await adminRequest(acmeAdmin, {
+          path: `/api/v1/admin/realms/acme/user-lookup?identifier=carol@external.test`,
+        });
+        assert.equal(alreadyMember.json.user.relationship, 'guest');
+        assert.equal(alreadyMember.json.user.can_add, false);
+        assert.equal(alreadyMember.json.user.reason, 'already_member');
+
+        const duplicate = await adminRequest(acmeAdmin, {
+          method: 'POST',
+          path: '/api/v1/admin/realms/acme/users',
+          body: { user_id: carolId },
+        });
+        assert.equal(duplicate.status, 409);
+        assert.equal(duplicate.json.error.code, 'already_member');
+
+        const disabledAdd = await adminRequest(acmeAdmin, {
+          method: 'POST',
+          path: '/api/v1/admin/realms/acme/users',
+          body: { user_id: danaId },
+        });
+        assert.equal(disabledAdd.status, 409);
+        assert.equal(disabledAdd.json.error.code, 'user_not_active');
+
+        const homeRealmAdd = await adminRequest(acmeAdmin, {
+          method: 'POST',
+          path: '/api/v1/admin/realms/acme/users',
+          body: { user_id: aliceId },
+        });
+        assert.equal(homeRealmAdd.status, 409);
+        assert.equal(homeRealmAdd.json.error.code, 'already_member');
+
+        const unknownAdd = await adminRequest(acmeAdmin, {
+          method: 'POST',
+          path: '/api/v1/admin/realms/acme/users',
+          body: { user_id: crypto.randomUUID() },
+        });
+        assert.equal(unknownAdd.status, 404);
+
+        const unknownField = await adminRequest(acmeAdmin, {
+          method: 'POST',
+          path: '/api/v1/admin/realms/acme/users',
+          body: { user_id: crypto.randomUUID(), roles: [] },
+        });
+        assert.equal(unknownField.status, 400);
+        assert.equal(unknownField.json.error.code, 'invalid_request');
+      } finally {
+        clearRealmMembership(env, 'acme', carolId);
+        clearRealmMembership(env, 'acme', danaId);
+      }
+    });
+
+    await t.test('admin membership suspension revokes realm access', async () => {
+      const acmeAdmin = await adminToken('it@acme.test');
+      const guestId = userId(env, 'guest');
+      const acmeId = realmId(env, 'acme');
+      const redirectUri = `${origin('members.localhost')}/callback`;
+      clearConsent(env, { username: 'guest', realm: 'acme', clientId: 'acme-members-app' });
+      clearBans(env, { username: 'guest', realm: 'acme' });
+      clearUserRealmSessions(env, guestId);
+
+      try {
+        const guest = await accessToken(acme, {
+          clientId: 'acme-members-app',
+          identifier: 'guest@personal.test',
+          redirectUri,
+        });
+        const sessionId = activeSessionId(env, guest.cookie);
+        const refreshId = insertRefreshToken(env, {
+          sessionId,
+          userId: guestId,
+          realmId: acmeId,
+          clientId: 'acme-members-app',
+        });
+
+        const suspended = await adminRequest(acmeAdmin, {
+          method: 'PATCH',
+          path: `/api/v1/admin/realms/acme/users/${guestId}/membership`,
+          body: { status: 'suspended' },
+        });
+        assert.equal(suspended.status, 200);
+        assert.equal(suspended.json.user.membership_status, 'suspended');
+        assert.ok(suspended.json.revoked.refresh_tokens >= 1);
+        assert.ok(suspended.json.revoked.consents >= 1);
+        assert.ok(suspended.json.revoked.session_realms >= 1);
+
+        const consent = withSystemDatabase(env, (database) =>
+          database
+            .prepare(
+              `SELECT revoked_at
+                 FROM client_consents
+                WHERE user_id = ? AND realm_id = ? AND client_id = 'acme-members-app'`
+            )
+            .get(guestId, acmeId)
+        );
+        assert.ok(consent.revoked_at);
+
+        const refresh = withSystemDatabase(env, (database) =>
+          database.prepare('SELECT revoked_at FROM refresh_tokens WHERE id = ?').get(refreshId)
+        );
+        assert.ok(refresh.revoked_at);
+
+        const binding = withSystemDatabase(env, (database) =>
+          database
+            .prepare('SELECT revoked_at FROM session_realms WHERE session_id = ? AND realm_id = ?')
+            .get(sessionId, acmeId)
+        );
+        assert.ok(binding.revoked_at);
+
+        const { challenge } = pkce();
+        const authorizePath =
+          `/oidc/acme-members-app/authorize?response_type=code&client_id=acme-members-app` +
+          `&redirect_uri=${encodeURIComponent(redirectUri)}&scope=openid` +
+          `&state=suspended-membership&code_challenge=${challenge}` +
+          `&code_challenge_method=S256`;
+        const denied = await acme({ path: authorizePath, cookie: guest.cookie });
+        assert.equal(denied.status, 302);
+        assert.equal(locationQuery(denied).searchParams.get('error'), 'access_denied');
+
+        const restored = await adminRequest(acmeAdmin, {
+          method: 'PATCH',
+          path: `/api/v1/admin/realms/acme/users/${guestId}/membership`,
+          body: { status: 'active' },
+        });
+        assert.equal(restored.status, 200);
+        assert.equal(restored.json.user.membership_status, 'active');
+        assert.deepEqual(restored.json.revoked, {
+          consents: 0,
+          refresh_tokens: 0,
+          session_realms: 0,
+        });
+
+        const stillRevoked = withSystemDatabase(env, (database) =>
+          database
+            .prepare(
+              `SELECT revoked_at
+                 FROM client_consents
+                WHERE user_id = ? AND realm_id = ? AND client_id = 'acme-members-app'`
+            )
+            .get(guestId, acmeId)
+        );
+        assert.ok(stillRevoked.revoked_at);
+
+        const invalidStatus = await adminRequest(acmeAdmin, {
+          method: 'PATCH',
+          path: `/api/v1/admin/realms/acme/users/${guestId}/membership`,
+          body: { status: 'invited' },
+        });
+        assert.equal(invalidStatus.status, 400);
+        assert.equal(invalidStatus.json.error.code, 'invalid_membership_status');
+      } finally {
+        setTestMembershipStatus(env, 'acme', guestId, 'active');
+        clearConsent(env, { username: 'guest', realm: 'acme', clientId: 'acme-members-app' });
+        clearBans(env, { username: 'guest', realm: 'acme' });
+        clearUserRealmSessions(env, guestId);
+      }
+    });
+
+    await t.test('admin realm roles and last active admin protection', async () => {
+      const acmeAdmin = await adminToken('it@acme.test');
+      const systemAdmin = await adminToken();
+      const guestId = userId(env, 'guest');
+      const acmeItId = userId(env, 'acme-it');
+
+      try {
+        const invalidRole = await adminRequest(acmeAdmin, {
+          method: 'PUT',
+          path: `/api/v1/admin/realms/acme/users/${guestId}/roles`,
+          body: { roles: ['does-not-exist'] },
+        });
+        assert.equal(invalidRole.status, 400);
+        assert.equal(invalidRole.json.error.code, 'invalid_roles');
+
+        const invalidShape = await adminRequest(acmeAdmin, {
+          method: 'PUT',
+          path: `/api/v1/admin/realms/acme/users/${guestId}/roles`,
+          body: { roles: 'realm-admin' },
+        });
+        assert.equal(invalidShape.status, 400);
+        assert.equal(invalidShape.json.error.code, 'invalid_request');
+
+        const granted = await adminRequest(acmeAdmin, {
+          method: 'PUT',
+          path: `/api/v1/admin/realms/acme/users/${guestId}/roles`,
+          body: { roles: ['realm-admin'] },
+        });
+        assert.equal(granted.status, 200);
+        assert.deepEqual(granted.json.user.roles, ['realm-admin']);
+
+        const guestAdmin = await adminToken('guest@personal.test');
+        const suspendedOther = await adminRequest(guestAdmin, {
+          method: 'PATCH',
+          path: `/api/v1/admin/realms/acme/users/${acmeItId}/membership`,
+          body: { status: 'suspended' },
+        });
+        assert.equal(suspendedOther.status, 200);
+        assert.equal(suspendedOther.json.user.membership_status, 'suspended');
+
+        const deniedAdmin = await adminRequest(acmeAdmin, {
+          path: '/api/v1/admin/realms/acme/users',
+        });
+        assert.equal(deniedAdmin.status, 403);
+
+        const restored = await adminRequest(systemAdmin, {
+          method: 'PATCH',
+          path: `/api/v1/admin/realms/acme/users/${acmeItId}/membership`,
+          body: { status: 'active' },
+        });
+        assert.equal(restored.status, 200);
+        assert.equal(restored.json.user.membership_status, 'active');
+
+        const allowedAdmin = await adminRequest(acmeAdmin, {
+          path: '/api/v1/admin/realms/acme/users',
+        });
+        assert.equal(allowedAdmin.status, 200);
+
+        const removedSecondAdmin = await adminRequest(acmeAdmin, {
+          method: 'PUT',
+          path: `/api/v1/admin/realms/acme/users/${guestId}/roles`,
+          body: { roles: [] },
+        });
+        assert.equal(removedSecondAdmin.status, 200);
+        assert.deepEqual(removedSecondAdmin.json.user.roles, []);
+
+        const lastAdminSuspend = await adminRequest(acmeAdmin, {
+          method: 'PATCH',
+          path: `/api/v1/admin/realms/acme/users/${acmeItId}/membership`,
+          body: { status: 'suspended' },
+        });
+        assert.equal(lastAdminSuspend.status, 409);
+        assert.equal(lastAdminSuspend.json.error.code, 'last_realm_admin');
+
+        const lastAdminDemote = await adminRequest(acmeAdmin, {
+          method: 'PUT',
+          path: `/api/v1/admin/realms/acme/users/${acmeItId}/roles`,
+          body: { roles: [] },
+        });
+        assert.equal(lastAdminDemote.status, 409);
+        assert.equal(lastAdminDemote.json.error.code, 'last_realm_admin');
+
+        const systemSuspend = await adminRequest(systemAdmin, {
+          method: 'PATCH',
+          path: `/api/v1/admin/realms/acme/users/${acmeItId}/membership`,
+          body: { status: 'suspended' },
+        });
+        assert.equal(systemSuspend.status, 200);
+        await adminRequest(systemAdmin, {
+          method: 'PATCH',
+          path: `/api/v1/admin/realms/acme/users/${acmeItId}/membership`,
+          body: { status: 'active' },
+        });
+        const systemDemote = await adminRequest(systemAdmin, {
+          method: 'PUT',
+          path: `/api/v1/admin/realms/acme/users/${acmeItId}/roles`,
+          body: { roles: [] },
+        });
+        assert.equal(systemDemote.status, 200);
+        await adminRequest(systemAdmin, {
+          method: 'PUT',
+          path: `/api/v1/admin/realms/acme/users/${acmeItId}/roles`,
+          body: { roles: ['realm-admin'] },
+        });
+
+        const detail = await adminRequest(acmeAdmin, {
+          path: `/api/v1/admin/realms/acme/users/${acmeItId}`,
+        });
+        assert.equal(detail.json.permissions.is_self, true);
+        assert.equal(detail.json.permissions.last_active_realm_admin, true);
+        assert.equal(detail.json.permissions.can_remove_last_realm_admin, false);
+        assert.equal(detail.json.permissions.can_suspend_membership, false);
+        assert.equal(detail.json.permissions.reason, 'last_realm_admin');
+
+        const systemDetail = await adminRequest(systemAdmin, {
+          path: `/api/v1/admin/realms/acme/users/${acmeItId}`,
+        });
+        assert.equal(systemDetail.json.permissions.last_active_realm_admin, true);
+        assert.equal(systemDetail.json.permissions.can_remove_last_realm_admin, true);
+        assert.equal(systemDetail.json.permissions.can_suspend_membership, true);
+      } finally {
+        setTestMembershipStatus(env, 'acme', guestId, 'active');
+        setTestMembershipStatus(env, 'acme', acmeItId, 'active');
+        withRealmDatabase(env, 'acme', (database) => {
+          database.prepare('DELETE FROM membership_roles WHERE user_id = ?').run(guestId);
+          const role = database.prepare('SELECT id FROM roles WHERE slug = ?').get('realm-admin');
+          const current = database
+            .prepare('SELECT role_id FROM membership_roles WHERE user_id = ? AND role_id = ?')
+            .get(acmeItId, role.id);
+          if (!current) {
+            database
+              .prepare('INSERT INTO membership_roles (user_id, role_id) VALUES (?, ?)')
+              .run(acmeItId, role.id);
+          }
+        });
+        clearUserRealmSessions(env, guestId);
+        clearUserRealmSessions(env, acmeItId);
+      }
     });
   } finally {
     if (server) {

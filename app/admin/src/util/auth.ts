@@ -18,6 +18,9 @@ import {
   type AdminSession,
   type AdminUserBan,
   type AdminUserDetail,
+  type AdminUserLookup,
+  type AdminUserMembershipUpdateResponse,
+  type AdminUserMutationResponse,
 } from './api';
 
 export type AdminTokens = StoredTokens;
@@ -219,4 +222,59 @@ export async function deleteAdminUserBan(
   return adminJson(`/api/v1/admin/realms/${realm}/users/${user}/bans/${client}`, {
     method: 'DELETE',
   });
+}
+
+export async function lookupAdminRealmUser(
+  realmSlug: string,
+  identifier: string
+): Promise<AdminUserLookup> {
+  const realm = encodeURIComponent(realmSlug);
+  const query = new URLSearchParams({ identifier });
+  const response = await adminJson<{ user: AdminUserLookup }>(
+    `/api/v1/admin/realms/${realm}/user-lookup?${query}`
+  );
+  return response.user;
+}
+
+export async function addAdminRealmMember(
+  realmSlug: string,
+  userId: string
+): Promise<AdminUserMutationResponse> {
+  const realm = encodeURIComponent(realmSlug);
+  return adminJson<AdminUserMutationResponse>(`/api/v1/admin/realms/${realm}/users`, {
+    method: 'POST',
+    body: JSON.stringify({ user_id: userId }),
+  });
+}
+
+export async function updateAdminRealmMembership(
+  realmSlug: string,
+  userId: string,
+  status: 'active' | 'suspended'
+): Promise<AdminUserMembershipUpdateResponse> {
+  const realm = encodeURIComponent(realmSlug);
+  const user = encodeURIComponent(userId);
+  return adminJson<AdminUserMembershipUpdateResponse>(
+    `/api/v1/admin/realms/${realm}/users/${user}/membership`,
+    {
+      method: 'PATCH',
+      body: JSON.stringify({ status }),
+    }
+  );
+}
+
+export async function updateAdminRealmUserRoles(
+  realmSlug: string,
+  userId: string,
+  roles: string[]
+): Promise<AdminUserMutationResponse> {
+  const realm = encodeURIComponent(realmSlug);
+  const user = encodeURIComponent(userId);
+  return adminJson<AdminUserMutationResponse>(
+    `/api/v1/admin/realms/${realm}/users/${user}/roles`,
+    {
+      method: 'PUT',
+      body: JSON.stringify({ roles }),
+    }
+  );
 }

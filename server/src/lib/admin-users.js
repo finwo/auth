@@ -1,13 +1,18 @@
 import { HttpError } from './http/http-error.js';
 import { inClause } from './db/query.js';
+import { revokeUserRealmAccess } from './bans.js';
 import { splitScopes } from './consents.js';
-import { isSystemAdmin } from './policy.js';
+import { canManageUser, isRealmAdmin, isSystemAdmin } from './policy.js';
 import { openRealmDatabase, realmMetadata } from './realm.js';
+import { revokeUserRealmSessions } from './session.js';
 import {
   findUserById,
+  findUserByIdentifier,
   getMembership,
   getPrimaryEmail,
   getUserRoles,
+  replaceUserRoles,
+  setMembershipStatus,
 } from './users.js';
 
 function uniqueUserIds(...groups) {
@@ -38,6 +43,291 @@ function compareUsers(a, b) {
   if (left < right) return -1;
   if (left > right) return 1;
   return 0;
+}
+
+const MEMBERSHIP_STATUSES = new Set(['active', 'suspended']);
+const MAX_ROLE_COUNT = 50;
+
+function invalidRequest(message, code = 'invalid_request') {
+  return new HttpError(400, code, message);
+}
+
+function notFound(message, code = 'user_not_found') {
+  return new HttpError(404, code, message);
+}
+
+function forbidden(message) {
+  return new HttpError(403, 'forbidden', message);
+}
+
+function conflict(message, code) {
+  return new HttpError(409, code, message);
+}
+
+function isPlainObject(value) {
+  return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
+
+function assertBody(body) {
+  if (!isPlainObject(body)) {
+    throw invalidRequest('Request body must be a JSON object');
+  }
+}
+
+function assertKnownFields(body, allowed) {
+  for (const field of Object.keys(body)) {
+    if (!allowed.has(field)) throw invalidRequest(`Unknown field: ${field}`);
+  }
+}
+
+function relationshipFor(user, membership, realmId) {
+  if (user.home_realm_id === realmId) return 'home';
+  return membership ? 'guest' : 'none';
+}
+
+function effectiveMembershipStatus(user, membership, realmId) {
+  if (membership) return membership.status;
+  return user.home_realm_id === realmId ? 'active' : null;
+}
+
+function sameRoleSet(left, right) {
+  if (left.length !== right.length) return false;
+  const sortedLeft = [...left].sort();
+  const sortedRight = [...right].sort();
+  return sortedLeft.every((value, index) => value === sortedRight[index]);
+}
+
+function normalizeRoleInput(value) {
+  if (!Array.isArray(value)) {
+    throw invalidRequest('roles must be an array');
+  }
+  if (value.length > MAX_ROLE_COUNT) {
+    throw invalidRequest(`roles may contain at most ${MAX_ROLE_COUNT} entries`);
+  }
+
+  const roles = new Set();
+  for (const item of value) {
+    if (typeof item !== 'string' || !item.trim()) {
+      throw invalidRequest('roles must contain only non-empty strings');
+    }
+    roles.add(item.trim());
+  }
+  return [...roles].sort();
+}
+
+async function activeRealmAdminCount(systemDb, realmDb, realmId) {
+  const role = await realmDb.get(
+    "SELECT id FROM roles WHERE slug = 'realm-admin'"
+  );
+  if (!role) return 0;
+
+  const assignments = await realmDb.all(
+    'SELECT user_id FROM membership_roles WHERE role_id = {roleId}',
+    { roleId: role.id }
+  );
+  if (assignments.length === 0) return 0;
+
+  const ids = assignments.map((row) => row.user_id);
+  const clause = inClause('roleIdUserId', ids);
+  const users = await systemDb.all(
+    `SELECT id, status, home_realm_id
+       FROM users
+      WHERE id IN (${clause.sql})`,
+    clause.params
+  );
+  const memberships = await realmDb.all('SELECT user_id, status FROM realm_memberships');
+  const membershipsByUser = new Map(memberships.map((row) => [row.user_id, row]));
+
+  return users.filter((user) => {
+    if (user.status !== 'active') return false;
+    const membership = membershipsByUser.get(user.id) || null;
+    return effectiveMembershipStatus(user, membership, realmId) === 'active';
+  }).length;
+}
+
+async function getAdminRealmUserPermissions({
+  systemDb,
+  realmDb,
+  realmId,
+  target,
+  membership,
+  roles,
+  actor,
+  actorRoles,
+}) {
+  const manageLevel = canManageUser({
+    actorRoles,
+    actorIsSystemAdmin: isSystemAdmin(actor),
+    target,
+    realmId,
+  });
+  const effectiveStatus = effectiveMembershipStatus(target, membership, realmId);
+  const targetActive = target.status === 'active';
+  const lastActiveRealmAdmin =
+    isRealmAdmin(roles) &&
+    targetActive &&
+    effectiveStatus === 'active' &&
+    (await activeRealmAdminCount(systemDb, realmDb, realmId)) <= 1;
+  const lastAdminOverride = isSystemAdmin(actor);
+  const canReactivateMembership =
+    Boolean(manageLevel) && targetActive && effectiveStatus === 'suspended';
+  const canSuspendMembership =
+    Boolean(manageLevel) &&
+    targetActive &&
+    effectiveStatus === 'active' &&
+    (lastAdminOverride || !lastActiveRealmAdmin);
+
+  let reason = null;
+  if (!manageLevel) {
+    reason = 'not_authorized';
+  } else if (!targetActive) {
+    reason = 'target_disabled';
+  } else if (effectiveStatus === 'invited') {
+    reason = 'membership_invited';
+  } else if (effectiveStatus === 'suspended') {
+    reason = 'membership_suspended';
+  } else if (effectiveStatus !== 'active') {
+    reason = 'membership_not_found';
+  } else if (lastActiveRealmAdmin && !lastAdminOverride) {
+    reason = 'last_realm_admin';
+  }
+
+  return {
+    is_self: actor.id === target.id,
+    can_manage_membership: canSuspendMembership || canReactivateMembership,
+    can_suspend_membership: canSuspendMembership,
+    can_reactivate_membership: canReactivateMembership,
+    can_edit_roles: Boolean(manageLevel) && targetActive && effectiveStatus === 'active',
+    can_remove_last_realm_admin:
+      Boolean(manageLevel) && targetActive && effectiveStatus === 'active' && lastAdminOverride,
+    last_active_realm_admin: lastActiveRealmAdmin,
+    reason,
+  };
+}
+
+function serializeAdminRealmUser(user, email, membership, realmId, roles, banRows) {
+  const relationship = relationshipFor(user, membership, realmId);
+  return {
+    id: user.id,
+    username: user.username,
+    display_name: user.display_name,
+    email: email?.email || null,
+    status: user.status,
+    membership_status: effectiveMembershipStatus(user, membership, realmId),
+    relationship,
+    roles,
+    is_system_admin: Boolean(user.is_system_admin),
+    banned: banRows.length > 0,
+    ban_count: banRows.length,
+    home_realm_id: user.home_realm_id,
+    last_login_at: user.last_login_at,
+    created_at: user.created_at,
+    updated_at: user.updated_at,
+  };
+}
+
+async function loadAdminRealmBans(systemDb, realmDb, userId) {
+  const banRows = await realmDb.all(
+    `SELECT user_id, client_id, created_by, created_at
+       FROM app_bans
+      WHERE user_id = {userId}
+      ORDER BY CASE WHEN client_id = '*' THEN 0 ELSE 1 END, client_id ASC`,
+    { userId }
+  );
+  const clientRows = await realmDb.all('SELECT client_id, name FROM oidc_clients');
+  const creatorIds = [...new Set(banRows.map((row) => row.created_by).filter(Boolean))];
+  const creatorsById = new Map();
+  if (creatorIds.length > 0) {
+    const creatorClause = inClause('creatorId', creatorIds);
+    const creatorRows = await systemDb.all(
+      `SELECT id, username FROM users WHERE id IN (${creatorClause.sql})`,
+      creatorClause.params
+    );
+    for (const creator of creatorRows) creatorsById.set(creator.id, creator.username);
+  }
+
+  const clientsById = new Map(clientRows.map((row) => [row.client_id, row.name]));
+  return banRows.map((ban) => ({
+    client_id: ban.client_id,
+    client_name: ban.client_id === '*' ? 'All apps' : clientsById.get(ban.client_id) || null,
+    created_by: ban.created_by,
+    created_by_username: creatorsById.get(ban.created_by) || null,
+    created_at: ban.created_at,
+  }));
+}
+
+async function loadAdminRealmConsents(systemDb, realmDb, realmId, userId) {
+  const consentRows = await systemDb.all(
+    `SELECT user_id, realm_id, client_id, scopes, granted_via, created_at,
+            updated_at, revoked_at
+       FROM client_consents
+      WHERE user_id = {userId} AND realm_id = {realmId}
+      ORDER BY client_id ASC`,
+    { userId, realmId }
+  );
+  const clientRows = await realmDb.all(
+    'SELECT client_id, name, consent_mode FROM oidc_clients'
+  );
+  const clientsById = new Map(
+    clientRows.map((row) => [
+      row.client_id,
+      { name: row.name, consent_mode: row.consent_mode || 'remembered' },
+    ])
+  );
+
+  return consentRows.map((consent) => {
+    const client = clientsById.get(consent.client_id) || null;
+    return {
+      client_id: consent.client_id,
+      client_name: client?.name || null,
+      client_consent_mode: client?.consent_mode || null,
+      scopes: splitScopes(consent.scopes),
+      granted_via: consent.granted_via,
+      created_at: consent.created_at,
+      updated_at: consent.updated_at,
+      revoked_at: consent.revoked_at,
+      active: !consent.revoked_at,
+    };
+  });
+}
+
+async function getAdminRealmUserAccessDetail({
+  systemDb,
+  realmDb,
+  realmId,
+  user,
+  actor,
+  actorRoles,
+}) {
+  const membership = await getMembership(realmDb, user.id);
+  const roles = await getUserRoles(realmDb, user.id);
+  const email = await systemDb.get(
+    `SELECT email
+       FROM user_emails
+      WHERE user_id = {userId} AND verified = 1
+      ORDER BY is_primary DESC, created_at ASC
+      LIMIT 1`,
+    { userId: user.id }
+  );
+  const bans = await loadAdminRealmBans(systemDb, realmDb, user.id);
+  const consents = await loadAdminRealmConsents(systemDb, realmDb, realmId, user.id);
+  const permissions = await getAdminRealmUserPermissions({
+    systemDb,
+    realmDb,
+    realmId,
+    target: user,
+    membership,
+    roles,
+    actor,
+    actorRoles,
+  });
+
+  return {
+    user: serializeAdminRealmUser(user, email, membership, realmId, roles, bans),
+    consents,
+    bans,
+    permissions,
+  };
 }
 
 export async function assertAdminRealmUser({ systemDb, realmDb, realmId, userId }) {
@@ -123,101 +413,28 @@ export async function listAdminRealmUsers(systemDb, realmDb, realmId) {
     .sort(compareUsers);
 }
 
-export async function getAdminRealmUserDetail(systemDb, realmDb, realmId, userId) {
+export async function getAdminRealmUserDetail({
+  systemDb,
+  realmDb,
+  realmId,
+  userId,
+  actor,
+  actorRoles,
+}) {
   const user = await findUserById(systemDb, userId);
   if (!user) return null;
 
   const membership = await getMembership(realmDb, userId);
   if (user.home_realm_id !== realmId && !membership) return null;
 
-  const roles = await getUserRoles(realmDb, userId);
-  const email = await systemDb.get(
-    `SELECT email
-       FROM user_emails
-      WHERE user_id = {userId} AND verified = 1
-      ORDER BY is_primary DESC, created_at ASC
-      LIMIT 1`,
-    { userId }
-  );
-  const consentRows = await systemDb.all(
-    `SELECT user_id, realm_id, client_id, scopes, granted_via, created_at,
-            updated_at, revoked_at
-       FROM client_consents
-      WHERE user_id = {userId} AND realm_id = {realmId}
-      ORDER BY client_id ASC`,
-    { userId, realmId }
-  );
-  const clientRows = await realmDb.all(
-    'SELECT client_id, name, consent_mode FROM oidc_clients'
-  );
-  const banRows = await realmDb.all(
-    `SELECT user_id, client_id, created_by, created_at
-       FROM app_bans
-      WHERE user_id = {userId}
-      ORDER BY CASE WHEN client_id = '*' THEN 0 ELSE 1 END, client_id ASC`,
-    { userId }
-  );
-
-  const creatorIds = [...new Set(banRows.map((row) => row.created_by).filter(Boolean))];
-  const creatorsById = new Map();
-  if (creatorIds.length > 0) {
-    const creatorClause = inClause('creatorId', creatorIds);
-    const creatorRows = await systemDb.all(
-      `SELECT id, username FROM users WHERE id IN (${creatorClause.sql})`,
-      creatorClause.params
-    );
-    for (const creator of creatorRows) {
-      creatorsById.set(creator.id, creator.username);
-    }
-  }
-
-  const clientsById = new Map(
-    clientRows.map((row) => [
-      row.client_id,
-      { name: row.name, consent_mode: row.consent_mode || 'remembered' },
-    ])
-  );
-
-  return {
-    user: {
-      id: user.id,
-      username: user.username,
-      display_name: user.display_name,
-      email: email?.email || null,
-      status: user.status,
-      membership_status: membership?.status || (user.home_realm_id === realmId ? 'active' : null),
-      relationship: user.home_realm_id === realmId ? 'home' : 'guest',
-      roles,
-      is_system_admin: Boolean(user.is_system_admin),
-      banned: banRows.length > 0,
-      ban_count: banRows.length,
-      home_realm_id: user.home_realm_id,
-      last_login_at: user.last_login_at,
-      created_at: user.created_at,
-      updated_at: user.updated_at,
-    },
-    consents: consentRows.map((consent) => {
-      const client = clientsById.get(consent.client_id) || null;
-      return {
-        client_id: consent.client_id,
-        client_name: client?.name || null,
-        client_consent_mode: client?.consent_mode || null,
-        scopes: splitScopes(consent.scopes),
-        granted_via: consent.granted_via,
-        created_at: consent.created_at,
-        updated_at: consent.updated_at,
-        revoked_at: consent.revoked_at,
-        active: !consent.revoked_at,
-      };
-    }),
-    bans: banRows.map((ban) => ({
-      client_id: ban.client_id,
-      client_name: ban.client_id === '*' ? 'All apps' : clientsById.get(ban.client_id)?.name || null,
-      created_by: ban.created_by,
-      created_by_username: creatorsById.get(ban.created_by) || null,
-      created_at: ban.created_at,
-    })),
-  };
+  return getAdminRealmUserAccessDetail({
+    systemDb,
+    realmDb,
+    realmId,
+    user,
+    actor,
+    actorRoles,
+  });
 }
 
 export async function getAdminCurrentUser(systemDb, user) {
@@ -340,4 +557,266 @@ export async function getAdminGlobalUserOverview(systemDb, actor, userId) {
     },
     memberships,
   };
+}
+
+export async function lookupAdminRealmUser({
+  systemDb,
+  realmDb,
+  realmId,
+  identifier,
+}) {
+  if (typeof identifier !== 'string' || !identifier.trim()) {
+    throw invalidRequest('identifier is required');
+  }
+
+  const user = await findUserByIdentifier(systemDb, identifier);
+  if (!user) throw notFound();
+
+  const membership = await getMembership(realmDb, user.id);
+  const roles = await getUserRoles(realmDb, user.id);
+  const email = await getPrimaryEmail(systemDb, user.id);
+  const homeRealm = user.home_realm_id
+    ? await systemDb.get('SELECT slug FROM realms WHERE id = {id}', { id: user.home_realm_id })
+    : null;
+  const relationship = relationshipFor(user, membership, realmId);
+  const effectiveStatus = effectiveMembershipStatus(user, membership, realmId);
+
+  let canAdd = true;
+  let reason = null;
+  if (user.status !== 'active') {
+    canAdd = false;
+    reason = 'user_disabled';
+  } else if (relationship !== 'none') {
+    canAdd = false;
+    reason = 'already_member';
+  }
+
+  return {
+    id: user.id,
+    username: user.username,
+    display_name: user.display_name,
+    email: email?.email || null,
+    status: user.status,
+    is_system_admin: Boolean(user.is_system_admin),
+    home_realm_slug: homeRealm?.slug || null,
+    relationship,
+    membership_status: effectiveStatus,
+    roles,
+    can_add: canAdd,
+    reason,
+  };
+}
+
+export async function addAdminRealmMember({
+  systemDb,
+  realmDb,
+  realmId,
+  userId,
+  actor,
+  actorRoles,
+}) {
+  if (typeof userId !== 'string' || !userId.trim()) {
+    throw invalidRequest('user_id is required');
+  }
+
+  const user = await findUserById(systemDb, userId.trim());
+  if (!user) throw notFound();
+  if (user.status !== 'active') throw conflict('This account is disabled', 'user_not_active');
+  if (user.home_realm_id === realmId) throw conflict('User is already a member', 'already_member');
+
+  const existing = await getMembership(realmDb, user.id);
+  if (existing) throw conflict('User is already a member', 'already_member');
+
+  if (!canManageUser({
+    actorRoles,
+    actorIsSystemAdmin: isSystemAdmin(actor),
+    target: user,
+    realmId,
+  })) {
+    throw forbidden('User management access is required');
+  }
+
+  const now = Date.now();
+  await realmDb.transaction(async (tx) => {
+    const current = await tx.get(
+      'SELECT user_id FROM realm_memberships WHERE user_id = {userId}',
+      { userId: user.id }
+    );
+    if (current) throw conflict('User is already a member', 'already_member');
+    const currentHomeRealm = await systemDb.get('SELECT id FROM realms WHERE id = {id}', {
+      id: user.home_realm_id,
+    });
+    if (currentHomeRealm?.id === realmId) {
+      throw conflict('User is already a member', 'already_member');
+    }
+
+    await tx.run(
+      `INSERT INTO realm_memberships (user_id, status, created_at, updated_at)
+       VALUES ({userId}, 'active', {createdAt}, {updatedAt})`,
+      { userId: user.id, createdAt: now, updatedAt: now }
+    );
+  });
+
+  return getAdminRealmUserAccessDetail({
+    systemDb,
+    realmDb,
+    realmId,
+    user,
+    actor,
+    actorRoles,
+  });
+}
+
+export async function updateAdminRealmMembership({
+  systemDb,
+  realmDb,
+  realmId,
+  userId,
+  body,
+  actor,
+  actorRoles,
+}) {
+  assertBody(body);
+  assertKnownFields(body, new Set(['status']));
+  if (typeof body.status !== 'string' || !MEMBERSHIP_STATUSES.has(body.status)) {
+    throw invalidRequest('status must be active or suspended', 'invalid_membership_status');
+  }
+
+  const user = await assertAdminRealmUser({ systemDb, realmDb, realmId, userId });
+  const membership = await getMembership(realmDb, user.id);
+  const roles = await getUserRoles(realmDb, user.id);
+  const effectiveStatus = effectiveMembershipStatus(user, membership, realmId);
+  const manageLevel = canManageUser({
+    actorRoles,
+    actorIsSystemAdmin: isSystemAdmin(actor),
+    target: user,
+    realmId,
+  });
+  if (!manageLevel) throw forbidden('User management access is required');
+  if (user.status !== 'active') throw conflict('This account is disabled', 'target_disabled');
+  if (effectiveStatus === 'invited') {
+    throw conflict('Invited membership cannot be changed yet', 'membership_invited');
+  }
+
+  const nextStatus = body.status;
+  if (nextStatus === effectiveStatus) {
+    const detail = await getAdminRealmUserAccessDetail({
+      systemDb,
+      realmDb,
+      realmId,
+      user,
+      actor,
+      actorRoles,
+    });
+    return {
+      ...detail,
+      revoked: { consents: 0, refresh_tokens: 0, session_realms: 0 },
+    };
+  }
+
+  if (nextStatus === 'suspended') {
+    const lastAdmin =
+      isRealmAdmin(roles) &&
+      (await activeRealmAdminCount(systemDb, realmDb, realmId)) <= 1;
+    if (lastAdmin && !isSystemAdmin(actor)) {
+      throw conflict('Another active realm admin is required', 'last_realm_admin');
+    }
+  }
+
+  await setMembershipStatus(realmDb, user.id, nextStatus);
+  let revoked = { consents: 0, refresh_tokens: 0, session_realms: 0 };
+  if (nextStatus === 'suspended') {
+    const now = Date.now();
+    const access = await revokeUserRealmAccess(systemDb, {
+      userId: user.id,
+      realmId,
+      now,
+    });
+    const sessionRealms = await revokeUserRealmSessions(systemDb, {
+      userId: user.id,
+      realmId,
+      revokedBy: actor.id,
+      now,
+    });
+    revoked = { ...access, session_realms: sessionRealms };
+  }
+
+  const detail = await getAdminRealmUserAccessDetail({
+    systemDb,
+    realmDb,
+    realmId,
+    user,
+    actor,
+    actorRoles,
+  });
+  return { ...detail, revoked };
+}
+
+export async function updateAdminRealmRoles({
+  systemDb,
+  realmDb,
+  realmId,
+  userId,
+  body,
+  actor,
+  actorRoles,
+}) {
+  assertBody(body);
+  assertKnownFields(body, new Set(['roles']));
+  const requestedRoles = normalizeRoleInput(body.roles);
+
+  const user = await assertAdminRealmUser({ systemDb, realmDb, realmId, userId });
+  const membership = await getMembership(realmDb, user.id);
+  const currentRoles = await getUserRoles(realmDb, user.id);
+  const effectiveStatus = effectiveMembershipStatus(user, membership, realmId);
+  const manageLevel = canManageUser({
+    actorRoles,
+    actorIsSystemAdmin: isSystemAdmin(actor),
+    target: user,
+    realmId,
+  });
+  if (!manageLevel) throw forbidden('User management access is required');
+  if (user.status !== 'active') throw conflict('This account is disabled', 'target_disabled');
+  if (effectiveStatus !== 'active') {
+    throw conflict('An active membership is required', 'membership_not_active');
+  }
+
+  if (requestedRoles.length > 0) {
+    const clause = inClause('roleSlug', requestedRoles);
+    const roles = await realmDb.all(
+      `SELECT id, slug FROM roles WHERE slug IN (${clause.sql})`,
+      clause.params
+    );
+    if (roles.length !== requestedRoles.length) {
+      throw invalidRequest('One or more roles do not exist', 'invalid_roles');
+    }
+    if (
+      isRealmAdmin(currentRoles) &&
+      !isRealmAdmin(requestedRoles) &&
+      (await activeRealmAdminCount(systemDb, realmDb, realmId)) <= 1 &&
+      !isSystemAdmin(actor)
+    ) {
+      throw conflict('Another active realm admin is required', 'last_realm_admin');
+    }
+
+    await replaceUserRoles(realmDb, user.id, roles.map((role) => role.id));
+  } else {
+    if (
+      isRealmAdmin(currentRoles) &&
+      (await activeRealmAdminCount(systemDb, realmDb, realmId)) <= 1 &&
+      !isSystemAdmin(actor)
+    ) {
+      throw conflict('Another active realm admin is required', 'last_realm_admin');
+    }
+    await replaceUserRoles(realmDb, user.id, []);
+  }
+
+  return getAdminRealmUserAccessDetail({
+    systemDb,
+    realmDb,
+    realmId,
+    user,
+    actor,
+    actorRoles,
+  });
 }

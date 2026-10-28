@@ -78,7 +78,7 @@ export async function revokeBannedClientAccess(
   });
 }
 
-export async function revokeBannedRealmAccess(
+export async function revokeUserRealmAccess(
   systemDb,
   { userId, realmId, now = Date.now() }
 ) {
@@ -104,4 +104,11 @@ export async function revokeBannedRealmAccess(
       refresh_tokens: refreshTokens.changes,
     };
   });
+}
+
+export async function revokeBannedRealmAccess(
+  systemDb,
+  { userId, realmId, now = Date.now() }
+) {
+  return revokeUserRealmAccess(systemDb, { userId, realmId, now });
 }

@@ -269,3 +269,39 @@ export async function assignRole(db, userId, roleSlug) {
     { userId, roleId: role.id }
   );
 }
+
+export async function setMembershipStatus(db, userId, status, now = Date.now()) {
+  const existing = await db.get(
+    'SELECT user_id FROM realm_memberships WHERE user_id = {userId}',
+    { userId }
+  );
+  if (!existing) {
+    await db.run(
+      `INSERT INTO realm_memberships (user_id, status, created_at, updated_at)
+       VALUES ({userId}, {status}, {createdAt}, {updatedAt})`,
+      { userId, status, createdAt: now, updatedAt: now }
+    );
+    return getMembership(db, userId);
+  }
+
+  if (existing.status !== status) {
+    await db.run(
+      'UPDATE realm_memberships SET status = {status}, updated_at = {now} WHERE user_id = {userId}',
+      { status, now, userId }
+    );
+  }
+  return getMembership(db, userId);
+}
+
+export async function replaceUserRoles(db, userId, roleIds, now = Date.now()) {
+  await db.transaction(async (tx) => {
+    await tx.run('DELETE FROM membership_roles WHERE user_id = {userId}', { userId });
+    for (const roleId of roleIds) {
+      await tx.run(
+        'INSERT INTO membership_roles (user_id, role_id) VALUES ({userId}, {roleId})',
+        { userId, roleId }
+      );
+    }
+  });
+  return getUserRoles(db, userId);
+}

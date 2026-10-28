@@ -503,7 +503,7 @@ body {
 .realm-select > span {
   color: var(--muted);
   font-size: 0.75rem;
-  line-height: 1.4;
+  line-height: 1.15;
 }
 
 .realm-select select {
@@ -826,6 +826,38 @@ select.field-control,
   background-repeat: no-repeat;
   background-position: right 0.75rem center;
   padding-right: 2.25rem;
+}
+
+.role-field {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.role-field legend {
+  margin-bottom: 0.5rem;
+  padding: 0;
+  color: var(--muted);
+  font-size: 0.75rem;
+  line-height: 1.4;
+}
+
+.checkbox-list {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.checkbox-row input {
+  width: 1rem;
+  height: 1rem;
 }
 
 a:focus-visible,
