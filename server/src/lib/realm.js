@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
+import { normalizeBrandingObject } from './admin-branding.js';
 import { openDatabase, runMigrations } from './db/index.js';
 import { MIGRATIONS_ROOT } from './db/migrate.js';
 import { HttpError } from './http/http-error.js';
@@ -29,15 +30,6 @@ async function migrateSystem(db) {
     namespace: 'system',
     label: 'system',
   });
-}
-
-function parseBranding(raw) {
-  try {
-    const parsed = JSON.parse(raw || '{}');
-    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
-  } catch {
-    return {};
-  }
 }
 
 async function ensureRole(db, slug, name, now) {
@@ -161,7 +153,7 @@ export async function realmMetadata(realm) {
   return {
     slug: settings.slug,
     display_name: settings.display_name,
-    branding: parseBranding(settings.branding),
+    branding: normalizeBrandingObject(settings.branding),
     allow_session_duration_choice: Boolean(settings.allow_session_duration_choice),
   };
 }

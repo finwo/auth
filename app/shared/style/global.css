@@ -110,6 +110,7 @@ textarea {
 }
 
 .sidebar {
+  min-width: 0;
   display: flex;
   flex-direction: column;
   min-height: auto;
@@ -118,6 +119,7 @@ textarea {
 }
 
 .nav {
+  min-width: 0;
   display: flex;
   flex-direction: row;
   flex-wrap: nowrap;
@@ -142,12 +144,12 @@ textarea {
 }
 
 .nav-item {
+  min-width: 0;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 0.75rem;
-  min-width: 4rem;
-  flex: 1 0 auto;
+  flex: 1 1 0;
   padding: 0.6875rem 0.5rem;
   color: rgba(255, 255, 255, 0.82);
   font-size: 0.875rem;

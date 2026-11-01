@@ -3929,18 +3929,34 @@ test('HTTP realm, login, OIDC and logout flows', async (t) => {
       }
     });
 
-    await t.test('admin realm settings update name and login behavior', async () => {
+    await t.test('admin realm settings update name, branding, and login behavior', async () => {
       const acmeAdmin = await adminToken('it@acme.test');
       const systemAdmin = await adminToken();
       let original = null;
+      let originalBranding = null;
+
+      const readBranding = () =>
+        withRealmDatabase(env, 'acme', (database) =>
+          database.prepare('SELECT branding FROM realm_settings WHERE id = 1').get().branding
+        );
+      const writeBranding = (value) =>
+        withRealmDatabase(env, 'acme', (database) => {
+          database
+            .prepare('UPDATE realm_settings SET branding = ? WHERE id = 1')
+            .run(value);
+        });
 
       try {
+        originalBranding = readBranding();
+
         const initial = await adminRequest(acmeAdmin, {
           path: '/api/v1/admin/realms/acme/settings',
         });
         assert.equal(initial.status, 200);
         assert.equal(initial.json.settings.slug, 'acme');
         assert.equal(typeof initial.json.settings.created_at, 'number');
+        assert.equal(initial.json.settings.logo_url, null);
+        assert.equal(initial.json.settings.primary_color, '#2255aa');
         original = initial.json.settings;
 
         const crossRealm = await adminRequest(acmeAdmin, {
@@ -3957,6 +3973,8 @@ test('HTTP realm, login, OIDC and logout flows', async (t) => {
         assert.equal(renamed.json.ok, true);
         assert.equal(renamed.json.settings.display_name, 'Acme Inc');
         assert.equal(renamed.json.settings.allow_session_duration_choice, true);
+        assert.equal(renamed.json.settings.logo_url, null);
+        assert.equal(renamed.json.settings.primary_color, '#2255aa');
 
         const realms = await adminRequest(systemAdmin, {
           path: '/api/v1/admin/realms',
@@ -3970,6 +3988,7 @@ test('HTTP realm, login, OIDC and logout flows', async (t) => {
         const publicRenamed = await acme({ path: '/api/v1/realm' });
         assert.equal(publicRenamed.json.display_name, 'Acme Inc');
         assert.equal(publicRenamed.json.allow_session_duration_choice, true);
+        assert.equal(publicRenamed.json.branding.primary_color, '#2255aa');
 
         const disabledChoice = await adminRequest(systemAdmin, {
           method: 'PATCH',
@@ -3979,10 +3998,56 @@ test('HTTP realm, login, OIDC and logout flows', async (t) => {
         assert.equal(disabledChoice.status, 200);
         assert.equal(disabledChoice.json.settings.display_name, 'Acme Inc');
         assert.equal(disabledChoice.json.settings.allow_session_duration_choice, false);
+        assert.equal(disabledChoice.json.settings.logo_url, null);
+        assert.equal(disabledChoice.json.settings.primary_color, '#2255aa');
 
         const publicDisabledChoice = await acme({ path: '/api/v1/realm' });
         assert.equal(publicDisabledChoice.json.display_name, 'Acme Inc');
         assert.equal(publicDisabledChoice.json.allow_session_duration_choice, false);
+
+        const logoUpdated = await adminRequest(acmeAdmin, {
+          method: 'PATCH',
+          path: '/api/v1/admin/realms/acme/settings',
+          body: { logo_url: ' https://acme.test/logo.svg?size=large ' },
+        });
+        assert.equal(logoUpdated.status, 200);
+        assert.equal(logoUpdated.json.settings.display_name, 'Acme Inc');
+        assert.equal(logoUpdated.json.settings.allow_session_duration_choice, false);
+        assert.equal(
+          logoUpdated.json.settings.logo_url,
+          'https://acme.test/logo.svg?size=large'
+        );
+        assert.equal(logoUpdated.json.settings.primary_color, '#2255aa');
+
+        const publicLogo = await acme({ path: '/api/v1/realm' });
+        assert.equal(publicLogo.json.branding.logo_url, 'https://acme.test/logo.svg?size=large');
+        assert.equal(publicLogo.json.branding.primary_color, '#2255aa');
+
+        const discovery = await acme({
+          path: '/oidc/internal-app/openid-configuration',
+        });
+        assert.equal(discovery.status, 200);
+        assert.equal(discovery.json.branding.logo_url, 'https://acme.test/logo.svg?size=large');
+        assert.equal(discovery.json.branding.primary_color, '#2255aa');
+
+        const colorUpdated = await adminRequest(acmeAdmin, {
+          method: 'PATCH',
+          path: '/api/v1/admin/realms/acme/settings',
+          body: { primary_color: '#abc' },
+        });
+        assert.equal(colorUpdated.status, 200);
+        assert.equal(colorUpdated.json.settings.display_name, 'Acme Inc');
+        assert.equal(colorUpdated.json.settings.allow_session_duration_choice, false);
+        assert.equal(
+          colorUpdated.json.settings.logo_url,
+          'https://acme.test/logo.svg?size=large'
+        );
+        assert.equal(colorUpdated.json.settings.primary_color, '#aabbcc');
+
+        const updatedDiscovery = await acme({
+          path: '/oidc/internal-app/openid-configuration',
+        });
+        assert.equal(updatedDiscovery.json.branding.primary_color, '#aabbcc');
 
         const emptyPatch = await adminRequest(acmeAdmin, {
           method: 'PATCH',
@@ -3999,6 +4064,11 @@ test('HTTP realm, login, OIDC and logout flows', async (t) => {
           { display_name: 'A'.repeat(101) },
           { display_name: 'Acme\nInc' },
           { allow_session_duration_choice: 'false' },
+          { logo_url: 'http://acme.test/logo.svg' },
+          { logo_url: 'data:image/svg+xml,%3Csvg/%3E' },
+          { logo_url: 'https://acme.test/logo.svg#fragment' },
+          { primary_color: 'red' },
+          { primary_color: '#25aa' },
         ]) {
           const invalid = await adminRequest(acmeAdmin, {
             method: 'PATCH',
@@ -4008,6 +4078,51 @@ test('HTTP realm, login, OIDC and logout flows', async (t) => {
           assert.equal(invalid.status, 400);
           assert.equal(invalid.json.error.code, 'invalid_request');
         }
+
+        writeBranding(
+          JSON.stringify({
+            custom_asset: 'https://acme.test/custom.png',
+            primary_color: '#123456',
+          })
+        );
+
+        const preservedName = await adminRequest(acmeAdmin, {
+          method: 'PATCH',
+          path: '/api/v1/admin/realms/acme/settings',
+          body: { display_name: 'Custom Acme' },
+        });
+        assert.equal(preservedName.status, 200);
+        assert.equal(preservedName.json.settings.logo_url, null);
+        assert.equal(preservedName.json.settings.primary_color, '#123456');
+        assert.deepEqual(JSON.parse(readBranding()), {
+          custom_asset: 'https://acme.test/custom.png',
+          primary_color: '#123456',
+        });
+
+        const preservedLogo = await adminRequest(acmeAdmin, {
+          method: 'PATCH',
+          path: '/api/v1/admin/realms/acme/settings',
+          body: { logo_url: 'https://acme.test/custom-logo.svg' },
+        });
+        assert.equal(preservedLogo.status, 200);
+        assert.deepEqual(JSON.parse(readBranding()), {
+          custom_asset: 'https://acme.test/custom.png',
+          primary_color: '#123456',
+          logo_url: 'https://acme.test/custom-logo.svg',
+        });
+
+        const clearedLogo = await adminRequest(acmeAdmin, {
+          method: 'PATCH',
+          path: '/api/v1/admin/realms/acme/settings',
+          body: { logo_url: '' },
+        });
+        assert.equal(clearedLogo.status, 200);
+        assert.equal(clearedLogo.json.settings.logo_url, null);
+        assert.equal(clearedLogo.json.settings.primary_color, '#123456');
+        assert.deepEqual(JSON.parse(readBranding()), {
+          custom_asset: 'https://acme.test/custom.png',
+          primary_color: '#123456',
+        });
 
         const stored = withRealmDatabase(env, 'acme', (database) =>
           database
@@ -4026,6 +4141,9 @@ test('HTTP realm, login, OIDC and logout flows', async (t) => {
               allow_session_duration_choice: original.allow_session_duration_choice,
             },
           });
+        }
+        if (originalBranding !== null) {
+          writeBranding(originalBranding);
         }
       }
     });

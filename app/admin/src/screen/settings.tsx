@@ -15,28 +15,110 @@ interface SettingsAttrs {
 interface SettingsFormValue {
   display_name: string;
   allow_session_duration_choice: boolean;
+  logo_url: string;
+  primary_color: string;
 }
+
+interface SettingsValidation {
+  message: string;
+  field: 'display_name' | 'logo_url' | 'primary_color';
+}
+
+const LOGO_MAX_LENGTH = 2048;
+const PRIMARY_COLOR_PATTERN = /^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i;
 
 function formFromSettings(settings: AdminRealmSettings): SettingsFormValue {
   return {
     display_name: settings.display_name,
     allow_session_duration_choice: settings.allow_session_duration_choice,
+    logo_url: settings.logo_url || '',
+    primary_color: settings.primary_color || '',
   };
 }
 
-function validateForm(value: SettingsFormValue): string | null {
+function normalizePreviewColor(value: string): string | null {
+  const color = value.trim().toLowerCase();
+  if (!PRIMARY_COLOR_PATTERN.test(color)) return null;
+  if (color.length === 4) {
+    return `#${color[1]}${color[1]}${color[2]}${color[2]}${color[3]}${color[3]}`;
+  }
+  return color;
+}
+
+function isLoopbackHostname(hostname: string): boolean {
+  const host = hostname.startsWith('[') && hostname.endsWith(']')
+    ? hostname.slice(1, -1)
+    : hostname;
+  return (
+    host === 'localhost' ||
+    host.endsWith('.localhost') ||
+    host === '127.0.0.1' ||
+    host === '::1'
+  );
+}
+
+function logoUrlError(value: string): string | null {
+  const url = value.trim();
+  if (!url) return null;
+  if (url.length > LOGO_MAX_LENGTH) {
+    return `Logo URL must be ${LOGO_MAX_LENGTH} characters or fewer.`;
+  }
+  if (url.includes('*')) return 'Logo URL cannot contain wildcards.';
+
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    return 'Logo URL must be absolute.';
+  }
+
+  const allowedProtocol =
+    parsed.protocol === 'https:' ||
+    (parsed.protocol === 'http:' && isLoopbackHostname(parsed.hostname));
+  if (!allowedProtocol) {
+    return 'Logo URL must use https, or http for a loopback host.';
+  }
+  if (parsed.username || parsed.password) return 'Logo URL cannot contain credentials.';
+  if (parsed.hash) return 'Logo URL cannot contain a fragment.';
+
+  return null;
+}
+
+function validateForm(value: SettingsFormValue): SettingsValidation | null {
   const displayName = value.display_name.trim();
 
   if (!displayName) {
-    return 'Display name is required.';
+    return { message: 'Display name is required.', field: 'display_name' };
   }
   if (/[\r\n]/.test(value.display_name)) {
-    return 'Display name must be a single line.';
+    return { message: 'Display name must be a single line.', field: 'display_name' };
   }
   if (displayName.length > 100) {
-    return 'Display name must be 100 characters or fewer.';
+    return {
+      message: 'Display name must be 100 characters or fewer.',
+      field: 'display_name',
+    };
   }
 
+  const logoError = logoUrlError(value.logo_url);
+  if (logoError) {
+    return { message: logoError, field: 'logo_url' };
+  }
+  if (value.primary_color.trim() && !normalizePreviewColor(value.primary_color)) {
+    return {
+      message: 'Primary color must be a #rgb or #rrggbb hex color.',
+      field: 'primary_color',
+    };
+  }
+
+  return null;
+}
+
+function fieldFromError(message: string | null | undefined): SettingsValidation['field'] | null {
+  if (!message) return null;
+  if (message.includes('logo_url')) return 'logo_url';
+  if (message.includes('primary_color')) return 'primary_color';
+  if (message.includes('display_name')) return 'display_name';
   return null;
 }
 
@@ -46,9 +128,15 @@ export const SettingsPage: m.Component<SettingsAttrs> = {
   loading: false,
   redirecting: false,
   settings: null as AdminRealmSettings | null,
-  form: { display_name: '', allow_session_duration_choice: true } as SettingsFormValue,
+  form: {
+    display_name: '',
+    allow_session_duration_choice: true,
+    logo_url: '',
+    primary_color: '',
+  } as SettingsFormValue,
   error: null as Error | null,
   formError: null as Error | string | null,
+  invalidField: null as SettingsValidation['field'] | null,
   notice: null as string | null,
   pending: false,
 
@@ -98,7 +186,13 @@ export const SettingsPage: m.Component<SettingsAttrs> = {
     this.formError = null;
     this.notice = null;
     this.settings = null;
-    this.form = { display_name: '', allow_session_duration_choice: true };
+    this.invalidField = null;
+    this.form = {
+      display_name: '',
+      allow_session_duration_choice: true,
+      logo_url: '',
+      primary_color: '',
+    };
     m.redraw();
 
     try {
@@ -126,7 +220,8 @@ export const SettingsPage: m.Component<SettingsAttrs> = {
 
     const validationError = validateForm(this.form);
     if (validationError) {
-      this.formError = validationError;
+      this.formError = validationError.message;
+      this.invalidField = validationError.field;
       this.notice = null;
       m.redraw();
       return;
@@ -134,6 +229,7 @@ export const SettingsPage: m.Component<SettingsAttrs> = {
 
     this.pending = true;
     this.formError = null;
+    this.invalidField = null;
     this.notice = null;
     m.redraw();
 
@@ -141,6 +237,8 @@ export const SettingsPage: m.Component<SettingsAttrs> = {
       const settings = await updateAdminRealmSettings(realmSlug, {
         display_name: this.form.display_name.trim(),
         allow_session_duration_choice: this.form.allow_session_duration_choice,
+        logo_url: this.form.logo_url.trim() || null,
+        primary_color: this.form.primary_color.trim() || null,
       });
 
       if (this.loadedRealm !== realmSlug) return;
@@ -150,11 +248,15 @@ export const SettingsPage: m.Component<SettingsAttrs> = {
       this.notice = 'Realm settings saved.';
       await this.attrs.onRealmsChanged();
     } catch (e: any) {
-      if (e?.status === 401 || e?.status === 400) {
+      if (
+        e?.status === 401 ||
+        (e?.status === 400 && e?.code !== 'invalid_request')
+      ) {
         this.attrs.onAuthExpired();
         return;
       }
       this.formError = e as Error;
+      this.invalidField = fieldFromError(e?.message);
     } finally {
       this.pending = false;
       m.redraw();
@@ -165,10 +267,12 @@ export const SettingsPage: m.Component<SettingsAttrs> = {
     const { realms, realmsError, realmSlug } = this.attrs;
     const selected =
       realms?.find((realm) => realm.slug === realmSlug) || realms?.[0] || null;
+    const previewLogo = logoUrlError(this.form.logo_url) ? '' : this.form.logo_url.trim();
+    const previewColor = normalizePreviewColor(this.form.primary_color);
 
     return (
       <div>
-        <PageHeader row title="Realm settings" subtitle="Realm name and login behavior.">
+        <PageHeader row title="Realm settings" subtitle="Realm name, branding, and login behavior.">
           <RealmSelector
             realms={realms}
             selected={selected}
@@ -220,58 +324,126 @@ export const SettingsPage: m.Component<SettingsAttrs> = {
             <div class="skeleton skeleton-short"></div>
           </div>
         ) : this.settings ? (
-          <section class="panel">
-            <h2>Realm details</h2>
-            <form class="settings-form" onsubmit={(event: Event) => {
-              event.preventDefault();
-              this.submit();
-            }}>
-              {this.formError ? (
-                <div class="alert" role="alert">
-                  {typeof this.formError === 'string' ? this.formError : this.formError.message}
+          <div class="settings-stack">
+            <section class="panel">
+              <h2>Realm details</h2>
+              <form class="settings-form" onsubmit={(event: Event) => {
+                event.preventDefault();
+                this.submit();
+              }}>
+                {this.formError ? (
+                  <div class="alert" role="alert">
+                    {typeof this.formError === 'string' ? this.formError : this.formError.message}
+                  </div>
+                ) : null}
+
+                <div class="form-field">
+                  <span class="field-label">Realm ID</span>
+                  <input class="field-control" value={this.settings.slug} disabled />
                 </div>
-              ) : null}
 
-              <div class="form-field">
-                <span class="field-label">Realm ID</span>
-                <input class="field-control" value={this.settings.slug} disabled />
+                <div class="form-field">
+                  <span class="field-label">Display name</span>
+                  <input
+                    class="field-control"
+                    value={this.form.display_name}
+                    maxlength="100"
+                    disabled={this.pending}
+                    aria-invalid={this.invalidField === 'display_name' ? 'true' : null}
+                    oninput={(event: Event) => {
+                      this.form.display_name = (event.target as HTMLInputElement).value;
+                      this.invalidField = null;
+                    }}
+                  />
+                </div>
+
+                <label class="checkbox-row">
+                  <input
+                    type="checkbox"
+                    checked={this.form.allow_session_duration_choice}
+                    disabled={this.pending}
+                    onchange={(event: Event) => {
+                      this.form.allow_session_duration_choice = (
+                        event.target as HTMLInputElement
+                      ).checked;
+                    }}
+                  />
+                  <span>Show "Keep me signed in" on login</span>
+                </label>
+              </form>
+            </section>
+
+            <section class="panel">
+              <h2>Realm branding</h2>
+              <p class="note">Shown on login and consent for clients in this realm.</p>
+              <div class="settings-form">
+                <div class="field-grid">
+                  <div class="form-field">
+                    <span class="field-label">Logo URL</span>
+                    <input
+                      class="field-control"
+                      type="url"
+                      value={this.form.logo_url}
+                      placeholder="https://app.example.test/logo.svg"
+                      maxlength="2048"
+                      disabled={this.pending}
+                      aria-invalid={this.invalidField === 'logo_url' ? 'true' : null}
+                      oninput={(event: Event) => {
+                        this.form.logo_url = (event.target as HTMLInputElement).value;
+                        this.invalidField = null;
+                      }}
+                    />
+                  </div>
+
+                  <div class="form-field">
+                    <span class="field-label">Primary color</span>
+                    <input
+                      class="field-control"
+                      value={this.form.primary_color}
+                      placeholder="#25a"
+                      maxlength="7"
+                      spellcheck="false"
+                      disabled={this.pending}
+                      aria-invalid={this.invalidField === 'primary_color' ? 'true' : null}
+                      oninput={(event: Event) => {
+                        this.form.primary_color = (event.target as HTMLInputElement).value;
+                        this.invalidField = null;
+                      }}
+                    />
+                  </div>
+                </div>
+
+                <div class="branding-preview" aria-hidden="true">
+                  <span class={`branding-logo-preview${previewLogo ? '' : ' is-empty'}`}>
+                    {previewLogo ? (
+                      <img
+                        src={previewLogo}
+                        alt=""
+                        onerror={(event: Event) => {
+                          (event.target as HTMLImageElement).style.visibility = 'hidden';
+                        }}
+                      />
+                    ) : null}
+                  </span>
+                  <span
+                    class={`branding-color-preview${previewColor ? '' : ' is-empty'}`}
+                    style={previewColor ? { background: previewColor } : {}}
+                  ></span>
+                </div>
+
+                <div class="settings-actions">
+                  <button
+                    class="button"
+                    type="button"
+                    disabled={this.pending}
+                    onclick={() => this.submit()}
+                  >
+                    {this.pending ? 'Saving' : 'Save changes'}
+                  </button>
+                </div>
               </div>
-
-              <div class="form-field">
-                <span class="field-label">Display name</span>
-                <input
-                  class="field-control"
-                  value={this.form.display_name}
-                  maxlength="100"
-                  disabled={this.pending}
-                  aria-invalid={Boolean(this.formError)}
-                  oninput={(event: Event) => {
-                    this.form.display_name = (event.target as HTMLInputElement).value;
-                  }}
-                />
-              </div>
-
-              <label class="checkbox-row">
-                <input
-                  type="checkbox"
-                  checked={this.form.allow_session_duration_choice}
-                  disabled={this.pending}
-                  onchange={(event: Event) => {
-                    this.form.allow_session_duration_choice = (
-                      event.target as HTMLInputElement
-                    ).checked;
-                  }}
-                />
-                <span>Show "Keep me signed in" on login</span>
-              </label>
-
-              <div class="settings-actions">
-                <button class="button" type="submit" disabled={this.pending}>
-                  {this.pending ? 'Saving' : 'Save changes'}
-                </button>
-              </div>
-            </form>
-          </section>
+            </section>
+          </div>
         ) : null}
       </div>
     );

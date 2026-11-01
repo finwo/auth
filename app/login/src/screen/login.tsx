@@ -58,6 +58,11 @@ function scopeDescription(scope: string, realmName: string) {
   return `Use the ${scope} permission.`;
 }
 
+function primaryColor(value: unknown) {
+  if (typeof value !== 'string') return '#25A';
+  return /^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i.test(value) ? value : '#25A';
+}
+
 const TextField: m.Component<TextFieldAttrs> = {
   view({ attrs }) {
     return (
@@ -260,7 +265,7 @@ export const Login: m.Component<{ clientId?: string }> = {
 
   view(this: any) {
     const branding = this.discovery?.branding || {};
-    const primary = typeof branding.primary_color === 'string' ? branding.primary_color : '#25A';
+    const primary = primaryColor(branding.primary_color);
     const style = { '--realm-primary': primary } as any;
 
     if (!this.discovery && this.error) {
@@ -285,7 +290,14 @@ export const Login: m.Component<{ clientId?: string }> = {
       <div class="auth-page" style={style}>
         <div class={`auth-card${this.step === 'consent' ? ' auth-card-consent' : ''}`}>
           {typeof branding.logo_url === 'string' && branding.logo_url ? (
-            <img class="auth-logo" src={branding.logo_url} alt={title} />
+            <img
+              class="auth-logo"
+              src={branding.logo_url}
+              alt={title}
+              onerror={(event: Event) => {
+                (event.target as HTMLImageElement).style.display = 'none';
+              }}
+            />
           ) : null}
           <h1>{title}</h1>
 

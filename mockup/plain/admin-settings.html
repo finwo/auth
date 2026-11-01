@@ -7,9 +7,10 @@
     <link rel="stylesheet" href="./global.css" />
     <style>
       .settings-form {
-        display: grid;
-        width: 100%;
         min-width: 0;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        width: 100%;
         max-width: 100%;
         gap: 1rem;
         margin-top: 1rem;
@@ -35,12 +36,75 @@
         max-width: 100%;
       }
 
+      .settings-stack {
+        min-width: 0;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 1rem;
+      }
+
+      .field-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 1rem;
+      }
+
+      .branding-preview {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.75rem;
+        margin-top: 0.25rem;
+      }
+
+      .branding-logo-preview,
+      .branding-color-preview {
+        width: 2rem;
+        height: 2rem;
+        overflow: hidden;
+        background: var(--row);
+      }
+
+      .branding-logo-preview {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--muted);
+      }
+
+      .branding-logo-preview svg {
+        width: 1.25rem;
+        height: 1.25rem;
+      }
+
+      .branding-logo-preview img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+      }
+
+      .branding-color-preview {
+        border-radius: 0.25rem;
+        background: var(--field-line);
+      }
+
+      .branding-logo-preview.is-empty,
+      .branding-color-preview.is-empty {
+        border-bottom: 1pt solid var(--field-line);
+      }
+
       .state-preview {
         margin-top: 2rem;
       }
 
       .state-preview > h2 {
         margin-bottom: 0.75rem;
+      }
+
+      @media (min-width: 40em) {
+        .field-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
       }
     </style>
   </head>
@@ -151,7 +215,7 @@
           <div class="page-header page-header-row">
             <div>
               <h1>Realm settings</h1>
-              <p>Realm name and login behavior.</p>
+              <p>Realm name, branding, and login behavior.</p>
             </div>
             <label class="realm-select">
               <span>Realm</span>
@@ -162,29 +226,64 @@
             </label>
           </div>
 
-          <section class="panel">
-            <h2>Realm details</h2>
-            <form class="settings-form">
-              <div class="form-field">
-                <span class="field-label">Realm ID</span>
-                <input class="field-control" value="acme" disabled />
-              </div>
+          <div class="settings-stack">
+            <section class="panel">
+              <h2>Realm details</h2>
+              <form class="settings-form">
+                <div class="form-field">
+                  <span class="field-label">Realm ID</span>
+                  <input class="field-control" value="acme" disabled />
+                </div>
 
-              <div class="form-field">
-                <span class="field-label">Display name</span>
-                <input class="field-control" value="Acme" maxlength="100" />
-              </div>
+                <div class="form-field">
+                  <span class="field-label">Display name</span>
+                  <input class="field-control" value="Acme" maxlength="100" />
+                </div>
 
-              <label class="checkbox-row">
-                <input type="checkbox" checked />
-                <span>Show "Keep me signed in" on login</span>
-              </label>
+                <label class="checkbox-row">
+                  <input type="checkbox" checked />
+                  <span>Show "Keep me signed in" on login</span>
+                </label>
+              </form>
+            </section>
 
-              <div class="settings-actions">
-                <button class="button" type="submit">Save changes</button>
+            <section class="panel">
+              <h2>Realm branding</h2>
+              <p class="note">Shown on login and consent for clients in this realm.</p>
+              <div class="settings-form">
+                <div class="field-grid">
+                  <div class="form-field">
+                    <span class="field-label">Logo URL</span>
+                    <input
+                      class="field-control"
+                      type="url"
+                      value="https://acme.example.test/logo.svg"
+                      placeholder="https://app.example.test/logo.svg"
+                      maxlength="2048"
+                    />
+                  </div>
+
+                  <div class="form-field">
+                    <span class="field-label">Primary color</span>
+                    <input class="field-control" value="#2255aa" placeholder="#25a" maxlength="7" spellcheck="false" />
+                  </div>
+                </div>
+
+                <div class="branding-preview" aria-hidden="true">
+                  <span class="branding-logo-preview">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+                    </svg>
+                  </span>
+                  <span class="branding-color-preview" style="background: #2255aa"></span>
+                </div>
+
+                <div class="settings-actions">
+                  <button class="button" type="submit">Save changes</button>
+                </div>
               </div>
-            </form>
-          </section>
+            </section>
+          </div>
 
           <section class="state-preview">
             <h2>Loading state</h2>
@@ -198,57 +297,124 @@
           <section class="state-preview">
             <h2>Saved state</h2>
             <div class="notice" role="status">Realm settings saved.</div>
-            <section class="panel">
-              <h2>Realm details</h2>
-              <form class="settings-form">
-                <div class="form-field">
-                  <span class="field-label">Realm ID</span>
-                  <input class="field-control" value="acme" disabled />
-                </div>
+            <div class="settings-stack">
+              <section class="panel">
+                <h2>Realm details</h2>
+                <form class="settings-form">
+                  <div class="form-field">
+                    <span class="field-label">Realm ID</span>
+                    <input class="field-control" value="acme" disabled />
+                  </div>
 
-                <div class="form-field">
-                  <span class="field-label">Display name</span>
-                  <input class="field-control" value="Acme Inc" maxlength="100" />
-                </div>
+                  <div class="form-field">
+                    <span class="field-label">Display name</span>
+                    <input class="field-control" value="Acme Inc" maxlength="100" />
+                  </div>
 
-                <label class="checkbox-row">
-                  <input type="checkbox" />
-                  <span>Show "Keep me signed in" on login</span>
-                </label>
+                  <label class="checkbox-row">
+                    <input type="checkbox" />
+                    <span>Show "Keep me signed in" on login</span>
+                  </label>
+                </form>
+              </section>
 
-                <div class="settings-actions">
-                  <button class="button" type="submit">Save changes</button>
+              <section class="panel">
+                <h2>Realm branding</h2>
+                <p class="note">Shown on login and consent for clients in this realm.</p>
+                <div class="settings-form">
+                  <div class="field-grid">
+                    <div class="form-field">
+                      <span class="field-label">Logo URL</span>
+                      <input
+                        class="field-control"
+                        type="url"
+                        value="https://acme.example.test/logo.svg"
+                        placeholder="https://app.example.test/logo.svg"
+                        maxlength="2048"
+                      />
+                    </div>
+
+                    <div class="form-field">
+                      <span class="field-label">Primary color</span>
+                      <input class="field-control" value="#2255aa" placeholder="#25a" maxlength="7" spellcheck="false" />
+                    </div>
+                  </div>
+
+                  <div class="branding-preview" aria-hidden="true">
+                    <span class="branding-logo-preview">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+                      </svg>
+                    </span>
+                    <span class="branding-color-preview" style="background: #2255aa"></span>
+                  </div>
+
+                  <div class="settings-actions">
+                    <button class="button" type="submit">Save changes</button>
+                  </div>
                 </div>
-              </form>
-            </section>
+              </section>
+            </div>
           </section>
 
           <section class="state-preview">
             <h2>Validation error</h2>
             <div class="alert" role="alert">Display name is required.</div>
-            <section class="panel">
-              <h2>Realm details</h2>
-              <form class="settings-form">
-                <div class="form-field">
-                  <span class="field-label">Realm ID</span>
-                  <input class="field-control" value="acme" disabled />
-                </div>
+            <div class="settings-stack">
+              <section class="panel">
+                <h2>Realm details</h2>
+                <form class="settings-form">
+                  <div class="form-field">
+                    <span class="field-label">Realm ID</span>
+                    <input class="field-control" value="acme" disabled />
+                  </div>
 
-                <div class="form-field">
-                  <span class="field-label">Display name</span>
-                  <input class="field-control" value="" aria-invalid="true" maxlength="100" />
-                </div>
+                  <div class="form-field">
+                    <span class="field-label">Display name</span>
+                    <input class="field-control" value="" aria-invalid="true" maxlength="100" />
+                  </div>
 
-                <label class="checkbox-row">
-                  <input type="checkbox" checked />
-                  <span>Show "Keep me signed in" on login</span>
-                </label>
+                  <label class="checkbox-row">
+                    <input type="checkbox" checked />
+                    <span>Show "Keep me signed in" on login</span>
+                  </label>
+                </form>
+              </section>
 
-                <div class="settings-actions">
-                  <button class="button" type="submit">Save changes</button>
+              <section class="panel">
+                <h2>Realm branding</h2>
+                <p class="note">Shown on login and consent for clients in this realm.</p>
+                <div class="settings-form">
+                  <div class="field-grid">
+                    <div class="form-field">
+                      <span class="field-label">Logo URL</span>
+                      <input
+                        class="field-control"
+                        type="url"
+                        value="http://acme.example.test/logo.svg"
+                        placeholder="https://app.example.test/logo.svg"
+                        aria-invalid="true"
+                        maxlength="2048"
+                      />
+                    </div>
+
+                    <div class="form-field">
+                      <span class="field-label">Primary color</span>
+                      <input class="field-control" value="#25a" placeholder="#25a" maxlength="7" spellcheck="false" />
+                    </div>
+                  </div>
+
+                  <div class="branding-preview" aria-hidden="true">
+                    <span class="branding-logo-preview is-empty"></span>
+                    <span class="branding-color-preview" style="background: #2255aa"></span>
+                  </div>
+
+                  <div class="settings-actions">
+                    <button class="button" type="submit">Save changes</button>
+                  </div>
                 </div>
-              </form>
-            </section>
+              </section>
+            </div>
           </section>
         </main>
       </div>

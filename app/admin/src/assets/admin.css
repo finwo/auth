@@ -223,10 +223,18 @@
   margin-top: 0;
 }
 
-.settings-form {
-  display: grid;
-  width: 100%;
+.settings-stack {
   min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1rem;
+}
+
+.settings-form {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  width: 100%;
   max-width: 100%;
   gap: 1rem;
   margin-top: 1rem;
@@ -246,6 +254,45 @@
 
 .settings-actions .button {
   max-width: 100%;
+}
+
+.branding-preview {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.25rem;
+}
+
+.branding-logo-preview,
+.branding-color-preview {
+  width: 2rem;
+  height: 2rem;
+  overflow: hidden;
+  background: var(--row);
+}
+
+.branding-logo-preview {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+}
+
+.branding-logo-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.branding-color-preview {
+  border-radius: 0.25rem;
+  background: var(--field-line);
+}
+
+.branding-logo-preview.is-empty,
+.branding-color-preview.is-empty {
+  border-bottom: 1pt solid var(--field-line);
 }
 
 .field-grid {

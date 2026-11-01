@@ -1,7 +1,18 @@
+import {
+  applyBrandingPatch,
+  hasBrandingPatch,
+  normalizeBrandingPatch,
+  serializeBranding,
+} from './admin-branding.js';
 import { HttpError } from './http/http-error.js';
 
 const DISPLAY_NAME_MAX_LENGTH = 100;
-const ALLOWED_FIELDS = new Set(['display_name', 'allow_session_duration_choice']);
+const ALLOWED_FIELDS = new Set([
+  'display_name',
+  'allow_session_duration_choice',
+  'logo_url',
+  'primary_color',
+]);
 
 function invalidRequest(message) {
   return new HttpError(400, 'invalid_request', message);
@@ -44,6 +55,7 @@ function serializeSettings(row, realmSlug) {
     slug: realmSlug,
     display_name: row.display_name,
     allow_session_duration_choice: Boolean(row.allow_session_duration_choice),
+    ...serializeBranding(row.branding),
     created_at: row.created_at,
     updated_at: row.updated_at,
   };
@@ -51,7 +63,8 @@ function serializeSettings(row, realmSlug) {
 
 async function loadSettingsRow(realmDb, realmSlug) {
   const row = await realmDb.get(
-    `SELECT slug, display_name, allow_session_duration_choice, created_at, updated_at
+    `SELECT slug, display_name, branding, allow_session_duration_choice,
+            created_at, updated_at
        FROM realm_settings
       WHERE id = 1`
   );
@@ -89,6 +102,8 @@ export function normalizeAdminRealmSettingsPatch(body) {
     );
   }
 
+  Object.assign(input, normalizeBrandingPatch(body));
+
   return input;
 }
 
@@ -112,15 +127,20 @@ export async function updateAdminRealmSettings({
   const allowSessionDurationChoice = Object.hasOwn(input, 'allow_session_duration_choice')
     ? input.allow_session_duration_choice
     : Boolean(current.allow_session_duration_choice);
+  const branding = hasBrandingPatch(input)
+    ? applyBrandingPatch(current.branding, input)
+    : current.branding;
 
   await realmDb.run(
     `UPDATE realm_settings
         SET display_name = {displayName},
+            branding = {branding},
             allow_session_duration_choice = {allowSessionDurationChoice},
             updated_at = {now}
       WHERE id = 1`,
     {
       displayName,
+      branding,
       allowSessionDurationChoice: allowSessionDurationChoice ? 1 : 0,
       now,
     }

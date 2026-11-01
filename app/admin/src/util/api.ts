@@ -14,6 +14,8 @@ export interface AdminRealmSettings {
   slug: string;
   display_name: string;
   allow_session_duration_choice: boolean;
+  logo_url: string | null;
+  primary_color: string | null;
   created_at: number;
   updated_at: number;
 }
@@ -21,6 +23,8 @@ export interface AdminRealmSettings {
 export interface AdminRealmSettingsInput {
   display_name: string;
   allow_session_duration_choice: boolean;
+  logo_url?: string | null;
+  primary_color?: string | null;
 }
 
 export interface AdminRole {
