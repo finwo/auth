@@ -7,19 +7,31 @@ export interface ModalAttrs {
   onClose: () => void;
 }
 
+let openModalCount = 0;
+
 export const Modal: m.Component<ModalAttrs> = {
   oncreate(this: any, vnode: m.Vnode<ModalAttrs>) {
     this.focusBefore = document.activeElement;
+    if (openModalCount === 0) {
+      document.documentElement.classList.add('modal-open');
+    }
+    openModalCount += 1;
     this.onKeydown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') vnode.attrs.onClose();
     };
     window.addEventListener('keydown', this.onKeydown);
-    const target = vnode.dom?.querySelector('[data-modal-autofocus]') as HTMLElement | null;
-    target?.focus();
+    if (window.matchMedia('(pointer: fine)').matches) {
+      const target = vnode.dom?.querySelector('[data-modal-autofocus]') as HTMLElement | null;
+      target?.focus();
+    }
   },
 
   onremove(this: any) {
     window.removeEventListener('keydown', this.onKeydown);
+    openModalCount = Math.max(0, openModalCount - 1);
+    if (openModalCount === 0) {
+      document.documentElement.classList.remove('modal-open');
+    }
     (this.focusBefore as HTMLElement | null)?.focus?.();
   },
 

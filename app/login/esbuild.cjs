@@ -77,10 +77,11 @@ esbuild
     }
 
     fs.writeFileSync(config.outdir + `/index.html`, `<!DOCTYPE html>
-<html>
+<html lang="en">
   <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=0">
+    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+    <meta name="theme-color" content="#000">
     <title>auth</title>
     ${styles.map(name => `<style>/* ${name} */ ${fs.readFileSync(`${config.outdir}/${name}`, 'utf8')}</style>`).join('\n    ')}
   </head>

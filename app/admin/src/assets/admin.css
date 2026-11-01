@@ -1,4 +1,6 @@
 .realm-select {
+  min-width: 0;
+  max-width: 100%;
   display: grid;
   gap: 0.25rem;
 }
@@ -11,6 +13,8 @@
 
 .realm-select select {
   width: 100%;
+  min-width: 0;
+  max-width: 100%;
   padding: 0.5rem 0.75rem;
   border: 0;
   border-bottom: 1pt solid var(--field-line);
@@ -219,6 +223,31 @@
   margin-top: 0;
 }
 
+.settings-form {
+  display: grid;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.settings-form .form-field {
+  margin-bottom: 0;
+}
+
+.settings-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.settings-actions .button {
+  max-width: 100%;
+}
+
 .field-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
@@ -227,6 +256,7 @@
 
 .form-field {
   min-width: 0;
+  max-width: 100%;
   display: grid;
   gap: 0.25rem;
 }
@@ -240,6 +270,8 @@
 .field-control,
 .field-textarea {
   width: 100%;
+  min-width: 0;
+  max-width: 100%;
   padding: 0.5rem 0.75rem;
   border: 0;
   border-bottom: 1pt solid var(--field-line);
@@ -254,6 +286,14 @@
 .field-textarea {
   min-height: 6rem;
   resize: vertical;
+}
+
+@media (pointer: coarse) {
+  .field-control,
+  .field-textarea,
+  .realm-select select {
+    font-size: 1rem;
+  }
 }
 
 .field-control:focus,

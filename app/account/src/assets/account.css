@@ -18,7 +18,8 @@
   user-select: none;
 }
 
-.summary-row:hover {
+.summary-row:hover,
+.summary-row:active {
   background: var(--row-hover);
 }
 
@@ -95,6 +96,9 @@
 }
 
 .danger-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.75rem;
   padding: 0.5rem 0;
   border: 0;
   background: none;
@@ -102,6 +106,7 @@
   font: inherit;
   font-size: 0.875rem;
   cursor: pointer;
+  touch-action: manipulation;
 }
 
 .danger-link:hover:not(:disabled) {

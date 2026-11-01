@@ -189,15 +189,19 @@ export const GlobalUserPage: m.Component<GlobalUserAttrs> = {
                               <strong>{membership.display_name}</strong>
                               <span class="data-table-sub">{membership.slug}</span>
                             </td>
-                            <td>{membership.relationship === 'home' ? 'Home' : 'Guest'}</td>
-                            <td>
+                            <td data-label="Relationship">
+                              {membership.relationship === 'home' ? 'Home' : 'Guest'}
+                            </td>
+                            <td data-label="Membership">
                               {membership.membership_status}
                               {membership.banned ? (
                                 <span class="data-table-status">Banned</span>
                               ) : null}
                             </td>
-                            <td>{membership.roles.length ? membership.roles.join(', ') : 'None'}</td>
-                            <td>
+                            <td data-label="Roles">
+                              {membership.roles.length ? membership.roles.join(', ') : 'None'}
+                            </td>
+                            <td data-label="Action">
                               <a
                                 class="button-secondary"
                                 href={appUrl(href)}

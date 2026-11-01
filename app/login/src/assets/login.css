@@ -10,6 +10,11 @@
   box-sizing: border-box;
 }
 
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
 html,
 body {
   margin: 0;
@@ -18,9 +23,11 @@ body {
 
 .auth-page {
   min-height: 100vh;
+  min-height: 100svh;
   display: grid;
   place-items: center;
-  padding: 0;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right)
+           calc(1rem + env(safe-area-inset-bottom)) env(safe-area-inset-left);
   background: var(--auth-surface);
 }
 
@@ -103,10 +110,12 @@ body {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  min-height: 2.75rem;
   margin-top: 1rem;
   font-size: 0.875rem;
   line-height: 1.5;
   cursor: pointer;
+  touch-action: manipulation;
 }
 
 .auth-choice input {
@@ -125,8 +134,10 @@ body {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
+  justify-content: center;
   gap: 0.125rem;
   width: 100%;
+  min-height: 2.75rem;
   padding: 0.75rem 0;
   border: 0;
   border-bottom: 1pt solid rgba(0, 0, 0, 0.16);
@@ -136,10 +147,12 @@ body {
   font: inherit;
   text-align: left;
   cursor: pointer;
+  touch-action: manipulation;
 }
 
 .auth-account:hover,
-.auth-account:focus-visible {
+.auth-account:focus-visible,
+.auth-account:active {
   border-bottom-color: var(--realm-primary);
 }
 
@@ -167,11 +180,16 @@ body {
 }
 
 .auth-actions {
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
+  display: grid;
   gap: 1rem;
   margin-top: 1.5rem;
+}
+
+.auth-actions .auth-button,
+.auth-actions .auth-link {
+  width: 100%;
+  min-height: 2.75rem;
+  text-align: center;
 }
 
 .auth-button {
@@ -181,7 +199,7 @@ body {
   background: var(--realm-primary);
   color: #fff;
   font: inherit;
-  font-size: 0.875rem;
+  font-size: 1rem;
   letter-spacing: 0.05em;
   text-transform: uppercase;
   cursor: pointer;
@@ -201,12 +219,12 @@ body {
 }
 
 .auth-link {
-  padding: 0.5rem 0;
+  padding: 0.75rem 1rem;
   border: 0;
   background: none;
   color: var(--realm-primary);
   font: inherit;
-  font-size: 0.875rem;
+  font-size: 1rem;
   cursor: pointer;
 }
 
@@ -250,6 +268,7 @@ body {
 
 .auth-consent-account .auth-link {
   flex: none;
+  min-width: 2.75rem;
   margin-left: auto;
   font-size: 0.8125rem;
 }
@@ -336,6 +355,18 @@ body {
 
   .auth-card {
     box-shadow: 0 0.125em 0.25em #0008;
+  }
+
+  .auth-actions {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 1.5rem;
+  }
+
+  .auth-actions .auth-button,
+  .auth-actions .auth-link {
+    width: auto;
   }
 }
 

@@ -322,7 +322,7 @@ export const ClientsPage: m.Component<ClientsAttrs> = {
                             m.route.set(href);
                           }}
                         >
-                          <td>
+                          <td class="table-icon-column">
                             <span class="table-icon" aria-hidden="true">
                               {client.logo_url ? (
                                 <img src={client.logo_url} alt="" />
@@ -348,7 +348,7 @@ export const ClientsPage: m.Component<ClientsAttrs> = {
                               <span class="data-table-status">Disabled</span>
                             )}
                           </td>
-                          <td>{ACCESS_MODE_LABELS[client.access_mode]}</td>
+                          <td data-label="Access">{ACCESS_MODE_LABELS[client.access_mode]}</td>
                         </tr>
                       );
                     })}

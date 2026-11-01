@@ -338,9 +338,9 @@ export const UsersPage: m.Component<UsersAttrs> = {
                             m.route.set(href);
                           }}
                         >
-                          <td>
+                          <td class="table-icon-column">
                             <span class="table-icon" aria-hidden="true">
-                              Icon(Users)
+                              {Icon(Users)}
                             </span>
                           </td>
                           <td class="data-table-primary">
@@ -359,14 +359,14 @@ export const UsersPage: m.Component<UsersAttrs> = {
                             {user.email ? <span class="data-table-sub">{user.username}</span> : null}
                           </td>
                           {isGlobal ? (
-                            <td>
+                            <td data-label="Home realm">
                               {(user as AdminGlobalUser).home_realm_slug || 'None'}
                               {(user as AdminGlobalUser).is_system_admin ? (
                                 <span class="data-table-status">System admin</span>
                               ) : null}
                             </td>
                           ) : (
-                            <td>
+                            <td data-label="Membership">
                               {relationshipLabel(user as AdminRealmUser)}
                               {(user as AdminRealmUser).roles.includes('realm-admin') ? (
                                 <span class="data-table-status">Realm admin</span>
@@ -377,9 +377,9 @@ export const UsersPage: m.Component<UsersAttrs> = {
                             </td>
                           )}
                           {isGlobal ? (
-                            <td>{(user as AdminGlobalUser).membership_count}</td>
+                            <td data-label="Realms">{(user as AdminGlobalUser).membership_count}</td>
                           ) : null}
-                          <td>
+                          <td data-label="Status">
                             {isGlobal
                               ? globalStatusLabel(user as AdminGlobalUser)
                               : realmStatus(user as AdminRealmUser)}

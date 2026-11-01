@@ -1,0 +1,308 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Admin realm settings mockup</title>
+    <link rel="stylesheet" href="./global.css" />
+    <style>
+      .settings-form {
+        display: grid;
+        width: 100%;
+        min-width: 0;
+        max-width: 100%;
+        gap: 1rem;
+        margin-top: 1rem;
+      }
+
+      .settings-form .form-field {
+        margin-bottom: 0;
+      }
+
+      .settings-form .checkbox-row {
+        min-width: 0;
+      }
+
+      .settings-actions {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: flex-start;
+        gap: 0.5rem;
+        margin-top: 1rem;
+      }
+
+      .settings-actions .button {
+        max-width: 100%;
+      }
+
+      .state-preview {
+        margin-top: 2rem;
+      }
+
+      .state-preview > h2 {
+        margin-bottom: 0.75rem;
+      }
+    </style>
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="./admin-dashboard.html">
+        <svg class="brand-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+        </svg>
+        <span class="brand-name">Auth</span>
+      </a>
+      <details class="user-menu">
+        <summary aria-label="Account menu">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="10" />
+            <circle cx="12" cy="10" r="3" />
+            <path d="M7 20.662V19a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v1.662" />
+          </svg>
+        </summary>
+        <div class="user-panel">
+          <div class="user-summary">
+            <span class="user-name">System Admin</span>
+            <span class="user-meta">admin@system.test</span>
+          </div>
+          <div class="user-menu-list">
+            <a class="user-menu-item" href="#">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
+                <circle cx="12" cy="12" r="3" />
+              </svg>
+              <span>Account settings</span>
+            </a>
+            <button class="user-menu-item" type="button" data-user-theme>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="12" cy="12" r="4" />
+                <path d="M12 2v2" />
+                <path d="M12 20v2" />
+                <path d="m4.93 4.93 1.41 1.41" />
+                <path d="m17.66 17.66 1.41 1.41" />
+                <path d="M2 12h2" />
+                <path d="M20 12h2" />
+                <path d="m6.34 17.66-1.41 1.41" />
+                <path d="m19.07 4.93-1.41 1.41" />
+              </svg>
+              <span>Theme</span>
+              <span class="user-menu-value" data-user-theme-value>Auto</span>
+            </button>
+            <a class="user-menu-item" href="#">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                <path d="m16 17 5-5-5-5" />
+                <path d="M21 12H9" />
+              </svg>
+              <span>Sign out</span>
+            </a>
+          </div>
+        </div>
+      </details>
+    </header>
+
+    <div class="app">
+      <aside class="sidebar">
+        <nav class="nav" aria-label="Administration">
+          <p class="nav-label">Administration</p>
+          <a class="nav-item" href="./admin-dashboard.html">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="3" y="3" width="7" height="7" />
+              <rect x="14" y="3" width="7" height="7" />
+              <rect x="3" y="14" width="7" height="7" />
+              <rect x="14" y="14" width="7" height="7" />
+            </svg>
+            <span>Overview</span>
+          </a>
+          <a class="nav-item" href="./admin-clients.html">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="2" y="4" width="20" height="16" rx="2" />
+              <path d="M10 4v4" />
+              <path d="M2 8h20" />
+              <path d="M6 4v4" />
+            </svg>
+            <span>Clients</span>
+          </a>
+          <a class="nav-item" href="#">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M22 12h-4l-3 8-6-16-3 8H2" />
+            </svg>
+            <span>Sessions</span>
+          </a>
+          <a class="nav-item" href="./admin-users.html">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+              <circle cx="12" cy="7" r="4" />
+            </svg>
+            <span>Users</span>
+          </a>
+          <a class="nav-item is-active" href="./admin-settings.html" aria-current="page">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
+              <circle cx="12" cy="12" r="3" />
+            </svg>
+            <span>Settings</span>
+          </a>
+        </nav>
+      </aside>
+
+      <div class="main">
+        <main class="content">
+          <div class="page-header page-header-row">
+            <div>
+              <h1>Realm settings</h1>
+              <p>Realm name and login behavior.</p>
+            </div>
+            <label class="realm-select">
+              <span>Realm</span>
+              <select>
+                <option selected>Acme</option>
+                <option>Globex</option>
+              </select>
+            </label>
+          </div>
+
+          <section class="panel">
+            <h2>Realm details</h2>
+            <form class="settings-form">
+              <div class="form-field">
+                <span class="field-label">Realm ID</span>
+                <input class="field-control" value="acme" disabled />
+              </div>
+
+              <div class="form-field">
+                <span class="field-label">Display name</span>
+                <input class="field-control" value="Acme" maxlength="100" />
+              </div>
+
+              <label class="checkbox-row">
+                <input type="checkbox" checked />
+                <span>Show "Keep me signed in" on login</span>
+              </label>
+
+              <div class="settings-actions">
+                <button class="button" type="submit">Save changes</button>
+              </div>
+            </form>
+          </section>
+
+          <section class="state-preview">
+            <h2>Loading state</h2>
+            <div class="panel" aria-busy="true">
+              <div class="skeleton skeleton-title"></div>
+              <div class="skeleton"></div>
+              <div class="skeleton skeleton-short"></div>
+            </div>
+          </section>
+
+          <section class="state-preview">
+            <h2>Saved state</h2>
+            <div class="notice" role="status">Realm settings saved.</div>
+            <section class="panel">
+              <h2>Realm details</h2>
+              <form class="settings-form">
+                <div class="form-field">
+                  <span class="field-label">Realm ID</span>
+                  <input class="field-control" value="acme" disabled />
+                </div>
+
+                <div class="form-field">
+                  <span class="field-label">Display name</span>
+                  <input class="field-control" value="Acme Inc" maxlength="100" />
+                </div>
+
+                <label class="checkbox-row">
+                  <input type="checkbox" />
+                  <span>Show "Keep me signed in" on login</span>
+                </label>
+
+                <div class="settings-actions">
+                  <button class="button" type="submit">Save changes</button>
+                </div>
+              </form>
+            </section>
+          </section>
+
+          <section class="state-preview">
+            <h2>Validation error</h2>
+            <div class="alert" role="alert">Display name is required.</div>
+            <section class="panel">
+              <h2>Realm details</h2>
+              <form class="settings-form">
+                <div class="form-field">
+                  <span class="field-label">Realm ID</span>
+                  <input class="field-control" value="acme" disabled />
+                </div>
+
+                <div class="form-field">
+                  <span class="field-label">Display name</span>
+                  <input class="field-control" value="" aria-invalid="true" maxlength="100" />
+                </div>
+
+                <label class="checkbox-row">
+                  <input type="checkbox" checked />
+                  <span>Show "Keep me signed in" on login</span>
+                </label>
+
+                <div class="settings-actions">
+                  <button class="button" type="submit">Save changes</button>
+                </div>
+              </form>
+            </section>
+          </section>
+        </main>
+      </div>
+    </div>
+
+    <div class="mockup-controls" aria-label="Mockup theme">
+      <span class="mockup-label">Mockup</span>
+      <button class="mockup-button is-active" type="button" data-theme-target="auto">Auto</button>
+      <button class="mockup-button" type="button" data-theme-target="light">Light</button>
+      <button class="mockup-button" type="button" data-theme-target="dark">Dark</button>
+    </div>
+
+    <script>
+      const root = document.documentElement;
+      const themeButtons = document.querySelectorAll('[data-theme-target]');
+      const userThemeButton = document.querySelector('[data-user-theme]');
+      const userThemeValue = document.querySelector('[data-user-theme-value]');
+      let currentTheme = 'auto';
+
+      function setTheme(value) {
+        currentTheme = value;
+        if (value === 'auto') {
+          root.removeAttribute('data-theme');
+        } else {
+          root.setAttribute('data-theme', value);
+        }
+        themeButtons.forEach((button) => {
+          button.classList.toggle('is-active', button.dataset.themeTarget === value);
+        });
+        if (userThemeValue) {
+          userThemeValue.textContent = value.charAt(0).toUpperCase() + value.slice(1);
+        }
+      }
+
+      const queryTheme = new URLSearchParams(window.location.search).get('theme');
+      if (queryTheme === 'light' || queryTheme === 'dark') {
+        setTheme(queryTheme);
+      }
+
+      themeButtons.forEach((button) => {
+        button.addEventListener('click', () => setTheme(button.dataset.themeTarget));
+      });
+
+      userThemeButton?.addEventListener('click', () => {
+        const themes = ['auto', 'light', 'dark'];
+        setTheme(themes[(themes.indexOf(currentTheme) + 1) % themes.length]);
+      });
+
+      const userMenu = document.querySelector('.user-menu');
+      document.addEventListener('click', (event) => {
+        if (userMenu && userMenu.open && !userMenu.contains(event.target)) {
+          userMenu.open = false;
+        }
+      });
+    </script>
+  </body>
+</html>

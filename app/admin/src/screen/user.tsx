@@ -559,8 +559,10 @@ export const UserPage: m.Component<UserAttrs> = {
                             <strong>{consent.client_name || 'Unknown client'}</strong>
                             <span class="data-table-sub">{consent.client_id}</span>
                           </td>
-                          <td>{consent.scopes.length ? consent.scopes.join(', ') : 'None'}</td>
-                          <td>
+                          <td data-label="Scopes">
+                            {consent.scopes.length ? consent.scopes.join(', ') : 'None'}
+                          </td>
+                          <td data-label="Granted">
                             {grantedLabel(consent)}
                             {consent.client_consent_mode ? (
                               <span class="data-table-sub">
@@ -568,14 +570,14 @@ export const UserPage: m.Component<UserAttrs> = {
                               </span>
                             ) : null}
                           </td>
-                          <td>
+                          <td data-label="Status">
                             {consent.active ? 'Active' : 'Revoked'}
                             {!consent.active ? (
                               <span class="data-table-status">Revoked</span>
                             ) : null}
                           </td>
-                          <td>{formatTime(consent.updated_at)}</td>
-                          <td>
+                          <td data-label="Updated">{formatTime(consent.updated_at)}</td>
+                          <td data-label="Action">
                             {consent.active ? (
                               <button
                                 class="button-secondary"
@@ -647,9 +649,11 @@ export const UserPage: m.Component<UserAttrs> = {
                               <span class="data-table-sub">{ban.client_id}</span>
                             ) : null}
                           </td>
-                          <td>{ban.created_by_username || 'Unknown'}</td>
-                          <td>{formatTime(ban.created_at)}</td>
-                          <td>
+                          <td data-label="Banned by">
+                            {ban.created_by_username || 'Unknown'}
+                          </td>
+                          <td data-label="Created">{formatTime(ban.created_at)}</td>
+                          <td data-label="Action">
                             <button
                               class="button-secondary"
                               type="button"

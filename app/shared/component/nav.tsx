@@ -24,7 +24,9 @@ export const Nav: m.Component<NavAttrs> = {
           <a
             class={`nav-item${item.active ? ' is-active' : ''}`}
             href={item.href}
+            aria-label={item.label}
             aria-current={item.active ? 'page' : undefined}
+            title={item.label}
             onclick={item.onclick}
           >
             {Icon(item.icon)}

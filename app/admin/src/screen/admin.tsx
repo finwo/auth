@@ -1,4 +1,4 @@
-import { Activity, AppWindow, LayoutGrid, Users } from 'lucide';
+import { Activity, AppWindow, LayoutGrid, Settings, Users } from 'lucide';
 import m from 'mithril';
 import { AppShell } from '@component/app-shell';
 import { Nav, type NavItem } from '@component/nav';
@@ -24,6 +24,7 @@ import { ClientsPage } from './clients';
 import { GlobalUserPage } from './global-user';
 import { UserPage } from './user';
 import { UsersPage } from './users';
+import { SettingsPage } from './settings';
 
 function currentPath() {
   return (m.route.get() || '/').split('?')[0];
@@ -100,6 +101,19 @@ function globalUserDetailPath() {
   if (!match) return null;
   try {
     return { userId: decodeURIComponent(match[1]) };
+  } catch {
+    return null;
+  }
+}
+
+function settingsRealm() {
+  const path = currentPath();
+  if (path !== '/settings' && !path.startsWith('/settings/')) return null;
+  const suffix = path.slice('/settings/'.length);
+  if (!suffix) return null;
+  const slug = suffix.split('/')[0];
+  try {
+    return decodeURIComponent(slug);
   } catch {
     return null;
   }
@@ -187,11 +201,26 @@ export const Admin: m.Component = {
     await this.login();
   },
 
+  async reloadRealms(this: any) {
+    try {
+      this.realms = await loadAdminRealms();
+      this.realmsError = null;
+    } catch (e: any) {
+      if (e?.status === 401 || e?.status === 400) {
+        await this.login();
+        return;
+      }
+      this.realmsError = e as Error;
+    }
+    m.redraw();
+  },
+
   updateTitle(this: any) {
     const path = currentPath();
     const clients = path === '/clients' || path.startsWith('/clients/');
     const sessions = path === '/sessions' || path.startsWith('/sessions/');
     const users = path === '/users' || path.startsWith('/users/');
+    const settings = path === '/settings' || path.startsWith('/settings/');
     const title = clients
       ? path.includes('/edit/')
         ? 'Edit client | Administration'
@@ -202,7 +231,9 @@ export const Admin: m.Component = {
           ? userDetailPath() || globalUserDetailPath()
             ? 'User | Administration'
             : 'Users | Administration'
-          : 'Administration';
+          : settings
+            ? 'Realm settings | Administration'
+            : 'Administration';
     document.title = title;
   },
 
@@ -216,9 +247,11 @@ export const Admin: m.Component = {
     const sessions = path === '/sessions' || path.startsWith('/sessions/');
     const clients = path === '/clients' || path.startsWith('/clients/');
     const users = path === '/users' || path.startsWith('/users/');
+    const settings = path === '/settings' || path.startsWith('/settings/');
     const realmSlug = sessionsRealm();
     const clientRealmSlug = clientsRealm();
     const userRealmSlug = usersRealm();
+    const settingsRealmSlug = settingsRealm();
     const clientEdit = clientEditPath();
     const userDetail = userDetailPath();
     const globalUser = globalUserDetailPath();
@@ -231,13 +264,14 @@ export const Admin: m.Component = {
       ? `/clients/${encodeURIComponent(firstRealm)}`
       : '/clients';
     const usersHref = firstRealm ? `/users/${encodeURIComponent(firstRealm)}` : '/users';
+    const settingsHref = firstRealm ? `/settings/${encodeURIComponent(firstRealm)}` : '/settings';
 
     const navItems: NavItem[] = [
       {
         href: appUrl('/'),
         label: 'Overview',
         icon: LayoutGrid,
-        active: !sessions && !clients && !users,
+        active: !sessions && !clients && !users && !settings,
         onclick: (event: Event) => {
           event.preventDefault();
           m.route.set('/');
@@ -271,6 +305,16 @@ export const Admin: m.Component = {
           onclick: (event: Event) => {
             event.preventDefault();
             m.route.set(usersHref);
+          },
+        },
+        {
+          href: appUrl(settingsHref),
+          label: 'Settings',
+          icon: Settings,
+          active: settings,
+          onclick: (event: Event) => {
+            event.preventDefault();
+            m.route.set(settingsHref);
           },
         },
       ];
@@ -347,6 +391,14 @@ export const Admin: m.Component = {
             onAuthExpired={() => this.authExpired()}
             isSystemAdmin={Boolean(this.systemAdmin)}
             isGlobal={isGlobalUsers}
+          />
+        ) : settings ? (
+          <SettingsPage
+            realmSlug={settingsRealmSlug}
+            realms={this.realms}
+            realmsError={this.realmsError}
+            onAuthExpired={() => this.authExpired()}
+            onRealmsChanged={() => this.reloadRealms()}
           />
         ) : sessions ? (
           <SessionsPage

@@ -3928,6 +3928,107 @@ test('HTTP realm, login, OIDC and logout flows', async (t) => {
         clearUserRealmSessions(env, acmeItId);
       }
     });
+
+    await t.test('admin realm settings update name and login behavior', async () => {
+      const acmeAdmin = await adminToken('it@acme.test');
+      const systemAdmin = await adminToken();
+      let original = null;
+
+      try {
+        const initial = await adminRequest(acmeAdmin, {
+          path: '/api/v1/admin/realms/acme/settings',
+        });
+        assert.equal(initial.status, 200);
+        assert.equal(initial.json.settings.slug, 'acme');
+        assert.equal(typeof initial.json.settings.created_at, 'number');
+        original = initial.json.settings;
+
+        const crossRealm = await adminRequest(acmeAdmin, {
+          path: '/api/v1/admin/realms/globex/settings',
+        });
+        assert.equal(crossRealm.status, 403);
+
+        const renamed = await adminRequest(acmeAdmin, {
+          method: 'PATCH',
+          path: '/api/v1/admin/realms/acme/settings',
+          body: { display_name: '  Acme Inc  ' },
+        });
+        assert.equal(renamed.status, 200);
+        assert.equal(renamed.json.ok, true);
+        assert.equal(renamed.json.settings.display_name, 'Acme Inc');
+        assert.equal(renamed.json.settings.allow_session_duration_choice, true);
+
+        const realms = await adminRequest(systemAdmin, {
+          path: '/api/v1/admin/realms',
+        });
+        assert.ok(
+          realms.json.realms.some(
+            (realm) => realm.slug === 'acme' && realm.display_name === 'Acme Inc'
+          )
+        );
+
+        const publicRenamed = await acme({ path: '/api/v1/realm' });
+        assert.equal(publicRenamed.json.display_name, 'Acme Inc');
+        assert.equal(publicRenamed.json.allow_session_duration_choice, true);
+
+        const disabledChoice = await adminRequest(systemAdmin, {
+          method: 'PATCH',
+          path: '/api/v1/admin/realms/acme/settings',
+          body: { allow_session_duration_choice: false },
+        });
+        assert.equal(disabledChoice.status, 200);
+        assert.equal(disabledChoice.json.settings.display_name, 'Acme Inc');
+        assert.equal(disabledChoice.json.settings.allow_session_duration_choice, false);
+
+        const publicDisabledChoice = await acme({ path: '/api/v1/realm' });
+        assert.equal(publicDisabledChoice.json.display_name, 'Acme Inc');
+        assert.equal(publicDisabledChoice.json.allow_session_duration_choice, false);
+
+        const emptyPatch = await adminRequest(acmeAdmin, {
+          method: 'PATCH',
+          path: '/api/v1/admin/realms/acme/settings',
+          body: {},
+        });
+        assert.equal(emptyPatch.status, 400);
+        assert.equal(emptyPatch.json.error.code, 'invalid_request');
+
+        for (const body of [
+          { slug: 'globex' },
+          { status: 'disabled' },
+          { display_name: '   ' },
+          { display_name: 'A'.repeat(101) },
+          { display_name: 'Acme\nInc' },
+          { allow_session_duration_choice: 'false' },
+        ]) {
+          const invalid = await adminRequest(acmeAdmin, {
+            method: 'PATCH',
+            path: '/api/v1/admin/realms/acme/settings',
+            body,
+          });
+          assert.equal(invalid.status, 400);
+          assert.equal(invalid.json.error.code, 'invalid_request');
+        }
+
+        const stored = withRealmDatabase(env, 'acme', (database) =>
+          database
+            .prepare('SELECT slug, status FROM realm_settings WHERE id = 1')
+            .get()
+        );
+        assert.equal(stored.slug, 'acme');
+        assert.equal(stored.status, 'active');
+      } finally {
+        if (original) {
+          await adminRequest(systemAdmin, {
+            method: 'PATCH',
+            path: '/api/v1/admin/realms/acme/settings',
+            body: {
+              display_name: original.display_name,
+              allow_session_duration_choice: original.allow_session_duration_choice,
+            },
+          });
+        }
+      }
+    });
   } finally {
     if (server) {
       server.kill('SIGTERM');

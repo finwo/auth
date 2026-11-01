@@ -40,6 +40,12 @@ const routes: m.RouteDefs = {
   '/users/:realm/:userId': {
     render: () => m(Admin, {}),
   },
+  '/settings': {
+    render: () => m(Admin, {}),
+  },
+  '/settings/:realm': {
+    render: () => m(Admin, {}),
+  },
   '/callback': {
     render: () => m(AdminCallback, {}),
   },

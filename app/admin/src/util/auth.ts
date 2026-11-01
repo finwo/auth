@@ -13,6 +13,8 @@ import {
   type AdminGlobalUserDetail,
   type AdminMeUser,
   type AdminRealm,
+  type AdminRealmSettings,
+  type AdminRealmSettingsInput,
   type AdminRealmUser,
   type AdminRole,
   type AdminSession,
@@ -277,4 +279,29 @@ export async function updateAdminRealmUserRoles(
       body: JSON.stringify({ roles }),
     }
   );
+}
+
+export async function loadAdminRealmSettings(
+  realmSlug: string
+): Promise<AdminRealmSettings> {
+  const realm = encodeURIComponent(realmSlug);
+  const response = await adminJson<{ settings: AdminRealmSettings }>(
+    `/api/v1/admin/realms/${realm}/settings`
+  );
+  return response.settings;
+}
+
+export async function updateAdminRealmSettings(
+  realmSlug: string,
+  input: AdminRealmSettingsInput
+): Promise<AdminRealmSettings> {
+  const realm = encodeURIComponent(realmSlug);
+  const response = await adminJson<{ ok: boolean; settings: AdminRealmSettings }>(
+    `/api/v1/admin/realms/${realm}/settings`,
+    {
+      method: 'PATCH',
+      body: JSON.stringify(input),
+    }
+  );
+  return response.settings;
 }

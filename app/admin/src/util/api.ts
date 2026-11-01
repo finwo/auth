@@ -10,6 +10,19 @@ export interface AdminRealm {
   display_name: string;
 }
 
+export interface AdminRealmSettings {
+  slug: string;
+  display_name: string;
+  allow_session_duration_choice: boolean;
+  created_at: number;
+  updated_at: number;
+}
+
+export interface AdminRealmSettingsInput {
+  display_name: string;
+  allow_session_duration_choice: boolean;
+}
+
 export interface AdminRole {
   slug: string;
   name: string;

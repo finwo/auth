@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>Account mockup</title>
     <link rel="stylesheet" href="./global.css" />
     <style>
@@ -19,14 +19,17 @@
         grid-template-columns: 1.5rem minmax(0, 1fr);
         align-items: center;
         gap: 1rem;
+        min-height: 2.75rem;
         padding: 0.875rem 0.75rem;
         color: inherit;
         text-decoration: none;
         cursor: pointer;
+        touch-action: manipulation;
         user-select: none;
       }
 
-      .summary-row:hover {
+      .summary-row:hover,
+      .summary-row:active {
         background: var(--row-hover);
       }
 
@@ -73,8 +76,10 @@
         grid-template-columns: 1.5rem minmax(0, 1fr);
         align-items: center;
         gap: 1rem;
+        min-height: 2.75rem;
         padding: 1rem 0.75rem;
         background: var(--row);
+        touch-action: manipulation;
       }
 
       .surface-row svg {
@@ -103,13 +108,17 @@
       }
 
       .danger-link {
+        display: inline-flex;
+        align-items: center;
+        min-height: 2.75rem;
         padding: 0.5rem 0;
         border: 0;
         background: none;
-        color: var(--danger);
+        color: var(--danger-text, var(--danger));
         font: inherit;
         font-size: 0.875rem;
         cursor: pointer;
+        touch-action: manipulation;
       }
 
       .danger-link:hover {

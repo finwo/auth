@@ -225,7 +225,7 @@ export function createOidcAuth(options: OidcAuthOptions) {
   }
 
   async function completeLogin(search: string) {
-    const params = new URLSearchParams(search);
+    const params = new URLSearchParams((search || '').split('#')[0]);
     const error = params.get('error');
     if (error) {
       throw new Error(params.get('error_description') || options.deniedMessage);
