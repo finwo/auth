@@ -1,0 +1,424 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Custom dropdown mockup</title>
+    <link rel="stylesheet" href="./global.css" />
+    <style>
+      .dropdown-stack {
+        display: grid;
+        gap: 1rem;
+      }
+
+      .dropdown-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 1rem;
+        margin-top: 1rem;
+      }
+
+      .dropdown-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-top: 1rem;
+      }
+
+      .dropdown-note {
+        margin: 0;
+        color: var(--muted);
+        font-size: 0.875rem;
+        line-height: 1.5;
+      }
+
+      .modal-body {
+        display: grid;
+        gap: 1rem;
+      }
+
+      .modal-body p {
+        margin: 0;
+      }
+
+      .modal-spacer {
+        min-height: 8rem;
+      }
+
+      @media (min-width: 40em) {
+        .dropdown-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="content">
+      <div class="page-header">
+        <h1>Custom dropdowns</h1>
+        <p>House-styled replacement for native realm and form selects.</p>
+      </div>
+
+      <div class="dropdown-stack">
+        <section class="panel">
+          <h2>Realm selector</h2>
+          <div class="dropdown-grid">
+            <div class="realm-select">
+              <span id="realm-short-label">Realm</span>
+              <div class="select" data-select data-value="acme">
+                <button
+                  class="select-trigger"
+                  type="button"
+                  id="realm-short-trigger"
+                  role="combobox"
+                  aria-haspopup="listbox"
+                  aria-expanded="false"
+                  aria-controls="realm-short-listbox"
+                  aria-labelledby="realm-short-label"
+                >
+                  <span class="select-value">Acme</span>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="m6 9 6 6 6-6" />
+                  </svg>
+                </button>
+                <div class="select-list" id="realm-short-listbox" role="listbox" aria-labelledby="realm-short-label" hidden>
+                  <div class="select-option is-selected" id="realm-short-acme" role="option" aria-selected="true" data-value="acme" data-label="Acme">
+                    <span class="select-option-mark" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20 6 9 17l-5-5" />
+                      </svg>
+                    </span>
+                    <span class="select-option-label">Acme</span>
+                  </div>
+                  <div class="select-option" id="realm-short-globex" role="option" aria-selected="false" data-value="globex" data-label="Globex">
+                    <span class="select-option-mark" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20 6 9 17l-5-5" />
+                      </svg>
+                    </span>
+                    <span class="select-option-label">Globex</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-field">
+              <span class="field-label" id="long-select-label">Application</span>
+              <div class="select" data-select data-value="internal-app">
+                <button
+                  class="select-trigger"
+                  type="button"
+                  id="long-select-trigger"
+                  role="combobox"
+                  aria-haspopup="listbox"
+                  aria-expanded="false"
+                  aria-controls="long-select-listbox"
+                  aria-labelledby="long-select-label"
+                >
+                  <span class="select-value">Internal App</span>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="m6 9 6 6 6-6" />
+                  </svg>
+                </button>
+                <div class="select-list" id="long-select-listbox" role="listbox" aria-labelledby="long-select-label" hidden>
+                  <div class="select-option is-selected" id="long-select-app-1" role="option" aria-selected="true" data-value="internal-app" data-label="Internal App">
+                    <span class="select-option-mark" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20 6 9 17l-5-5" />
+                      </svg>
+                    </span>
+                    <span class="select-option-label">Internal App</span>
+                  </div>
+                  <div class="select-option" id="long-select-app-2" role="option" aria-selected="false" data-value="members-app" data-label="Members Portal">
+                    <span class="select-option-mark" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20 6 9 17l-5-5" />
+                      </svg>
+                    </span>
+                    <span class="select-option-label">Members Portal</span>
+                  </div>
+                  <div class="select-option" id="long-select-app-3" role="option" aria-selected="false" data-value="public-app" data-label="Public Site">
+                    <span class="select-option-mark" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20 6 9 17l-5-5" />
+                      </svg>
+                    </span>
+                    <span class="select-option-label">Public Site</span>
+                  </div>
+                  <div class="select-option" id="long-select-app-4" role="option" aria-selected="false" data-value="reports-app" data-label="Reports App">
+                    <span class="select-option-mark" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20 6 9 17l-5-5" />
+                      </svg>
+                    </span>
+                    <span class="select-option-label">Reports App</span>
+                  </div>
+                  <div class="select-option" id="long-select-app-5" role="option" aria-selected="false" data-value="admin-tools" data-label="Admin Tools">
+                    <span class="select-option-mark" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20 6 9 17l-5-5" />
+                      </svg>
+                    </span>
+                    <span class="select-option-label">Admin Tools</span>
+                  </div>
+                  <div class="select-option" id="long-select-app-6" role="option" aria-selected="false" data-value="billing-app" data-label="Billing App">
+                    <span class="select-option-mark" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20 6 9 17l-5-5" />
+                      </svg>
+                    </span>
+                    <span class="select-option-label">Billing App</span>
+                  </div>
+                  <div class="select-option" id="long-select-app-7" role="option" aria-selected="false" data-value="data-warehouse" data-label="Data Warehouse">
+                    <span class="select-option-mark" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20 6 9 17l-5-5" />
+                      </svg>
+                    </span>
+                    <span class="select-option-label">Data Warehouse</span>
+                  </div>
+                  <div class="select-option" id="long-select-app-8" role="option" aria-selected="false" data-value="developer-portal" data-label="Developer Portal">
+                    <span class="select-option-mark" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20 6 9 17l-5-5" />
+                      </svg>
+                    </span>
+                    <span class="select-option-label">Developer Portal</span>
+                  </div>
+                  <div class="select-option" id="long-select-app-9" role="option" aria-selected="false" data-value="engineering-app" data-label="Engineering App">
+                    <span class="select-option-mark" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20 6 9 17l-5-5" />
+                      </svg>
+                    </span>
+                    <span class="select-option-label">Engineering App</span>
+                  </div>
+                  <div class="select-option" id="long-select-app-10" role="option" aria-selected="false" data-value="finance-app" data-label="Finance App">
+                    <span class="select-option-mark" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20 6 9 17l-5-5" />
+                      </svg>
+                    </span>
+                    <span class="select-option-label">Finance App</span>
+                  </div>
+                  <div class="select-option" id="long-select-app-11" role="option" aria-selected="false" data-value="inventory-app" data-label="Inventory App">
+                    <span class="select-option-mark" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20 6 9 17l-5-5" />
+                      </svg>
+                    </span>
+                    <span class="select-option-label">Inventory App</span>
+                  </div>
+                  <div class="select-option" id="long-select-app-12" role="option" aria-selected="false" data-value="operations-app" data-label="Operations App">
+                    <span class="select-option-mark" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20 6 9 17l-5-5" />
+                      </svg>
+                    </span>
+                    <span class="select-option-label">Operations App</span>
+                  </div>
+                  <div class="select-option" id="long-select-app-13" role="option" aria-selected="false" data-value="support-app" data-label="Support App">
+                    <span class="select-option-mark" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20 6 9 17l-5-5" />
+                      </svg>
+                    </span>
+                    <span class="select-option-label">Support App</span>
+                  </div>
+                  <div class="select-option" id="long-select-app-14" role="option" aria-selected="false" data-value="workforce-app" data-label="Workforce App">
+                    <span class="select-option-mark" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20 6 9 17l-5-5" />
+                      </svg>
+                    </span>
+                    <span class="select-option-label">Workforce App</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <h2>Disabled state</h2>
+          <div class="dropdown-grid">
+            <div class="form-field">
+              <span class="field-label" id="disabled-select-label">Client</span>
+              <div class="select" data-select data-value="locked">
+                <button
+                  class="select-trigger"
+                  type="button"
+                  id="disabled-select-trigger"
+                  role="combobox"
+                  aria-haspopup="listbox"
+                  aria-expanded="false"
+                  aria-controls="disabled-select-listbox"
+                  aria-labelledby="disabled-select-label"
+                  disabled
+                >
+                  <span class="select-value">Locked client</span>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="m6 9 6 6 6-6" />
+                  </svg>
+                </button>
+                <div class="select-list" id="disabled-select-listbox" role="listbox" aria-labelledby="disabled-select-label" hidden>
+                  <div class="select-option is-selected" id="disabled-select-locked" role="option" aria-selected="true" data-value="locked" data-label="Locked client">
+                    <span class="select-option-mark" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20 6 9 17l-5-5" />
+                      </svg>
+                    </span>
+                    <span class="select-option-label">Locked client</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <p class="dropdown-note">Disabled controls remain visible but cannot open a popup.</p>
+          </div>
+        </section>
+
+        <section class="panel">
+          <h2>Modal placement</h2>
+          <div class="dropdown-actions">
+            <button class="button" type="button" data-dialog-open="dropdown-modal">Open client dialog</button>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <div id="dropdown-modal" class="modal-overlay" hidden>
+      <div class="modal" role="dialog" aria-modal="true" aria-labelledby="dropdown-modal-title">
+        <div class="modal-header">
+          <h2 id="dropdown-modal-title">Register a client</h2>
+          <button class="modal-close" type="button" aria-label="Close dialog" data-dialog-close>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M18 6 6 18" />
+              <path d="m6 6 12 12" />
+            </svg>
+          </button>
+        </div>
+        <div class="modal-body">
+          <label class="form-field">
+            <span class="field-label">Client ID</span>
+            <input class="field-control" type="text" value="example-app" />
+          </label>
+          <div class="modal-spacer" aria-hidden="true"></div>
+          <div class="form-field">
+            <span class="field-label" id="modal-select-label">Access mode</span>
+            <div class="select" data-select data-value="members">
+              <button
+                class="select-trigger"
+                type="button"
+                id="modal-select-trigger"
+                role="combobox"
+                aria-haspopup="listbox"
+                aria-expanded="false"
+                aria-controls="modal-select-listbox"
+                aria-labelledby="modal-select-label"
+              >
+                <span class="select-value">Members</span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="m6 9 6 6 6-6" />
+                </svg>
+              </button>
+              <div class="select-list" id="modal-select-listbox" role="listbox" aria-labelledby="modal-select-label" hidden>
+                <div class="select-option" id="modal-select-internal" role="option" aria-selected="false" data-value="internal" data-label="Internal">
+                  <span class="select-option-mark" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M20 6 9 17l-5-5" />
+                    </svg>
+                  </span>
+                  <span class="select-option-label">Internal</span>
+                </div>
+                <div class="select-option is-selected" id="modal-select-members" role="option" aria-selected="true" data-value="members" data-label="Members">
+                  <span class="select-option-mark" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M20 6 9 17l-5-5" />
+                    </svg>
+                  </span>
+                  <span class="select-option-label">Members</span>
+                </div>
+                <div class="select-option" id="modal-select-public" role="option" aria-selected="false" data-value="public" data-label="Public">
+                  <span class="select-option-mark" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M20 6 9 17l-5-5" />
+                    </svg>
+                  </span>
+                  <span class="select-option-label">Public</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <p>Escaping an open dropdown closes the dropdown before it closes the dialog.</p>
+          <div class="modal-actions">
+            <button class="button-secondary" type="button" data-dialog-close>Cancel</button>
+            <button class="button" type="button" data-dialog-close>Create client</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="mockup-controls" aria-label="Mockup theme">
+      <span class="mockup-label">Mockup</span>
+      <button class="mockup-button is-active" type="button" data-theme-target="auto">Auto</button>
+      <button class="mockup-button" type="button" data-theme-target="light">Light</button>
+      <button class="mockup-button" type="button" data-theme-target="dark">Dark</button>
+    </div>
+
+    <script>
+      const root = document.documentElement;
+      const themeButtons = document.querySelectorAll('[data-theme-target]');
+      let currentTheme = 'auto';
+
+      function setTheme(value) {
+        currentTheme = value;
+        if (value === 'auto') root.removeAttribute('data-theme');
+        else root.setAttribute('data-theme', value);
+
+        themeButtons.forEach((button) => {
+          button.classList.toggle('is-active', button.dataset.themeTarget === value);
+        });
+      }
+
+      const queryTheme = new URLSearchParams(window.location.search).get('theme');
+      if (queryTheme === 'light' || queryTheme === 'dark') setTheme(queryTheme);
+
+      themeButtons.forEach((button) => {
+        button.addEventListener('click', () => setTheme(button.dataset.themeTarget));
+      });
+
+      function visibleDialogs() {
+        return Array.from(document.querySelectorAll('.modal-overlay:not([hidden])'));
+      }
+
+      document.querySelectorAll('[data-dialog-open]').forEach((button) => {
+        button.addEventListener('click', () => {
+          const dialog = document.getElementById(button.dataset.dialogOpen);
+          if (!dialog) return;
+          dialog.hidden = false;
+          dialog.querySelector('.modal-close')?.focus();
+        });
+      });
+
+      document.querySelectorAll('[data-dialog-close]').forEach((button) => {
+        button.addEventListener('click', () => {
+          const dialog = button.closest('.modal-overlay');
+          if (dialog) dialog.hidden = true;
+        });
+      });
+
+      document.addEventListener('click', (event) => {
+        if (event.target.classList.contains('modal-overlay')) event.target.hidden = true;
+      });
+
+      window.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') {
+          visibleDialogs().forEach((dialog) => {
+            dialog.hidden = true;
+          });
+        }
+      });
+    </script>
+    <script src="./shell.js"></script>
+  </body>
+</html>

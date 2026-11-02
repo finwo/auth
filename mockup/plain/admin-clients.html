@@ -203,13 +203,44 @@
               <h1>Clients</h1>
               <p>OIDC clients registered in this realm.</p>
             </div>
-            <label class="realm-select">
-              <span>Realm</span>
-              <select>
-                <option selected>Acme</option>
-                <option>Globex</option>
-              </select>
-            </label>
+            <div class="realm-select">
+              <span id="clients-realm-label">Realm</span>
+              <div class="select" data-select data-value="acme">
+                <button
+                  class="select-trigger"
+                  type="button"
+                  id="clients-realm-trigger"
+                  role="combobox"
+                  aria-haspopup="listbox"
+                  aria-expanded="false"
+                  aria-controls="clients-realm-listbox"
+                  aria-labelledby="clients-realm-label"
+                >
+                  <span class="select-value">Acme</span>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="m6 9 6 6 6-6" />
+                  </svg>
+                </button>
+                <div class="select-list" id="clients-realm-listbox" role="listbox" aria-labelledby="clients-realm-label" hidden>
+                  <div class="select-option is-selected" id="clients-realm-acme" role="option" aria-selected="true" data-value="acme" data-label="Acme">
+                    <span class="select-option-mark" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20 6 9 17l-5-5" />
+                      </svg>
+                    </span>
+                    <span class="select-option-label">Acme</span>
+                  </div>
+                  <div class="select-option" id="clients-realm-globex" role="option" aria-selected="false" data-value="globex" data-label="Globex">
+                    <span class="select-option-mark" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20 6 9 17l-5-5" />
+                      </svg>
+                    </span>
+                    <span class="select-option-label">Globex</span>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
 
           <section class="table-panel" aria-labelledby="client-table-title">
@@ -331,14 +362,52 @@
             <span class="field-label">Name</span>
             <input class="field-control" type="text" placeholder="My App" />
           </label>
-          <label class="form-field">
-            <span class="field-label">Access mode</span>
-            <select class="field-control">
-              <option>Internal: home-realm members</option>
-              <option selected>Members: active realm members</option>
-              <option>Public: any authenticated user</option>
-            </select>
-          </label>
+          <div class="form-field">
+            <span class="field-label" id="client-access-mode-label">Access mode</span>
+            <div class="select" data-select data-value="members">
+              <button
+                class="select-trigger"
+                type="button"
+                id="client-access-mode-trigger"
+                role="combobox"
+                aria-haspopup="listbox"
+                aria-expanded="false"
+                aria-controls="client-access-mode-listbox"
+                aria-labelledby="client-access-mode-label"
+              >
+                <span class="select-value">Members: active realm members</span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="m6 9 6 6 6-6" />
+                </svg>
+              </button>
+              <div class="select-list" id="client-access-mode-listbox" role="listbox" aria-labelledby="client-access-mode-label" hidden>
+                <div class="select-option" id="client-access-mode-internal" role="option" aria-selected="false" data-value="internal" data-label="Internal: home-realm members">
+                  <span class="select-option-mark" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M20 6 9 17l-5-5" />
+                    </svg>
+                  </span>
+                  <span class="select-option-label">Internal: home-realm members</span>
+                </div>
+                <div class="select-option is-selected" id="client-access-mode-members" role="option" aria-selected="true" data-value="members" data-label="Members: active realm members">
+                  <span class="select-option-mark" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M20 6 9 17l-5-5" />
+                    </svg>
+                  </span>
+                  <span class="select-option-label">Members: active realm members</span>
+                </div>
+                <div class="select-option" id="client-access-mode-public" role="option" aria-selected="false" data-value="public" data-label="Public: any authenticated user">
+                  <span class="select-option-mark" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M20 6 9 17l-5-5" />
+                    </svg>
+                  </span>
+                  <span class="select-option-label">Public: any authenticated user</span>
+                </div>
+              </div>
+            </div>
+          </div>
           <label class="form-field">
             <span class="field-label">Redirect URIs</span>
             <textarea class="field-control" rows="3" placeholder="https://app.example.test/callback"></textarea>

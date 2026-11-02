@@ -203,14 +203,52 @@
               <h1>Users</h1>
               <p>Home and guest members in this realm.</p>
             </div>
-            <label class="realm-select">
-              <span>Realm</span>
-              <select>
-                <option>All realms</option>
-                <option selected>Acme</option>
-                <option>Globex</option>
-              </select>
-            </label>
+            <div class="realm-select">
+              <span id="users-realm-label">Realm</span>
+              <div class="select" data-select data-value="acme">
+                <button
+                  class="select-trigger"
+                  type="button"
+                  id="users-realm-trigger"
+                  role="combobox"
+                  aria-haspopup="listbox"
+                  aria-expanded="false"
+                  aria-controls="users-realm-listbox"
+                  aria-labelledby="users-realm-label"
+                >
+                  <span class="select-value">Acme</span>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="m6 9 6 6 6-6" />
+                  </svg>
+                </button>
+                <div class="select-list" id="users-realm-listbox" role="listbox" aria-labelledby="users-realm-label" hidden>
+                  <div class="select-option" id="users-realm-global" role="option" aria-selected="false" data-value="global" data-label="All realms">
+                    <span class="select-option-mark" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20 6 9 17l-5-5" />
+                      </svg>
+                    </span>
+                    <span class="select-option-label">All realms</span>
+                  </div>
+                  <div class="select-option is-selected" id="users-realm-acme" role="option" aria-selected="true" data-value="acme" data-label="Acme">
+                    <span class="select-option-mark" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20 6 9 17l-5-5" />
+                      </svg>
+                    </span>
+                    <span class="select-option-label">Acme</span>
+                  </div>
+                  <div class="select-option" id="users-realm-globex" role="option" aria-selected="false" data-value="globex" data-label="Globex">
+                    <span class="select-option-mark" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20 6 9 17l-5-5" />
+                      </svg>
+                    </span>
+                    <span class="select-option-label">Globex</span>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
 
           <section class="table-panel" aria-labelledby="user-table-title">
