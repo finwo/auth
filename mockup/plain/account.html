@@ -206,47 +206,115 @@
         </svg>
         <span class="brand-name">Auth</span>
       </a>
-      <details class="user-menu" open>
-        <summary aria-label="Account menu">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <circle cx="12" cy="12" r="10" />
-            <circle cx="12" cy="10" r="3" />
-            <path d="M7 20.662V19a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v1.662" />
-          </svg>
-        </summary>
-        <div class="user-panel">
-          <div class="user-summary">
-            <span class="user-name">Demo User</span>
-            <span class="user-meta">demo@example.com</span>
+      <div class="topbar-actions">
+        <button class="mobile-nav-toggle" type="button" id="mobile-nav-toggle" aria-controls="mobile-navigation" aria-expanded="false" aria-label="Open navigation">
+          <span class="mobile-nav-toggle-bars" aria-hidden="true"></span>
+        </button>
+        <details class="user-menu" open>
+          <summary aria-label="Account menu">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="10" />
+              <circle cx="12" cy="10" r="3" />
+              <path d="M7 20.662V19a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v1.662" />
+            </svg>
+          </summary>
+          <div class="user-panel">
+            <div class="user-summary">
+              <span class="user-name">Demo User</span>
+              <span class="user-meta">demo@example.com</span>
+            </div>
+            <div class="user-menu-list">
+              <button class="user-menu-item" type="button" data-user-theme>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <circle cx="12" cy="12" r="4" />
+                  <path d="M12 2v2" />
+                  <path d="M12 20v2" />
+                  <path d="m4.93 4.93 1.41 1.41" />
+                  <path d="m17.66 17.66 1.41 1.41" />
+                  <path d="M2 12h2" />
+                  <path d="M20 12h2" />
+                  <path d="m6.34 17.66-1.41 1.41" />
+                  <path d="m19.07 4.93-1.41 1.41" />
+                </svg>
+                <span>Theme</span>
+                <span class="user-menu-value" data-user-theme-value>Auto</span>
+              </button>
+              <a class="user-menu-item" href="#">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                  <path d="m16 17 5-5-5-5" />
+                  <path d="M21 12H9" />
+                </svg>
+                <span>Sign out</span>
+              </a>
+            </div>
           </div>
-          <div class="user-menu-list">
-            <button class="user-menu-item" type="button" data-user-theme>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <circle cx="12" cy="12" r="4" />
-                <path d="M12 2v2" />
-                <path d="M12 20v2" />
-                <path d="m4.93 4.93 1.41 1.41" />
-                <path d="m17.66 17.66 1.41 1.41" />
-                <path d="M2 12h2" />
-                <path d="M20 12h2" />
-                <path d="m6.34 17.66-1.41 1.41" />
-                <path d="m19.07 4.93-1.41 1.41" />
-              </svg>
-              <span>Theme</span>
-              <span class="user-menu-value" data-user-theme-value>Auto</span>
-            </button>
-            <a class="user-menu-item" href="#">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-                <path d="m16 17 5-5-5-5" />
-                <path d="M21 12H9" />
-              </svg>
-              <span>Sign out</span>
-            </a>
-          </div>
-        </div>
-      </details>
+        </details>
+      </div>
     </header>
+
+    <div class="mobile-nav" id="mobile-navigation" aria-hidden="true">
+      <nav class="nav" aria-label="Account">
+        <p class="nav-label">Account</p>
+        <a class="nav-item is-active" href="#" data-nav="overview" aria-current="page">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="3" y="3" width="7" height="7" />
+            <rect x="14" y="3" width="7" height="7" />
+            <rect x="3" y="14" width="7" height="7" />
+            <rect x="14" y="14" width="7" height="7" />
+          </svg>
+          <span>Overview</span>
+        </a>
+        <a class="nav-item" href="#" data-nav="security">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" />
+          </svg>
+          <span>Security</span>
+        </a>
+        <a class="nav-item" href="#" data-nav="apps">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="3" y="3" width="7" height="7" />
+            <rect x="14" y="3" width="7" height="7" />
+            <rect x="3" y="14" width="7" height="7" />
+            <path d="M14 17.5h7" />
+            <path d="M17.5 14v7" />
+          </svg>
+          <span>Apps</span>
+        </a>
+      </nav>
+      <div class="mobile-nav-divider" aria-hidden="true"></div>
+      <section class="mobile-nav-account" aria-label="Account">
+        <div class="user-summary">
+          <span class="user-name">Demo User</span>
+          <span class="user-meta">demo@example.com</span>
+        </div>
+        <div class="user-menu-list">
+          <button class="user-menu-item" type="button" data-user-theme>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="4" />
+              <path d="M12 2v2" />
+              <path d="M12 20v2" />
+              <path d="m4.93 4.93 1.41 1.41" />
+              <path d="m17.66 17.66 1.41 1.41" />
+              <path d="M2 12h2" />
+              <path d="M20 12h2" />
+              <path d="m6.34 17.66-1.41 1.41" />
+              <path d="m19.07 4.93-1.41 1.41" />
+            </svg>
+            <span>Theme</span>
+            <span class="user-menu-value" data-user-theme-value>Auto</span>
+          </button>
+          <a class="user-menu-item" href="#">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+              <path d="m16 17 5-5-5-5" />
+              <path d="M21 12H9" />
+            </svg>
+            <span>Sign out</span>
+          </a>
+        </div>
+      </section>
+    </div>
 
     <div class="app">
       <aside class="sidebar">
@@ -578,8 +646,8 @@
       const navItems = document.querySelectorAll('[data-nav]');
       const views = document.querySelectorAll('main [data-view]');
       const themeButtons = document.querySelectorAll('[data-theme-target]');
-      const userThemeButton = document.querySelector('[data-user-theme]');
-      const userThemeValue = document.querySelector('[data-user-theme-value]');
+      const userThemeButtons = document.querySelectorAll('[data-user-theme]');
+      const userThemeValues = document.querySelectorAll('[data-user-theme-value]');
       let currentTheme = 'auto';
 
       function setView(name) {
@@ -616,9 +684,9 @@
         themeButtons.forEach((button) => {
           button.classList.toggle('is-active', button.dataset.themeTarget === value);
         });
-        if (userThemeValue) {
-          userThemeValue.textContent = value.charAt(0).toUpperCase() + value.slice(1);
-        }
+        userThemeValues.forEach((element) => {
+          element.textContent = value.charAt(0).toUpperCase() + value.slice(1);
+        });
       }
 
       viewButtons.forEach((button) => {
@@ -629,9 +697,11 @@
         button.addEventListener('click', () => setTheme(button.dataset.themeTarget));
       });
 
-      userThemeButton?.addEventListener('click', () => {
+      userThemeButtons.forEach((button) => {
+        button.addEventListener('click', () => {
         const themes = ['auto', 'light', 'dark'];
-        setTheme(themes[(themes.indexOf(currentTheme) + 1) % themes.length]);
+          setTheme(themes[(themes.indexOf(currentTheme) + 1) % themes.length]);
+        });
       });
 
       navItems.forEach((item) => {
@@ -665,5 +735,6 @@
         setTheme(initialTheme);
       }
     </script>
+    <script src="./shell.js"></script>
   </body>
 </html>

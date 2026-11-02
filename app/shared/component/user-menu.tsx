@@ -3,14 +3,53 @@ import m from 'mithril';
 import { themeLabel, type Theme } from '@util/theme';
 import { Icon } from '@component/icon';
 
-interface UserMenuAttrs {
-  name: string;
-  meta: string;
+export interface AccountActionsAttrs {
   accountHref?: string;
   theme: Theme;
   onCycleTheme: () => void;
   onSignOut: () => void;
 }
+
+export interface UserMenuAttrs extends AccountActionsAttrs {
+  name: string;
+  meta: string;
+}
+
+export const AccountActions: m.Component<AccountActionsAttrs> = {
+  view({ attrs }) {
+    return (
+      <div class="user-menu-list">
+        {attrs.accountHref ? (
+          <a class="user-menu-item" href={attrs.accountHref}>
+            {Icon(Settings)}
+            <span>Account settings</span>
+          </a>
+        ) : null}
+        <button
+          class="user-menu-item"
+          type="button"
+          aria-label={`Theme: ${themeLabel(attrs.theme)}`}
+          onclick={attrs.onCycleTheme}
+        >
+          {Icon(Sun)}
+          <span>Theme</span>
+          <span class="user-menu-value">{themeLabel(attrs.theme)}</span>
+        </button>
+        <a
+          class="user-menu-item"
+          href="#"
+          onclick={(event: Event) => {
+            event.preventDefault();
+            attrs.onSignOut();
+          }}
+        >
+          {Icon(LogOut)}
+          <span>Sign out</span>
+        </a>
+      </div>
+    );
+  },
+};
 
 export const UserMenu: m.Component<UserMenuAttrs> = {
   view({ attrs }) {
@@ -34,35 +73,12 @@ export const UserMenu: m.Component<UserMenuAttrs> = {
             <span class="user-name">{attrs.name}</span>
             <span class="user-meta">{attrs.meta}</span>
           </div>
-          <div class="user-menu-list">
-            {attrs.accountHref ? (
-              <a class="user-menu-item" href={attrs.accountHref}>
-                {Icon(Settings)}
-                <span>Account settings</span>
-              </a>
-            ) : null}
-            <button
-              class="user-menu-item"
-              type="button"
-              aria-label={`Theme: ${themeLabel(attrs.theme)}`}
-              onclick={attrs.onCycleTheme}
-            >
-              {Icon(Sun)}
-              <span>Theme</span>
-              <span class="user-menu-value">{themeLabel(attrs.theme)}</span>
-            </button>
-            <a
-              class="user-menu-item"
-              href="#"
-              onclick={(event: Event) => {
-                event.preventDefault();
-                attrs.onSignOut();
-              }}
-            >
-              {Icon(LogOut)}
-              <span>Sign out</span>
-            </a>
-          </div>
+          <AccountActions
+            accountHref={attrs.accountHref}
+            theme={attrs.theme}
+            onCycleTheme={attrs.onCycleTheme}
+            onSignOut={attrs.onSignOut}
+          />
         </div>
       </details>
     );

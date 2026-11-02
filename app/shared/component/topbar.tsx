@@ -7,6 +7,7 @@ interface TopbarAttrs {
   brandName?: string;
   label?: string;
   onclick?: (event: Event) => void;
+  menuButton?: m.Children;
 }
 
 export const Topbar: m.Component<TopbarAttrs> = {
@@ -22,7 +23,10 @@ export const Topbar: m.Component<TopbarAttrs> = {
           {Icon(Hexagon, { class: 'brand-icon' })}
           <span class="brand-name">{attrs.brandName || 'Auth'}</span>
         </a>
-        {children}
+        <div class="topbar-actions">
+          {attrs.menuButton}
+          {children}
+        </div>
       </header>
     );
   },

@@ -1,7 +1,8 @@
 import { Activity, AppWindow, LayoutGrid, Settings, Users } from 'lucide';
 import m from 'mithril';
 import { AppShell } from '@component/app-shell';
-import { Nav, type NavItem } from '@component/nav';
+import { type NavItem } from '@component/nav';
+import { MobileNavAccount, MobileNavToggle } from '@component/mobile-nav';
 import { StatusPage } from '@component/status-page';
 import { Topbar } from '@component/topbar';
 import { UserMenu } from '@component/user-menu';
@@ -127,13 +128,37 @@ export const Admin: m.Component = {
   error: null as Error | null,
   authUrl: window.location.origin,
   theme: getTheme() as Theme,
+  mobileNavOpen: false,
+  lastPath: '',
+  desktopMedia: null as MediaQueryList | null,
+  onDesktopMediaChange: null as ((event: MediaQueryListEvent) => void) | null,
 
   oninit(this: any) {
     applyTheme(this.theme);
+    this.lastPath = currentPath();
     this.load();
   },
 
+  oncreate(this: any) {
+    this.desktopMedia = window.matchMedia('(min-width: 60em)');
+    this.onDesktopMediaChange = (event: MediaQueryListEvent) => {
+      if (event.matches) this.mobileNavOpen = false;
+    };
+    this.desktopMedia.addEventListener('change', this.onDesktopMediaChange);
+  },
+
+  onremove(this: any) {
+    if (this.desktopMedia && this.onDesktopMediaChange) {
+      this.desktopMedia.removeEventListener('change', this.onDesktopMediaChange);
+    }
+  },
+
   onupdate(this: any) {
+    const path = currentPath();
+    if (path !== this.lastPath) {
+      this.lastPath = path;
+      this.mobileNavOpen = false;
+    }
     this.updateTitle();
   },
 
@@ -237,6 +262,14 @@ export const Admin: m.Component = {
     document.title = title;
   },
 
+  toggleMobileNav(this: any) {
+    this.mobileNavOpen = !this.mobileNavOpen;
+  },
+
+  closeMobileNav(this: any) {
+    this.mobileNavOpen = false;
+  },
+
   cycleTheme(this: any) {
     this.theme = cycleTheme();
   },
@@ -326,8 +359,15 @@ export const Admin: m.Component = {
             href={appUrl('/')}
             onclick={(event: Event) => {
               event.preventDefault();
+              this.closeMobileNav();
               m.route.set('/');
             }}
+            menuButton={
+              <MobileNavToggle
+                expanded={this.mobileNavOpen}
+                onToggle={() => this.toggleMobileNav()}
+              />
+            }
           >
             <UserMenu
               name={user?.name || 'Administrator'}
@@ -336,6 +376,7 @@ export const Admin: m.Component = {
               theme={this.theme}
               onCycleTheme={() => this.cycleTheme()}
               onSignOut={() => {
+                this.closeMobileNav();
                 adminSignOut().catch((error: Error) => {
                   this.error = error;
                   m.redraw();
@@ -344,7 +385,27 @@ export const Admin: m.Component = {
             />
           </Topbar>
         }
-        nav={<Nav label="Administration" ariaLabel="Administration" items={navItems} />}
+        navLabel="Administration"
+        navAriaLabel="Administration"
+        navItems={navItems}
+        accountPanel={
+          <MobileNavAccount
+            name={user?.name || 'Administrator'}
+            meta={user?.email || user?.preferred_username || 'Identity provider'}
+            accountHref={`${this.authUrl}/app/account`}
+            theme={this.theme}
+            onCycleTheme={() => this.cycleTheme()}
+            onSignOut={() => {
+              this.closeMobileNav();
+              adminSignOut().catch((error: Error) => {
+                this.error = error;
+                m.redraw();
+              });
+            }}
+          />
+        }
+        mobileNavOpen={this.mobileNavOpen}
+        onMobileNavClose={() => this.closeMobileNav()}
       >
         {this.error ? (
           <div class="alert" role="alert">

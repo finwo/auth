@@ -24,6 +24,7 @@
   --field-line: rgba(0, 0, 0, 0.42);
   --shadow: 0 0.125em 0.25em #0008;
   --hex: url('./assets/hex-grid-light.svg');
+  --topbar-height: 3.5rem;
 }
 
 *,
@@ -49,7 +50,8 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-html.modal-open body {
+html.modal-open body,
+html.mobile-nav-open body {
   overflow: hidden;
 }
 
@@ -68,12 +70,12 @@ textarea {
 .topbar {
   position: sticky;
   top: 0;
-  z-index: 20;
+  z-index: 40;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  min-height: 3.5rem;
+  min-height: var(--topbar-height);
   padding: env(safe-area-inset-top) max(1.5rem, env(safe-area-inset-right)) 0
            max(1.5rem, env(safe-area-inset-left));
   background: var(--topbar);
@@ -101,19 +103,28 @@ textarea {
   line-height: 1.3;
 }
 
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.topbar .user-menu {
+  display: none;
+}
+
 .app {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  grid-template-rows: auto minmax(0, 1fr);
-  min-height: calc(100vh - 3.5rem);
-  min-height: calc(100svh - 3.5rem);
+  grid-template-rows: minmax(0, 1fr);
+  min-height: calc(100vh - var(--topbar-height));
+  min-height: calc(100svh - var(--topbar-height));
 }
 
 .sidebar {
   min-width: 0;
-  display: flex;
+  display: none;
   flex-direction: column;
-  min-height: auto;
   background: var(--sidebar);
   color: #fff;
 }
@@ -190,6 +201,155 @@ textarea {
   background: var(--sidebar-active);
   box-shadow: inset 0 0.25rem 0 var(--accent);
   color: #fff;
+}
+
+.mobile-nav-toggle {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.86);
+  cursor: pointer;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.mobile-nav-toggle:hover,
+.mobile-nav-toggle.is-open {
+  color: #fff;
+}
+
+.mobile-nav-toggle-bars,
+.mobile-nav-toggle-bars::before,
+.mobile-nav-toggle-bars::after {
+  position: absolute;
+  width: 1.25rem;
+  height: 1pt;
+  background: currentColor;
+  transition: transform 0.3s ease;
+}
+
+.mobile-nav-toggle-bars::before,
+.mobile-nav-toggle-bars::after {
+  content: '';
+  left: 0;
+}
+
+.mobile-nav-toggle-bars::before {
+  top: -0.5rem;
+}
+
+.mobile-nav-toggle-bars::after {
+  top: 0.5rem;
+}
+
+.mobile-nav-toggle.is-open .mobile-nav-toggle-bars {
+  background: transparent;
+}
+
+.mobile-nav-toggle.is-open .mobile-nav-toggle-bars::before {
+  transform: translateY(0.5rem) rotate(45deg);
+}
+
+.mobile-nav-toggle.is-open .mobile-nav-toggle-bars::after {
+  transform: translateY(-0.5rem) rotate(-45deg);
+}
+
+.mobile-nav {
+  position: fixed;
+  top: calc(var(--topbar-height) + env(safe-area-inset-top));
+  right: max(0rem, env(safe-area-inset-right));
+  bottom: 0;
+  left: max(0rem, env(safe-area-inset-left));
+  z-index: 30;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background: var(--sidebar);
+  color: #fff;
+  visibility: hidden;
+  opacity: 0;
+  transform: translateX(100%);
+  pointer-events: none;
+  transition:
+    transform 0.3s ease,
+    opacity 0.2s ease,
+    visibility 0.3s;
+}
+
+html.mobile-nav-open .mobile-nav {
+  visibility: visible;
+  opacity: 1;
+  transform: none;
+  pointer-events: auto;
+}
+
+.mobile-nav .nav {
+  min-width: 0;
+  min-height: 0;
+  flex-direction: column;
+  flex-wrap: nowrap;
+  overflow: visible;
+  padding: 1rem max(1.5rem, env(safe-area-inset-right))
+           calc(1rem + env(safe-area-inset-bottom))
+           max(1.5rem, env(safe-area-inset-left));
+  gap: 0.25rem;
+}
+
+.mobile-nav .nav-label {
+  display: block;
+  padding: 0.5rem 0;
+}
+
+.mobile-nav .nav-item {
+  width: 100%;
+  flex: none;
+  justify-content: flex-start;
+  padding-inline: 1rem;
+  text-align: left;
+  opacity: 0;
+  transform: translateX(2rem);
+  transition:
+    opacity 0.2s ease 0.2s,
+    transform 0.3s ease 0.2s;
+}
+
+html.mobile-nav-open .mobile-nav .nav-item {
+  opacity: 1;
+  transform: none;
+}
+
+.mobile-nav .nav-item span {
+  position: static;
+  width: auto;
+  height: auto;
+  margin: 0;
+  overflow: visible;
+  clip-path: none;
+  display: inline;
+  white-space: normal;
+}
+
+.mobile-nav-divider {
+  height: 1pt;
+  margin: 1rem 1.5rem;
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.mobile-nav-account {
+  margin: 0 1.5rem calc(1rem + env(safe-area-inset-bottom));
+}
+
+.mobile-nav-account .user-summary {
+  padding-inline: 0;
+}
+
+.mobile-nav-account .user-menu-list {
+  padding: 0;
 }
 
 .main {
@@ -1000,21 +1160,6 @@ select:focus-visible {
     width: 1%;
   }
 
-  .nav-item {
-    padding-inline: 1rem;
-  }
-
-  .nav-item span {
-    position: static;
-    width: auto;
-    height: auto;
-    margin: 0;
-    overflow: visible;
-    clip-path: none;
-    display: inline;
-    white-space: normal;
-  }
-
   .details > div {
     grid-template-columns: 8.5rem minmax(0, 1fr);
   }
@@ -1067,8 +1212,18 @@ select:focus-visible {
   }
 
   .sidebar {
-    min-height: calc(100vh - 3.5rem);
-    min-height: calc(100svh - 3.5rem);
+    display: flex;
+    min-height: calc(100vh - var(--topbar-height));
+    min-height: calc(100svh - var(--topbar-height));
+  }
+
+  .mobile-nav-toggle,
+  .mobile-nav {
+    display: none;
+  }
+
+  .topbar .user-menu {
+    display: block;
   }
 
   .nav {
@@ -1076,10 +1231,13 @@ select:focus-visible {
     overflow: visible;
     flex-direction: column;
     flex-wrap: nowrap;
+    padding: 0.75rem 0;
+    gap: 0;
   }
 
   .nav-label {
     display: block;
+    padding: 0.5rem 1.5rem;
   }
 
   .nav-item {
@@ -1089,6 +1247,20 @@ select:focus-visible {
     padding-inline: 1.5rem;
     justify-content: flex-start;
     text-align: left;
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+
+  .nav-item span {
+    position: static;
+    width: auto;
+    height: auto;
+    margin: 0;
+    overflow: visible;
+    clip-path: none;
+    display: inline;
+    white-space: normal;
   }
 
   .grid {
@@ -1110,6 +1282,7 @@ select:focus-visible {
     touch-action: manipulation;
   }
 
+  .mobile-nav-toggle,
   .user-menu summary,
   .modal-close {
     min-width: 2.75rem;
@@ -1141,6 +1314,19 @@ select:focus-visible {
 @media (prefers-reduced-motion: reduce) {
   .spinner {
     animation: none;
+  }
+
+  .mobile-nav,
+  .mobile-nav .nav-item,
+  .mobile-nav-toggle-bars,
+  .mobile-nav-toggle-bars::before,
+  .mobile-nav-toggle-bars::after {
+    transition: none;
+  }
+
+  .mobile-nav,
+  .mobile-nav .nav-item {
+    transform: none;
   }
 }
 
