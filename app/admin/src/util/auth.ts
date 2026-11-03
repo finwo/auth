@@ -17,6 +17,8 @@ import {
   type AdminRealmSettingsInput,
   type AdminRealmUser,
   type AdminRole,
+  type AdminSystemSettings,
+  type AdminSystemSettingsInput,
   type AdminSession,
   type AdminUserBan,
   type AdminUserDetail,
@@ -298,6 +300,26 @@ export async function updateAdminRealmSettings(
   const realm = encodeURIComponent(realmSlug);
   const response = await adminJson<{ ok: boolean; settings: AdminRealmSettings }>(
     `/api/v1/admin/realms/${realm}/settings`,
+    {
+      method: 'PATCH',
+      body: JSON.stringify(input),
+    }
+  );
+  return response.settings;
+}
+
+export async function loadAdminSystemSettings(): Promise<AdminSystemSettings> {
+  const response = await adminJson<{ settings: AdminSystemSettings }>(
+    '/api/v1/admin/system/settings'
+  );
+  return response.settings;
+}
+
+export async function updateAdminSystemSettings(
+  input: AdminSystemSettingsInput
+): Promise<AdminSystemSettings> {
+  const response = await adminJson<{ ok: boolean; settings: AdminSystemSettings }>(
+    '/api/v1/admin/system/settings',
     {
       method: 'PATCH',
       body: JSON.stringify(input),

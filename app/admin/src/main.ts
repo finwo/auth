@@ -46,6 +46,9 @@ const routes: m.RouteDefs = {
   '/settings/:realm': {
     render: () => m(Admin, {}),
   },
+  '/system-settings': {
+    render: () => m(Admin, {}),
+  },
   '/callback': {
     render: () => m(AdminCallback, {}),
   },

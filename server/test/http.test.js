@@ -4286,6 +4286,140 @@ test('HTTP realm, login, OIDC and logout flows', async (t) => {
         }
       }
     });
+
+    await t.test('system branding updates Admin settings and discovery precedence', async () => {
+      const systemAdmin = await adminToken();
+      const acmeAdmin = await adminToken('it@acme.test');
+      const readSystemBranding = () =>
+        withSystemDatabase(env, (database) =>
+          database.prepare('SELECT branding FROM system_settings WHERE id = 1').get().branding
+        );
+      const writeSystemBranding = (value) =>
+        withSystemDatabase(env, (database) => {
+          database.prepare('UPDATE system_settings SET branding = ? WHERE id = 1').run(value);
+        });
+      const readRealmBranding = () =>
+        withRealmDatabase(env, 'acme', (database) =>
+          database.prepare('SELECT branding FROM realm_settings WHERE id = 1').get().branding
+        );
+      const writeRealmBranding = (value) =>
+        withRealmDatabase(env, 'acme', (database) => {
+          database.prepare('UPDATE realm_settings SET branding = ? WHERE id = 1').run(value);
+        });
+      const readClientBranding = () =>
+        withRealmDatabase(env, 'acme', (database) =>
+          database.prepare('SELECT branding FROM oidc_clients WHERE client_id = ?').get('internal-app')
+            .branding
+        );
+      const writeClientBranding = (value) =>
+        withRealmDatabase(env, 'acme', (database) => {
+          database
+            .prepare('UPDATE oidc_clients SET branding = ? WHERE client_id = ?')
+            .run(value, 'internal-app');
+        });
+
+      const originalSystemBranding = readSystemBranding();
+      const originalRealmBranding = readRealmBranding();
+      const originalClientBranding = readClientBranding();
+
+      try {
+        const initial = await adminRequest(systemAdmin, {
+          path: '/api/v1/admin/system/settings',
+        });
+        assert.equal(initial.status, 200);
+        assert.equal(initial.json.settings.logo_url, null);
+        assert.equal(initial.json.settings.primary_color, null);
+
+        const unauthenticated = await identity({
+          path: '/api/v1/admin/system/settings',
+        });
+        assert.equal(unauthenticated.status, 401);
+        assert.equal(unauthenticated.json.error.code, 'invalid_token');
+
+        const forbidden = await adminRequest(acmeAdmin, {
+          method: 'PATCH',
+          path: '/api/v1/admin/system/settings',
+          body: { primary_color: '#123456' },
+        });
+        assert.equal(forbidden.status, 403);
+        assert.equal(forbidden.json.error.code, 'forbidden');
+
+        const realmHost = await request(port, {
+          host: `acme.localhost:${port}`,
+          bearer: systemAdmin.access_token,
+          path: '/api/v1/admin/system/settings',
+        });
+        assert.equal(realmHost.status, 404);
+
+        for (const body of [
+          {},
+          { display_name: 'Auth' },
+          { primary_color: 'red' },
+          { logo_url: 'http://system.test/logo.svg' },
+        ]) {
+          const invalid = await adminRequest(systemAdmin, {
+            method: 'PATCH',
+            path: '/api/v1/admin/system/settings',
+            body,
+          });
+          assert.equal(invalid.status, 400);
+          assert.equal(invalid.json.error.code, 'invalid_request');
+        }
+
+        const updated = await adminRequest(systemAdmin, {
+          method: 'PATCH',
+          path: '/api/v1/admin/system/settings',
+          body: { primary_color: '#123456' },
+        });
+        assert.equal(updated.status, 200);
+        assert.equal(updated.json.ok, true);
+        assert.equal(updated.json.settings.primary_color, '#123456');
+
+        const logoUpdated = await adminRequest(systemAdmin, {
+          method: 'PATCH',
+          path: '/api/v1/admin/system/settings',
+          body: { logo_url: 'https://system.test/logo.svg' },
+        });
+        assert.equal(logoUpdated.status, 200);
+        assert.equal(logoUpdated.json.settings.logo_url, 'https://system.test/logo.svg');
+
+        const systemDiscovery = await identity({
+          path: '/oidc/account/openid-configuration',
+        });
+        assert.equal(systemDiscovery.status, 200);
+        assert.equal(systemDiscovery.json.branding.logo_url, 'https://system.test/logo.svg');
+        assert.equal(systemDiscovery.json.branding.primary_color, '#123456');
+
+        writeRealmBranding(JSON.stringify({ primary_color: '#aabbcc' }));
+        const realmDiscovery = await acme({
+          path: '/oidc/account/openid-configuration',
+        });
+        assert.equal(realmDiscovery.status, 200);
+        assert.equal(realmDiscovery.json.branding.logo_url, 'https://system.test/logo.svg');
+        assert.equal(realmDiscovery.json.branding.primary_color, '#aabbcc');
+
+        writeClientBranding(JSON.stringify({ primary_color: '#ff0000' }));
+        const clientDiscovery = await acme({
+          path: '/oidc/internal-app/openid-configuration',
+        });
+        assert.equal(clientDiscovery.status, 200);
+        assert.equal(clientDiscovery.json.branding.logo_url, 'https://system.test/logo.svg');
+        assert.equal(clientDiscovery.json.branding.primary_color, '#ff0000');
+
+        const cleared = await adminRequest(systemAdmin, {
+          method: 'PATCH',
+          path: '/api/v1/admin/system/settings',
+          body: { logo_url: '', primary_color: null },
+        });
+        assert.equal(cleared.status, 200);
+        assert.equal(cleared.json.settings.logo_url, null);
+        assert.equal(cleared.json.settings.primary_color, null);
+      } finally {
+        writeSystemBranding(originalSystemBranding);
+        writeRealmBranding(originalRealmBranding);
+        writeClientBranding(originalClientBranding);
+      }
+    });
   } finally {
     if (server) {
       server.kill('SIGTERM');

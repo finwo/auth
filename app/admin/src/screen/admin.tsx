@@ -26,6 +26,7 @@ import { GlobalUserPage } from './global-user';
 import { UserPage } from './user';
 import { UsersPage } from './users';
 import { SettingsPage } from './settings';
+import { SystemSettingsPage } from './system-settings';
 
 function currentPath() {
   return (m.route.get() || '/').split('?')[0];
@@ -245,7 +246,9 @@ export const Admin: m.Component = {
     const clients = path === '/clients' || path.startsWith('/clients/');
     const sessions = path === '/sessions' || path.startsWith('/sessions/');
     const users = path === '/users' || path.startsWith('/users/');
-    const settings = path === '/settings' || path.startsWith('/settings/');
+    const systemSettings = path === '/system-settings';
+    const realmSettings = path === '/settings' || path.startsWith('/settings/');
+    const settings = systemSettings || realmSettings;
     const title = clients
       ? path.includes('/edit/')
         ? 'Edit client | Administration'
@@ -256,9 +259,11 @@ export const Admin: m.Component = {
           ? userDetailPath() || globalUserDetailPath()
             ? 'User | Administration'
             : 'Users | Administration'
-          : settings
-            ? 'Realm settings | Administration'
-            : 'Administration';
+          : systemSettings
+            ? 'System settings | Administration'
+            : settings
+              ? 'Realm settings | Administration'
+              : 'Administration';
     document.title = title;
   },
 
@@ -280,7 +285,9 @@ export const Admin: m.Component = {
     const sessions = path === '/sessions' || path.startsWith('/sessions/');
     const clients = path === '/clients' || path.startsWith('/clients/');
     const users = path === '/users' || path.startsWith('/users/');
-    const settings = path === '/settings' || path.startsWith('/settings/');
+    const systemSettings = path === '/system-settings';
+    const realmSettings = path === '/settings' || path.startsWith('/settings/');
+    const settings = systemSettings || realmSettings;
     const realmSlug = sessionsRealm();
     const clientRealmSlug = clientsRealm();
     const userRealmSlug = usersRealm();
@@ -297,7 +304,11 @@ export const Admin: m.Component = {
       ? `/clients/${encodeURIComponent(firstRealm)}`
       : '/clients';
     const usersHref = firstRealm ? `/users/${encodeURIComponent(firstRealm)}` : '/users';
-    const settingsHref = firstRealm ? `/settings/${encodeURIComponent(firstRealm)}` : '/settings';
+    const settingsHref = this.systemAdmin
+      ? '/system-settings'
+      : firstRealm
+        ? `/settings/${encodeURIComponent(firstRealm)}`
+        : '/settings';
 
     const navItems: NavItem[] = [
       {
@@ -453,11 +464,17 @@ export const Admin: m.Component = {
             isSystemAdmin={Boolean(this.systemAdmin)}
             isGlobal={isGlobalUsers}
           />
-        ) : settings ? (
+        ) : systemSettings ? (
+          <SystemSettingsPage
+            realms={this.realms}
+            onAuthExpired={() => this.authExpired()}
+          />
+        ) : realmSettings ? (
           <SettingsPage
             realmSlug={settingsRealmSlug}
             realms={this.realms}
             realmsError={this.realmsError}
+            isSystemAdmin={Boolean(this.systemAdmin)}
             onAuthExpired={() => this.authExpired()}
             onRealmsChanged={() => this.reloadRealms()}
           />

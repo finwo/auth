@@ -40,6 +40,7 @@ import {
 import { canUseClient } from '../lib/policy.js';
 import { getSystemDatabase, openRealmDatabase, realmMetadata } from '../lib/realm.js';
 import { issueRefreshToken, rotateRefreshToken } from '../lib/refresh-tokens.js';
+import { getSystemBranding } from '../lib/system-settings.js';
 import {
   authenticateRequest,
   bindSessionRealm,
@@ -117,9 +118,11 @@ function systemCallbacks(context, client) {
 }
 
 async function discovery(context, client) {
+  const systemBranding = await getSystemBranding(getSystemDatabase());
   const realm = context.realm ? await realmMetadata(context.realm) : null;
   const urls = endpointUrls(context);
   const branding = {
+    ...systemBranding,
     ...(realm?.branding || {}),
     ...normalizeBrandingObject(client.branding),
   };

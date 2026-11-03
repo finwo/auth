@@ -27,6 +27,17 @@ export interface AdminRealmSettingsInput {
   primary_color?: string | null;
 }
 
+export interface AdminSystemSettings {
+  logo_url: string | null;
+  primary_color: string | null;
+  updated_at: number;
+}
+
+export interface AdminSystemSettingsInput {
+  logo_url?: string | null;
+  primary_color?: string | null;
+}
+
 export interface AdminRole {
   slug: string;
   name: string;
