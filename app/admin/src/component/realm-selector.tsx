@@ -1,4 +1,5 @@
 import m from 'mithril';
+import { SelectMenu, type SelectMenuOption } from '@component/select-menu';
 import type { AdminRealm } from '../util/api';
 
 interface RealmSelectorAttrs {
@@ -14,21 +15,22 @@ export const RealmSelector: m.Component<RealmSelectorAttrs> = {
     const { realms, selected, allRealms = false, selectedAll = false } = attrs;
 
     if ((realms && realms.length > 1) || allRealms) {
+      const options: SelectMenuOption[] = [
+        ...(allRealms ? [{ value: 'global', label: 'All realms' }] : []),
+        ...(realms || []).map((realm) => ({ value: realm.slug, label: realm.display_name })),
+      ];
+
       return (
-        <label class="realm-select">
+        <div class="realm-select">
           <span>Realm</span>
-          <select
+          <SelectMenu
+            autoWidth
+            ariaLabel="Realm"
             value={selectedAll ? 'global' : selected?.slug || ''}
-            onchange={(event: Event) => {
-              attrs.onchange((event.target as HTMLSelectElement).value);
-            }}
-          >
-            {allRealms ? <option value="global">All realms</option> : null}
-            {(realms || []).map((realm) => (
-              <option value={realm.slug}>{realm.display_name}</option>
-            ))}
-          </select>
-        </label>
+            options={options}
+            onchange={attrs.onchange}
+          />
+        </div>
       );
     }
 

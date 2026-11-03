@@ -1,6 +1,7 @@
 import m from 'mithril';
 import { Modal } from '@component/modal';
 import { PageHeader } from '@component/page-header';
+import { SelectMenu } from '@component/select-menu';
 import { RealmSelector } from '../component/realm-selector';
 import {
   createAdminUserBan,
@@ -614,6 +615,7 @@ export const UserPage: m.Component<UserAttrs> = {
                 </div>
                 <button
                   class="button-danger"
+                  id="open-ban-dialog"
                   type="button"
                   onclick={() => {
                     this.banClientId = '*';
@@ -725,20 +727,22 @@ export const UserPage: m.Component<UserAttrs> = {
         {this.banOpen && detail ? (
           <Modal title="Ban from app" onClose={() => this.cancelAction()}>
             <div class="form-field">
-              <span class="field-label">Application</span>
-              <select
-                class="field-control"
+              <span class="field-label" id="ban-application-label">Application</span>
+              <SelectMenu
+                labelledBy="ban-application-label"
                 value={this.banClientId}
-                onchange={(event: Event) => {
-                  this.banClientId = (event.target as HTMLSelectElement).value;
-                  m.redraw();
+                disabled={this.banPending}
+                options={[
+                  { value: '*', label: 'All apps' },
+                  ...this.clients.map((client: AdminClient) => ({
+                    value: client.client_id,
+                    label: client.name,
+                  })),
+                ]}
+                onchange={(clientId) => {
+                  this.banClientId = clientId;
                 }}
-              >
-                <option value="*">All apps</option>
-                {this.clients.map((client: AdminClient) => (
-                  <option value={client.client_id}>{client.name}</option>
-                ))}
-              </select>
+              />
             </div>
             <p class="modal-note">
               Banning {displayName} revokes matching consents and refresh tokens. The ban remains

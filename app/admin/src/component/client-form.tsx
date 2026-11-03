@@ -1,4 +1,5 @@
 import m from 'mithril';
+import { SelectMenu } from '@component/select-menu';
 import type { AdminClient, AdminClientInput, AdminRole } from '../util/api';
 
 export interface ClientFormValue {
@@ -123,51 +124,54 @@ export const ClientForm: m.Component<ClientFormAttrs> = {
           </div>
 
           <div class="form-field">
-            <span class="field-label">Access mode</span>
-            <select
-              class="field-control"
+            <span class="field-label" id="client-access-mode-label">Access mode</span>
+            <SelectMenu
+              labelledBy="client-access-mode-label"
               value={value.access_mode}
-              onchange={(event: Event) => {
-                value.access_mode = (event.target as HTMLSelectElement)
-                  .value as ClientFormValue['access_mode'];
+              disabled={attrs.pending}
+              options={[
+                { value: 'internal', label: 'Internal: home-realm members' },
+                { value: 'members', label: 'Members: active realm members' },
+                { value: 'public', label: 'Public: any authenticated user' },
+              ]}
+              onchange={(option) => {
+                value.access_mode = option as ClientFormValue['access_mode'];
               }}
-            >
-              <option value="internal">Internal: home-realm members</option>
-              <option value="members">Members: active realm members</option>
-              <option value="public">Public: any authenticated user</option>
-            </select>
+            />
           </div>
 
           <div class="form-field">
-            <span class="field-label">Consent</span>
-            <select
-              class="field-control"
+            <span class="field-label" id="client-consent-mode-label">Consent</span>
+            <SelectMenu
+              labelledBy="client-consent-mode-label"
               value={value.consent_mode}
-              onchange={(event: Event) => {
-                value.consent_mode = (event.target as HTMLSelectElement)
-                  .value as ClientFormValue['consent_mode'];
+              disabled={attrs.pending}
+              options={[
+                { value: 'remembered', label: 'Remembered: prompt once' },
+                { value: 'trusted', label: 'Trusted: skip for home realm' },
+              ]}
+              onchange={(option) => {
+                value.consent_mode = option as ClientFormValue['consent_mode'];
               }}
-            >
-              <option value="remembered">Remembered: prompt once</option>
-              <option value="trusted">Trusted: skip for home realm</option>
-            </select>
+            />
           </div>
 
           <div class="form-field">
-            <span class="field-label">Token authentication</span>
-            <select
-              class="field-control"
+            <span class="field-label" id="client-token-auth-label">Token authentication</span>
+            <SelectMenu
+              labelledBy="client-token-auth-label"
               value={value.token_endpoint_auth_method}
-              onchange={(event: Event) => {
-                const method = (event.target as HTMLSelectElement)
-                  .value as ClientFormValue['token_endpoint_auth_method'];
+              disabled={attrs.pending}
+              options={[
+                { value: 'none', label: 'Public client: PKCE' },
+                { value: 'client_secret_basic', label: 'Confidential: client secret' },
+              ]}
+              onchange={(option) => {
+                const method = option as ClientFormValue['token_endpoint_auth_method'];
                 value.token_endpoint_auth_method = method;
                 if (method === 'none') value.require_pkce = true;
               }}
-            >
-              <option value="none">Public client: PKCE</option>
-              <option value="client_secret_basic">Confidential: client secret</option>
-            </select>
+            />
           </div>
 
           <label class="checkbox-row">

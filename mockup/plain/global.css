@@ -702,138 +702,6 @@ html.mobile-nav-open .mobile-nav .nav-item {
   line-height: 1.15;
 }
 
-.select {
-  min-width: 0;
-  max-width: 100%;
-  display: block;
-}
-
-.select-trigger {
-  width: 100%;
-  min-width: 0;
-  max-width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-  padding: 0.5rem 0.75rem;
-  border: 0;
-  border-bottom: 1pt solid var(--field-line);
-  border-radius: 0;
-  background: var(--surface);
-  color: inherit;
-  font: inherit;
-  font-size: 0.875rem;
-  line-height: 1.5;
-  text-align: left;
-  cursor: pointer;
-}
-
-.select-trigger:focus,
-.select-trigger:focus-visible,
-.select-trigger[aria-expanded="true"],
-.select-trigger[aria-expanded="true"]:focus-visible {
-  outline: 0;
-  border-bottom-color: var(--accent);
-}
-
-.select-trigger:disabled {
-  color: var(--muted);
-  cursor: default;
-  opacity: 1;
-}
-
-.select-trigger svg {
-  flex: none;
-  width: 1.125rem;
-  height: 1.125rem;
-}
-
-.select-value {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.select-list {
-  position: fixed;
-  top: 0;
-  left: 0;
-  z-index: 120;
-  width: 10rem;
-  max-width: calc(100vw - 1rem);
-  max-height: min(18rem, 45vh);
-  padding: 0.25rem 0;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  background: var(--surface);
-  box-shadow: var(--shadow);
-  color: var(--text);
-}
-
-.select-list.is-measuring {
-  visibility: hidden;
-  top: 0;
-  right: auto;
-  bottom: auto;
-  left: 0;
-  width: auto;
-  max-height: none;
-}
-
-.select-option {
-  width: 100%;
-  min-height: 2.25rem;
-  display: flex;
-  align-items: center;
-  gap: 0;
-  padding: 0.5rem 0.75rem;
-  color: inherit;
-  font-size: 0.875rem;
-  line-height: 1.5;
-  cursor: pointer;
-}
-
-.select-option-mark {
-  width: 1.25rem;
-  height: 1.25rem;
-  flex: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  order: 2;
-}
-
-.select-option svg {
-  width: 1.125rem;
-  height: 1.125rem;
-}
-
-.select-option:not(.is-selected) .select-option-mark svg {
-  visibility: hidden;
-}
-
-.select-option-label {
-  min-width: 0;
-  flex: 1;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.select-option:hover {
-  background: var(--row-hover);
-}
-
-.select-option.is-active {
-  background: var(--row-hover);
-}
-
-.select-option.is-selected {
-  color: var(--accent-text);
-}
-
 .sr-only {
   position: absolute;
   width: 1pt;
@@ -1311,17 +1179,11 @@ summary:focus-visible {
   .table-search input,
   .field-control,
   .field-textarea,
-  .select-trigger,
-  .select-option,
   .checkbox-row,
   .auth-choice {
     min-height: 2.75rem;
     padding-block: 0.5rem;
     touch-action: manipulation;
-  }
-
-  .select-trigger {
-    font-size: 1rem;
   }
 
   .user-menu summary:hover,
@@ -1446,10 +1308,6 @@ summary:focus-visible {
   .data-table .table-icon-column {
     display: table-cell;
     width: 1%;
-  }
-
-  .realm-select .select {
-    width: auto;
   }
 
   .details > div {

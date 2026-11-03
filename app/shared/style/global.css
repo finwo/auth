@@ -1294,7 +1294,6 @@ select:focus-visible {
   .table-search input,
   .field-control,
   .field-textarea,
-  .realm-select select,
   .checkbox-row,
   .auth-choice {
     min-height: 2.75rem;
