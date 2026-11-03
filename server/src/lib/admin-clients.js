@@ -1,4 +1,10 @@
 import crypto from 'node:crypto';
+import {
+  applyBrandingPatch,
+  hasBrandingPatch,
+  normalizeBrandingPatch,
+  serializeBranding,
+} from './admin-branding.js';
 import { addClientRealm, findClientRealm } from './realm.js';
 import { hashClientSecret } from './oidc/clients.js';
 import { HttpError } from './http/http-error.js';
@@ -244,19 +250,12 @@ async function loadRoles(db, id) {
   return rows.map((row) => row.slug);
 }
 
-function brandingLogoUrl(rawBranding) {
-  const branding = parseJson(rawBranding, {});
-  return typeof branding?.logo_url === 'string' && branding.logo_url.trim()
-    ? branding.logo_url.trim()
-    : null;
-}
-
 function serializeClient(row, requiredRoles) {
   return {
     client_id: row.client_id,
     name: row.name,
     access_mode: row.access_mode,
-    logo_url: brandingLogoUrl(row.branding),
+    ...serializeBranding(row.branding),
     enabled: Boolean(row.enabled),
     scopes: row.scopes || DEFAULT_SCOPES,
     required_roles: requiredRoles,
@@ -359,6 +358,8 @@ export function normalizeCreateInput(body) {
       'token_endpoint_auth_method',
       'require_pkce',
       'consent_mode',
+      'logo_url',
+      'primary_color',
     ])
   );
 
@@ -401,6 +402,7 @@ export function normalizeCreateInput(body) {
     tokenEndpointAuthMethod: method,
     requirePkce,
     consentMode,
+    branding: normalizeBrandingPatch(body),
   };
 }
 
@@ -422,6 +424,8 @@ export async function normalizeUpdateInput(body, db) {
       'token_endpoint_auth_method',
       'require_pkce',
       'consent_mode',
+      'logo_url',
+      'primary_color',
     ])
   );
 
@@ -458,6 +462,7 @@ export async function normalizeUpdateInput(body, db) {
   if (Object.hasOwn(body, 'require_pkce')) {
     result.requirePkce = validateBoolean(body.require_pkce, 'require_pkce');
   }
+  Object.assign(result, normalizeBrandingPatch(body));
   if (Object.keys(result).length === 0) {
     throw invalidRequest('At least one field must be provided');
   }
@@ -495,6 +500,7 @@ export async function createAdminRealmClient({ systemDb, realmDb, realmId, input
   const requiredRoles = validateRoles(input.requiredRoles, knownRoles);
   const clientId = crypto.randomUUID();
   const now = Date.now();
+  const branding = applyBrandingPatch('{}', input.branding);
   const clientSecret =
     input.tokenEndpointAuthMethod === 'client_secret_basic' ? generateClientSecret() : null;
 
@@ -505,10 +511,10 @@ export async function createAdminRealmClient({ systemDb, realmDb, realmId, input
           (id, client_id, name, redirect_uris, scopes, access_mode, enabled, branding,
            client_secret_hash, token_endpoint_auth_method, require_pkce,
            post_logout_redirect_uris, consent_mode, created_at, updated_at)
-         VALUES
-          ({id}, {clientId}, {name}, {redirectUris}, {scopes}, {accessMode}, {enabled}, '{}',
-           {clientSecretHash}, {tokenEndpointAuthMethod}, {requirePkce},
-           {postLogoutRedirectUris}, {consentMode}, {createdAt}, {updatedAt})`,
+          VALUES
+           ({id}, {clientId}, {name}, {redirectUris}, {scopes}, {accessMode}, {enabled}, {branding},
+            {clientSecretHash}, {tokenEndpointAuthMethod}, {requirePkce},
+            {postLogoutRedirectUris}, {consentMode}, {createdAt}, {updatedAt})`,
         {
           id: clientId,
           clientId: input.clientId,
@@ -517,6 +523,7 @@ export async function createAdminRealmClient({ systemDb, realmDb, realmId, input
           scopes: input.scopes,
           accessMode: input.accessMode,
           enabled: input.enabled ? 1 : 0,
+          branding,
           clientSecretHash: clientSecret ? hashClientSecret(clientSecret) : null,
           tokenEndpointAuthMethod: input.tokenEndpointAuthMethod,
           requirePkce: input.requirePkce ? 1 : 0,
@@ -588,6 +595,9 @@ export async function updateAdminRealmClient({
     requirePkce,
     consentMode: input.consentMode ?? current.consent_mode,
   };
+  const branding = hasBrandingPatch(input)
+    ? applyBrandingPatch(row.branding, input)
+    : row.branding;
   const clientSecretHash =
     tokenEndpointAuthMethod === 'client_secret_basic' ? row.client_secret_hash : null;
   const now = Date.now();
@@ -597,7 +607,7 @@ export async function updateAdminRealmClient({
       await tx.run(
         `UPDATE oidc_clients
             SET name = {name}, redirect_uris = {redirectUris}, scopes = {scopes},
-                access_mode = {accessMode}, enabled = {enabled},
+                access_mode = {accessMode}, enabled = {enabled}, branding = {branding},
                 client_secret_hash = {clientSecretHash},
                 token_endpoint_auth_method = {tokenEndpointAuthMethod},
                 require_pkce = {requirePkce},
@@ -610,6 +620,7 @@ export async function updateAdminRealmClient({
           scopes: next.scopes,
           accessMode: next.accessMode,
           enabled: next.enabled ? 1 : 0,
+          branding,
           clientSecretHash,
           tokenEndpointAuthMethod: next.tokenEndpointAuthMethod,
           requirePkce: next.requirePkce ? 1 : 0,

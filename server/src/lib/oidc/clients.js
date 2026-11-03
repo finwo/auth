@@ -1,4 +1,5 @@
 import crypto from 'node:crypto';
+import { normalizeBrandingObject } from '../admin-branding.js';
 
 const SYSTEM_CLIENTS = {
   admin: {
@@ -80,7 +81,7 @@ export async function getClient(db, clientId) {
     require_pkce: Boolean(row.require_pkce),
     redirect_uris: parseJson(row.redirect_uris, []),
     post_logout_redirect_uris: parseJson(row.post_logout_redirect_uris, []),
-    branding: parseJson(row.branding, {}),
+    branding: normalizeBrandingObject(row.branding),
     required_roles: roles.map((role) => role.slug),
     system_client: false,
   };

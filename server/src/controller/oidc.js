@@ -1,5 +1,6 @@
 import crypto from 'node:crypto';
 import { app } from '../app.js';
+import { normalizeBrandingObject } from '../lib/admin-branding.js';
 import {
   serveAppDocument,
   systemClientPostLogoutUris,
@@ -118,10 +119,10 @@ function systemCallbacks(context, client) {
 async function discovery(context, client) {
   const realm = context.realm ? await realmMetadata(context.realm) : null;
   const urls = endpointUrls(context);
-  const branding =
-    Object.keys(client.branding || {}).length > 0
-      ? client.branding
-      : realm?.branding || {};
+  const branding = {
+    ...(realm?.branding || {}),
+    ...normalizeBrandingObject(client.branding),
+  };
   const scopes = String(client.scopes || 'openid profile email')
     .split(/\s+/)
     .filter(Boolean);

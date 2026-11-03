@@ -12,6 +12,8 @@ function isPlainObject(value) {
 }
 
 function parseBranding(rawBranding) {
+  if (isPlainObject(rawBranding)) return rawBranding;
+
   try {
     const parsed = JSON.parse(rawBranding || '{}');
     return isPlainObject(parsed) ? parsed : {};

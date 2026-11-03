@@ -2975,6 +2975,7 @@ test('HTTP realm, login, OIDC and logout flows', async (t) => {
       assert.equal(listed.get('acme-public-app').has_secret, false);
       assert.equal(listed.get('confidential-app').has_secret, true);
       assert.equal(listed.get('confidential-app').logo_url, null);
+      assert.equal(listed.get('confidential-app').primary_color, null);
 
       const clientId = 'admin-created-public';
       const oldUri = `${origin('created.localhost')}/callback`;
@@ -2993,6 +2994,7 @@ test('HTTP realm, login, OIDC and logout flows', async (t) => {
         assert.equal(created.json.client.required_roles.length, 1);
         assert.equal(created.json.client.require_pkce, true);
         assert.equal(created.json.client.logo_url, null);
+        assert.equal(created.json.client.primary_color, null);
         assert.equal(created.json.client_secret, undefined);
 
         const duplicate = await createAdminClient(admin, 'acme', {
@@ -3033,6 +3035,143 @@ test('HTTP realm, login, OIDC and logout flows', async (t) => {
       } finally {
         const cleanup = await deleteAdminClient(admin, 'acme', clientId);
         assert.ok(cleanup.status === 200 || cleanup.status === 404);
+      }
+    });
+
+    await t.test('admin clients manage branding with realm fallback', async () => {
+      const admin = await adminToken('it@acme.test');
+      const clientId = 'admin-branding-client';
+      const redirectUri = `${origin('branding-client.localhost')}/callback`;
+      const clientLogo = 'https://client.example.test/client-logo.svg';
+      const updatedClientColor = '#2255aa';
+      const realmLogo = 'https://realm.example.test/realm-logo.svg';
+      const realmColor = '#123456';
+      const realmAsset = 'https://realm.example.test/realm.css';
+      const clientAsset = 'https://client.example.test/client.css';
+      let originalRealmBranding = null;
+
+      const readRealmBranding = () =>
+        withRealmDatabase(env, 'acme', (database) =>
+          database.prepare('SELECT branding FROM realm_settings WHERE id = 1').get().branding
+        );
+      const writeRealmBranding = (value) =>
+        withRealmDatabase(env, 'acme', (database) => {
+          database.prepare('UPDATE realm_settings SET branding = ? WHERE id = 1').run(value);
+        });
+      const readClientBranding = () =>
+        withRealmDatabase(env, 'acme', (database) =>
+          database
+            .prepare('SELECT branding FROM oidc_clients WHERE client_id = ?')
+            .get(clientId).branding
+        );
+      const writeClientBranding = (value) =>
+        withRealmDatabase(env, 'acme', (database) => {
+          database
+            .prepare('UPDATE oidc_clients SET branding = ? WHERE client_id = ?')
+            .run(value, clientId);
+        });
+
+      try {
+        originalRealmBranding = readRealmBranding();
+        writeRealmBranding(
+          JSON.stringify({
+            logo_url: realmLogo,
+            primary_color: realmColor,
+            custom_realm_asset: realmAsset,
+          })
+        );
+
+        const created = await createAdminClient(admin, 'acme', {
+          client_id: clientId,
+          name: 'Branding Client',
+          access_mode: 'public',
+          redirect_uris: [redirectUri],
+          logo_url: clientLogo,
+          primary_color: '#abc',
+        });
+        assert.equal(created.status, 200);
+        assert.equal(created.json.client.logo_url, clientLogo);
+        assert.equal(created.json.client.primary_color, '#aabbcc');
+
+        let discovery = await acme({ path: `/oidc/${clientId}/openid-configuration` });
+        assert.equal(discovery.status, 200);
+        assert.deepEqual(discovery.json.branding, {
+          logo_url: clientLogo,
+          primary_color: '#aabbcc',
+          custom_realm_asset: realmAsset,
+        });
+
+        const colorUpdated = await updateAdminClient(admin, 'acme', clientId, {
+          primary_color: '#25a',
+        });
+        assert.equal(colorUpdated.status, 200);
+        assert.equal(colorUpdated.json.client.logo_url, clientLogo);
+        assert.equal(colorUpdated.json.client.primary_color, updatedClientColor);
+
+        writeClientBranding(
+          JSON.stringify({
+            logo_url: 'https://old-client.example.test/logo.svg',
+            custom_asset: clientAsset,
+            primary_color: '#ff0000',
+          })
+        );
+
+        const logoCleared = await updateAdminClient(admin, 'acme', clientId, {
+          logo_url: '',
+        });
+        assert.equal(logoCleared.status, 200);
+        assert.equal(logoCleared.json.client.logo_url, null);
+        assert.equal(logoCleared.json.client.primary_color, '#ff0000');
+        assert.deepEqual(JSON.parse(readClientBranding()), {
+          custom_asset: clientAsset,
+          primary_color: '#ff0000',
+        });
+
+        discovery = await acme({ path: `/oidc/${clientId}/openid-configuration` });
+        assert.deepEqual(discovery.json.branding, {
+          logo_url: realmLogo,
+          primary_color: '#ff0000',
+          custom_realm_asset: realmAsset,
+          custom_asset: clientAsset,
+        });
+
+        const colorCleared = await updateAdminClient(admin, 'acme', clientId, {
+          primary_color: null,
+        });
+        assert.equal(colorCleared.status, 200);
+        assert.equal(colorCleared.json.client.primary_color, null);
+        assert.deepEqual(JSON.parse(readClientBranding()), {
+          custom_asset: clientAsset,
+        });
+
+        discovery = await acme({ path: `/oidc/${clientId}/openid-configuration` });
+        assert.deepEqual(discovery.json.branding, {
+          logo_url: realmLogo,
+          primary_color: realmColor,
+          custom_realm_asset: realmAsset,
+          custom_asset: clientAsset,
+        });
+
+        for (const body of [
+          { logo_url: 'http://client.example.test/logo.svg' },
+          { logo_url: 'data:image/svg+xml,%3Csvg/%3E' },
+          { logo_url: 'https://client.example.test/logo.svg#fragment' },
+          { primary_color: 'red' },
+        ]) {
+          const invalid = await updateAdminClient(admin, 'acme', clientId, body);
+          assert.equal(invalid.status, 400);
+          assert.equal(invalid.json.error.code, 'invalid_request');
+        }
+
+        assert.deepEqual(JSON.parse(readClientBranding()), {
+          custom_asset: clientAsset,
+        });
+      } finally {
+        const cleanup = await deleteAdminClient(admin, 'acme', clientId);
+        assert.ok(cleanup.status === 200 || cleanup.status === 404);
+        if (originalRealmBranding !== null) {
+          writeRealmBranding(originalRealmBranding);
+        }
       }
     });
 

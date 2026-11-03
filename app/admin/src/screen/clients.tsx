@@ -3,12 +3,17 @@ import m from 'mithril';
 import { Icon } from '@component/icon';
 import { Modal } from '@component/modal';
 import { PageHeader } from '@component/page-header';
+import {
+  brandingValidationErrorField,
+  type BrandingField,
+} from '@util/branding';
 import { RealmSelector } from '../component/realm-selector';
 import {
   ClientForm,
   defaultClientForm,
   parseUriLines,
   toClientInput,
+  validateClientBranding,
   type ClientFormValue,
 } from '../component/client-form';
 import {
@@ -66,6 +71,7 @@ export const ClientsPage: m.Component<ClientsAttrs> = {
   createOpen: false,
   createValue: defaultClientForm(),
   createError: null as Error | string | null,
+  createInvalidField: null as BrandingField | null,
 
   oninit(this: any, vnode: m.Vnode<ClientsAttrs>) {
     this.attrs = vnode.attrs;
@@ -107,6 +113,7 @@ export const ClientsPage: m.Component<ClientsAttrs> = {
       this.createOpen = false;
       this.createValue = defaultClientForm();
       this.createError = null;
+      this.createInvalidField = null;
       this.load(realmSlug);
     }
   },
@@ -144,6 +151,7 @@ export const ClientsPage: m.Component<ClientsAttrs> = {
     this.createOpen = true;
     this.createValue = defaultClientForm();
     this.createError = null;
+    this.createInvalidField = null;
     m.redraw();
   },
 
@@ -151,6 +159,7 @@ export const ClientsPage: m.Component<ClientsAttrs> = {
     this.createOpen = false;
     this.createValue = defaultClientForm();
     this.createError = null;
+    this.createInvalidField = null;
     m.redraw();
   },
 
@@ -162,12 +171,22 @@ export const ClientsPage: m.Component<ClientsAttrs> = {
     const clientId = value.client_id.trim();
     if (!clientId || !value.name.trim() || parseUriLines(value.redirect_uris).length === 0) {
       this.createError = 'Client ID, name, and at least one redirect URI are required.';
+      this.createInvalidField = null;
+      m.redraw();
+      return;
+    }
+
+    const brandingError = validateClientBranding(value);
+    if (brandingError) {
+      this.createError = brandingError.message;
+      this.createInvalidField = brandingError.field;
       m.redraw();
       return;
     }
 
     this.creating = true;
     this.createError = null;
+    this.createInvalidField = null;
     this.secret = null;
 
     try {
@@ -181,13 +200,15 @@ export const ClientsPage: m.Component<ClientsAttrs> = {
       }
       this.createOpen = false;
       this.createValue = defaultClientForm();
+      this.createInvalidField = null;
       await this.load(realmSlug);
     } catch (e: any) {
-      if (e?.status === 401 || e?.status === 400) {
+      if (e?.status === 401 || (e?.status === 400 && e?.code !== 'invalid_request')) {
         this.attrs.onAuthExpired();
         return;
       }
       this.createError = e as Error;
+      this.createInvalidField = brandingValidationErrorField(e?.message);
     } finally {
       this.creating = false;
       m.redraw();
@@ -373,6 +394,11 @@ export const ClientsPage: m.Component<ClientsAttrs> = {
               submitLabel="Create client"
               pending={this.creating}
               error={this.createError}
+              invalidField={this.createInvalidField}
+              onclearerror={() => {
+                this.createError = null;
+                this.createInvalidField = null;
+              }}
               onsubmit={() => this.submitCreate()}
               oncancel={() => this.cancelCreate()}
             />

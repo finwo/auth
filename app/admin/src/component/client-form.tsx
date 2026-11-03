@@ -1,5 +1,13 @@
 import m from 'mithril';
 import { SelectMenu } from '@component/select-menu';
+import {
+  brandingFromInput,
+  logoUrlError,
+  normalizePreviewColor,
+  validateBrandingFields,
+  type BrandingField,
+  type BrandingValidationError,
+} from '@util/branding';
 import type { AdminClient, AdminClientInput, AdminRole } from '../util/api';
 
 export interface ClientFormValue {
@@ -14,6 +22,8 @@ export interface ClientFormValue {
   token_endpoint_auth_method: AdminClient['token_endpoint_auth_method'];
   require_pkce: boolean;
   consent_mode: AdminClient['consent_mode'];
+  logo_url: string;
+  primary_color: string;
 }
 
 export function defaultClientForm(): ClientFormValue {
@@ -29,6 +39,8 @@ export function defaultClientForm(): ClientFormValue {
     token_endpoint_auth_method: 'none',
     require_pkce: true,
     consent_mode: 'remembered',
+    logo_url: '',
+    primary_color: '',
   };
 }
 
@@ -49,6 +61,8 @@ export function clientFormValue(client: AdminClient): ClientFormValue {
     token_endpoint_auth_method: client.token_endpoint_auth_method,
     require_pkce: client.require_pkce,
     consent_mode: client.consent_mode,
+    logo_url: client.logo_url || '',
+    primary_color: client.primary_color || '',
   };
 }
 
@@ -65,7 +79,12 @@ export function toClientInput(value: ClientFormValue): AdminClientInput {
     token_endpoint_auth_method: tokenEndpointAuthMethod,
     require_pkce: tokenEndpointAuthMethod === 'none' ? true : value.require_pkce,
     consent_mode: value.consent_mode,
+    ...brandingFromInput(value),
   };
+}
+
+export function validateClientBranding(value: ClientFormValue): BrandingValidationError | null {
+  return validateBrandingFields(value);
 }
 
 interface ClientFormAttrs {
@@ -75,6 +94,8 @@ interface ClientFormAttrs {
   submitLabel: string;
   pending: boolean;
   error: Error | string | null;
+  invalidField?: BrandingField | null;
+  onclearerror?: () => void;
   onsubmit: () => void;
   oncancel?: () => void;
 }
@@ -83,6 +104,9 @@ export const ClientForm: m.Component<ClientFormAttrs> = {
   view({ attrs }) {
     const value = attrs.value;
     const requirePkce = value.token_endpoint_auth_method === 'none' || value.require_pkce;
+    const previewLogo = logoUrlError(value.logo_url) ? '' : value.logo_url.trim();
+    const previewColor = normalizePreviewColor(value.primary_color);
+    const clearError = () => attrs.onclearerror?.();
 
     return (
       <form
@@ -232,6 +256,64 @@ export const ClientForm: m.Component<ClientFormAttrs> = {
             }}
           />
         </div>
+
+        <fieldset class="branding-field">
+          <legend>Branding</legend>
+          <p class="note">Optional client overrides. Empty values use this realm's branding.</p>
+          <div class="field-grid">
+            <div class="form-field">
+              <span class="field-label">Logo URL</span>
+              <input
+                class="field-control"
+                type="url"
+                value={value.logo_url}
+                placeholder="https://app.example.test/logo.svg"
+                maxlength="2048"
+                disabled={attrs.pending}
+                aria-invalid={attrs.invalidField === 'logo_url' ? 'true' : null}
+                oninput={(event: Event) => {
+                  value.logo_url = (event.target as HTMLInputElement).value;
+                  clearError();
+                }}
+              />
+            </div>
+
+            <div class="form-field">
+              <span class="field-label">Primary color</span>
+              <input
+                class="field-control"
+                value={value.primary_color}
+                placeholder="#25a"
+                maxlength="7"
+                spellcheck="false"
+                disabled={attrs.pending}
+                aria-invalid={attrs.invalidField === 'primary_color' ? 'true' : null}
+                oninput={(event: Event) => {
+                  value.primary_color = (event.target as HTMLInputElement).value;
+                  clearError();
+                }}
+              />
+            </div>
+          </div>
+
+          <div class="branding-preview" aria-hidden="true">
+            <span class={`branding-logo-preview${previewLogo ? '' : ' is-empty'}`}>
+              {previewLogo ? (
+                <img
+                  src={previewLogo}
+                  alt=""
+                  onerror={(event: Event) => {
+                    (event.target as HTMLImageElement).style.visibility = 'hidden';
+                  }}
+                />
+              ) : null}
+            </span>
+            <span
+              class={`branding-color-preview${previewColor ? '' : ' is-empty'}`}
+              style={previewColor ? { background: previewColor } : {}}
+            ></span>
+          </div>
+        </fieldset>
 
         <fieldset class="role-field">
           <legend>Required roles</legend>

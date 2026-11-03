@@ -36,6 +36,7 @@ export interface AdminClient {
   client_id: string;
   name: string;
   logo_url: string | null;
+  primary_color: string | null;
   access_mode: 'internal' | 'members' | 'public';
   enabled: boolean;
   scopes: string;
@@ -61,6 +62,8 @@ export interface AdminClientInput {
   token_endpoint_auth_method: AdminClient['token_endpoint_auth_method'];
   require_pkce: boolean;
   consent_mode: AdminClient['consent_mode'];
+  logo_url?: string | null;
+  primary_color?: string | null;
 }
 
 export interface AdminClientCreateInput extends AdminClientInput {

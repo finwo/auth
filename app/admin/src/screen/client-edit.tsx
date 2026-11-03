@@ -1,12 +1,17 @@
 import m from 'mithril';
 import { Modal } from '@component/modal';
 import { PageHeader } from '@component/page-header';
+import {
+  brandingValidationErrorField,
+  type BrandingField,
+} from '@util/branding';
 import { RealmSelector } from '../component/realm-selector';
 import {
   ClientForm,
   clientFormValue,
   defaultClientForm,
   toClientInput,
+  validateClientBranding,
 } from '../component/client-form';
 import {
   deleteAdminClient,
@@ -39,6 +44,7 @@ export const ClientEditPage: m.Component<ClientEditAttrs> = {
   form: defaultClientForm(),
   error: null as Error | null,
   formError: null as Error | string | null,
+  invalidField: null as BrandingField | null,
   notice: null as string | null,
   secret: null as { clientId: string; secret: string } | null,
   pending: false,
@@ -84,6 +90,7 @@ export const ClientEditPage: m.Component<ClientEditAttrs> = {
     this.loadedKey = key;
     this.form = defaultClientForm();
     this.formError = null;
+    this.invalidField = null;
     this.notice = null;
     this.secret = null;
     this.pending = false;
@@ -98,6 +105,7 @@ export const ClientEditPage: m.Component<ClientEditAttrs> = {
     this.loading = true;
     this.error = null;
     this.formError = null;
+    this.invalidField = null;
     this.notice = null;
     this.secret = null;
     m.redraw();
@@ -130,8 +138,18 @@ export const ClientEditPage: m.Component<ClientEditAttrs> = {
     const { realmSlug, clientId } = this.attrs;
     if (!realmSlug || !clientId) return;
 
+    const brandingError = validateClientBranding(this.form);
+    if (brandingError) {
+      this.formError = brandingError.message;
+      this.invalidField = brandingError.field;
+      this.notice = null;
+      m.redraw();
+      return;
+    }
+
     this.pending = true;
     this.formError = null;
+    this.invalidField = null;
     this.notice = null;
 
     try {
@@ -140,11 +158,12 @@ export const ClientEditPage: m.Component<ClientEditAttrs> = {
       this.notice = 'Client settings saved.';
       await this.load(realmSlug, clientId);
     } catch (e: any) {
-      if (e?.status === 401 || e?.status === 400) {
+      if (e?.status === 401 || (e?.status === 400 && e?.code !== 'invalid_request')) {
         this.attrs.onAuthExpired();
         return;
       }
       this.formError = e as Error;
+      this.invalidField = brandingValidationErrorField(e?.message);
     } finally {
       this.pending = false;
       m.redraw();
@@ -312,6 +331,11 @@ export const ClientEditPage: m.Component<ClientEditAttrs> = {
                 submitLabel="Save changes"
                 pending={this.pending}
                 error={this.formError}
+                invalidField={this.invalidField}
+                onclearerror={() => {
+                  this.formError = null;
+                  this.invalidField = null;
+                }}
                 onsubmit={() => this.submit()}
                 oncancel={() => m.route.set(`/clients/${encodeURIComponent(this.attrs.realmSlug || '')}`)}
               />

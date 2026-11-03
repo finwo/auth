@@ -1,5 +1,12 @@
 import m from 'mithril';
 import { PageHeader } from '@component/page-header';
+import {
+  brandingFromInput,
+  brandingValidationErrorField,
+  logoUrlError,
+  normalizePreviewColor,
+  validateBrandingFields,
+} from '@util/branding';
 import { RealmSelector } from '../component/realm-selector';
 import { loadAdminRealmSettings, updateAdminRealmSettings } from '../util/auth';
 import type { AdminRealm, AdminRealmSettings } from '../util/api';
@@ -24,9 +31,6 @@ interface SettingsValidation {
   field: 'display_name' | 'logo_url' | 'primary_color';
 }
 
-const LOGO_MAX_LENGTH = 2048;
-const PRIMARY_COLOR_PATTERN = /^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i;
-
 function formFromSettings(settings: AdminRealmSettings): SettingsFormValue {
   return {
     display_name: settings.display_name,
@@ -34,54 +38,6 @@ function formFromSettings(settings: AdminRealmSettings): SettingsFormValue {
     logo_url: settings.logo_url || '',
     primary_color: settings.primary_color || '',
   };
-}
-
-function normalizePreviewColor(value: string): string | null {
-  const color = value.trim().toLowerCase();
-  if (!PRIMARY_COLOR_PATTERN.test(color)) return null;
-  if (color.length === 4) {
-    return `#${color[1]}${color[1]}${color[2]}${color[2]}${color[3]}${color[3]}`;
-  }
-  return color;
-}
-
-function isLoopbackHostname(hostname: string): boolean {
-  const host = hostname.startsWith('[') && hostname.endsWith(']')
-    ? hostname.slice(1, -1)
-    : hostname;
-  return (
-    host === 'localhost' ||
-    host.endsWith('.localhost') ||
-    host === '127.0.0.1' ||
-    host === '::1'
-  );
-}
-
-function logoUrlError(value: string): string | null {
-  const url = value.trim();
-  if (!url) return null;
-  if (url.length > LOGO_MAX_LENGTH) {
-    return `Logo URL must be ${LOGO_MAX_LENGTH} characters or fewer.`;
-  }
-  if (url.includes('*')) return 'Logo URL cannot contain wildcards.';
-
-  let parsed: URL;
-  try {
-    parsed = new URL(url);
-  } catch {
-    return 'Logo URL must be absolute.';
-  }
-
-  const allowedProtocol =
-    parsed.protocol === 'https:' ||
-    (parsed.protocol === 'http:' && isLoopbackHostname(parsed.hostname));
-  if (!allowedProtocol) {
-    return 'Logo URL must use https, or http for a loopback host.';
-  }
-  if (parsed.username || parsed.password) return 'Logo URL cannot contain credentials.';
-  if (parsed.hash) return 'Logo URL cannot contain a fragment.';
-
-  return null;
 }
 
 function validateForm(value: SettingsFormValue): SettingsValidation | null {
@@ -100,25 +56,16 @@ function validateForm(value: SettingsFormValue): SettingsValidation | null {
     };
   }
 
-  const logoError = logoUrlError(value.logo_url);
-  if (logoError) {
-    return { message: logoError, field: 'logo_url' };
-  }
-  if (value.primary_color.trim() && !normalizePreviewColor(value.primary_color)) {
-    return {
-      message: 'Primary color must be a #rgb or #rrggbb hex color.',
-      field: 'primary_color',
-    };
-  }
+  const brandingError = validateBrandingFields(value);
+  if (brandingError) return brandingError;
 
   return null;
 }
 
 function fieldFromError(message: string | null | undefined): SettingsValidation['field'] | null {
-  if (!message) return null;
-  if (message.includes('logo_url')) return 'logo_url';
-  if (message.includes('primary_color')) return 'primary_color';
-  if (message.includes('display_name')) return 'display_name';
+  const brandingField = brandingValidationErrorField(message);
+  if (brandingField) return brandingField;
+  if (message?.includes('display_name')) return 'display_name';
   return null;
 }
 
@@ -237,8 +184,7 @@ export const SettingsPage: m.Component<SettingsAttrs> = {
       const settings = await updateAdminRealmSettings(realmSlug, {
         display_name: this.form.display_name.trim(),
         allow_session_duration_choice: this.form.allow_session_duration_choice,
-        logo_url: this.form.logo_url.trim() || null,
-        primary_color: this.form.primary_color.trim() || null,
+        ...brandingFromInput(this.form),
       });
 
       if (this.loadedRealm !== realmSlug) return;

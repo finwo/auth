@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {
   applyBrandingPatch,
   hasBrandingPatch,
+  normalizeBrandingObject,
   normalizeBrandingPatch,
   serializeBranding,
 } from '../src/lib/admin-branding.js';
@@ -96,4 +97,30 @@ test('admin branding patches preserve unknown keys and clear individual fields',
     logo_url: null,
     primary_color: '#2255aa',
   });
+});
+
+test('admin branding normalization accepts raw JSON and parsed objects', () => {
+  assert.deepEqual(
+    normalizeBrandingObject(
+      JSON.stringify({
+        logo_url: ' https://acme.test/logo.svg ',
+        primary_color: '#25A',
+      })
+    ),
+    {
+      logo_url: 'https://acme.test/logo.svg',
+      primary_color: '#2255aa',
+    }
+  );
+
+  assert.deepEqual(
+    normalizeBrandingObject({
+      logo_url: '',
+      primary_color: 'red',
+      custom_asset: 'https://acme.test/custom.png',
+    }),
+    {
+      custom_asset: 'https://acme.test/custom.png',
+    }
+  );
 });

@@ -352,6 +352,20 @@
   line-height: 1.4;
 }
 
+.branding-field {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.branding-field legend {
+  margin-bottom: 0.5rem;
+  padding: 0;
+  color: var(--muted);
+  font-size: 0.75rem;
+  line-height: 1.4;
+}
+
 .checkbox-list {
   display: grid;
   gap: 0.5rem;
