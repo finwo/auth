@@ -27,7 +27,7 @@ export default {
     const detail = await addAdminRealmMember({
       systemDb: auth.systemDb,
       realmDb: auth.realmDb,
-      realmId: auth.realm.id,
+      realm: auth.realm,
       userId: body.user_id,
       actor: auth.user,
       actorRoles: auth.roles,

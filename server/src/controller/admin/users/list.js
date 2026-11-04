@@ -13,7 +13,7 @@ export default {
     const users = await listAdminRealmUsers(
       auth.systemDb,
       auth.realmDb,
-      auth.realm.id
+      auth.realm
     );
 
     return new app.HttpOk({ users }, { 'cache-control': 'no-store' });

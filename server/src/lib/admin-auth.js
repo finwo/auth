@@ -3,7 +3,12 @@ import { HttpError } from './http/http-error.js';
 import { resolveHostContext } from './host-context.js';
 import { systemIssuer } from './oidc/context.js';
 import { verifyToken } from './oidc/keys.js';
-import { isRealmAdmin, isSystemAdmin } from './policy.js';
+import {
+  effectiveRealmRoles,
+  isRealmAdmin,
+  isRealmOwner,
+  isSystemAdmin,
+} from './policy.js';
 import { getSystemDatabase, openRealmDatabase, resolveRealm } from './realm.js';
 import { findUserById, getMembership, getUserRoles } from './users.js';
 
@@ -66,13 +71,22 @@ export async function authenticateAdminRequest(req, { realmSlug }) {
   const realm = await resolveRealm({ slug: realmSlug });
   const realmDb = await openRealmDatabase(realm);
   const membership = await getMembership(realmDb, user.id);
-  const roles = await getUserRoles(realmDb, user.id);
+  const storedRoles = await getUserRoles(realmDb, user.id);
   if (
     !isSystemAdmin(user) &&
-    !(membership?.status === 'active' && isRealmAdmin(roles))
+    !isRealmOwner(user, realm) &&
+    !(membership?.status === 'active' && isRealmAdmin(storedRoles))
   ) {
     throw new HttpError(403, 'forbidden', 'Realm admin access is required');
   }
 
-  return { systemDb, realmDb, realm, user, membership, roles, session };
+  return {
+    systemDb,
+    realmDb,
+    realm,
+    user,
+    membership,
+    roles: effectiveRealmRoles(user, realm, storedRoles),
+    session,
+  };
 }

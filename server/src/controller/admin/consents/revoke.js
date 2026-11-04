@@ -33,7 +33,7 @@ export default {
     const user = await assertAdminRealmUser({
       systemDb: auth.systemDb,
       realmDb: auth.realmDb,
-      realmId: auth.realm.id,
+      realm: auth.realm,
       userId: req.params.userId,
     });
 

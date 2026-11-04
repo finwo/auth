@@ -1,6 +1,6 @@
 import { app } from '../../../app.js';
 import { authenticateAdminSession } from '../../../lib/admin-auth.js';
-import { listAdminRealmOptions } from '../../../lib/system-clients.js';
+import { listAdminRealmsDetail } from '../../../lib/admin-realms.js';
 
 export default {
   method: 'get',
@@ -8,7 +8,7 @@ export default {
   name: 'admin.realms.list',
   async handler(req) {
     const auth = await authenticateAdminSession(req);
-    const realms = await listAdminRealmOptions(auth.systemDb, auth.user);
+    const realms = await listAdminRealmsDetail(auth.systemDb, auth.user);
 
     return new app.HttpOk({ realms }, { 'cache-control': 'no-store' });
   },

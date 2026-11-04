@@ -14,7 +14,7 @@ export default {
     const user = await lookupAdminRealmUser({
       systemDb: auth.systemDb,
       realmDb: auth.realmDb,
-      realmId: auth.realm.id,
+      realm: auth.realm,
       identifier: url.searchParams.get('identifier'),
     });
 

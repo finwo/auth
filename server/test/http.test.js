@@ -204,6 +204,17 @@ function activeSessionPublicId(env, cookie) {
   });
 }
 
+function sessionGroupId(env, cookie) {
+  const token = cookieValue(cookie, 'auth_session');
+  return crypto.createHash('sha256').update(token).digest('hex');
+}
+
+function sessionGroupCount(env, groupId) {
+  return withSystemDatabase(env, (database) =>
+    database.prepare('SELECT COUNT(*) AS count FROM session_groups WHERE id = ?').get(groupId).count
+  );
+}
+
 function clearConsent(env, { username, realm, clientId }) {
   withSystemDatabase(env, (database) => {
     database
@@ -359,6 +370,29 @@ function insertTestUser(
     }
   });
   return id;
+}
+
+function setTestUserPasswordFrom(env, { username, sourceUsername }) {
+  const source = withSystemDatabase(env, (database) =>
+    database
+      .prepare(
+        `SELECT c.secret_hash
+           FROM credentials c
+           JOIN users u ON u.id = c.user_id
+          WHERE u.username = ? AND c.type = 'password'`
+      )
+      .get(sourceUsername)
+  );
+  const targetId = userId(env, username);
+  const now = Date.now();
+  withSystemDatabase(env, (database) => {
+    database
+      .prepare(
+        `INSERT INTO credentials (id, user_id, type, secret_hash, created_at, updated_at)
+         VALUES (?, ?, 'password', ?, ?, ?)`
+      )
+      .run(crypto.randomUUID(), targetId, source.secret_hash, now, now);
+  });
 }
 
 function clearRealmMembership(env, realmSlug, membershipUserId) {
@@ -2317,6 +2351,8 @@ test('HTTP realm, login, OIDC and logout flows', async (t) => {
       });
       assert.equal(acmeMe.status, 200);
       assert.equal(acmeMe.json.user.is_system_admin, false);
+      assert.equal(acmeMe.json.user.home_realm_slug, 'acme');
+      assert.equal(acmeMe.json.user.can_create_realm, false);
 
       const systemMe = await identity({
         path: '/api/v1/admin/me',
@@ -2324,6 +2360,8 @@ test('HTTP realm, login, OIDC and logout flows', async (t) => {
       });
       assert.equal(systemMe.status, 200);
       assert.equal(systemMe.json.user.is_system_admin, true);
+      assert.equal(systemMe.json.user.home_realm_slug, null);
+      assert.equal(systemMe.json.user.can_create_realm, true);
 
       const forbidden = await identity({
         path: '/api/v1/admin/users',
@@ -2604,6 +2642,330 @@ test('HTTP realm, login, OIDC and logout flows', async (t) => {
         globexAdmin.json.realms.map((realm) => realm.slug),
         ['globex']
       );
+    });
+
+    await t.test('admin realm management creates and deletes realms', async () => {
+      const slug = 'realm-mgmt';
+      const host = `${slug}.localhost`;
+      const clientId = 'realm-mgmt-public';
+      const redirectUri = `${origin(host)}/callback`;
+      const realmRequest = (options = {}) => request(port, { host: `${host}:${port}`, ...options });
+      const systemAdmin = await adminToken();
+      const acmeAdmin = await adminToken('it@acme.test');
+
+      try {
+        const missing = await identity({
+          method: 'POST',
+          path: '/api/v1/admin/realms',
+          body: { slug, display_name: 'Realm Management' },
+        });
+        assert.equal(missing.status, 401);
+        assert.equal(missing.json.error.code, 'invalid_token');
+
+        const realmHost = await acme({
+          method: 'POST',
+          path: '/api/v1/admin/realms',
+          body: { slug, display_name: 'Realm Management' },
+        });
+        assert.equal(realmHost.status, 404);
+
+        for (const body of [
+          {},
+          { slug },
+          { display_name: 'Realm Management' },
+          { slug: 'Admin', display_name: 'Realm Management' },
+          { slug: 'global', display_name: 'Realm Management' },
+          { slug, display_name: '' },
+          { slug, display_name: 'Realm Management', unknown: true },
+          { slug, display_name: 'Realm Management', primary_color: 'red' },
+        ]) {
+          const invalid = await adminRequest(systemAdmin, {
+            method: 'POST',
+            path: '/api/v1/admin/realms',
+            body,
+          });
+          assert.equal(invalid.status, 400);
+          assert.equal(invalid.json.error.code, 'invalid_request');
+        }
+
+        const forbidden = await adminRequest(acmeAdmin, {
+          method: 'POST',
+          path: '/api/v1/admin/realms',
+          body: { slug, display_name: 'Realm Management' },
+        });
+        assert.equal(forbidden.status, 403);
+        assert.equal(forbidden.json.error.code, 'forbidden');
+
+        const created = await adminRequest(systemAdmin, {
+          method: 'POST',
+          path: '/api/v1/admin/realms',
+          body: {
+            slug,
+            display_name: '  Realm Management  ',
+            logo_url: 'http://localhost/logo.png',
+            primary_color: '#25A',
+          },
+        });
+        assert.equal(created.status, 200);
+        assert.equal(created.json.ok, true);
+        assert.equal(created.json.realm.slug, slug);
+        assert.equal(created.json.realm.display_name, 'Realm Management');
+        assert.equal(created.json.realm.member_count, 1);
+        assert.equal(created.json.realm.host_count, 0);
+        assert.equal(created.json.realm.email_domain_count, 0);
+        assert.equal(created.json.realm.client_count, 0);
+        assert.equal(created.json.realm.can_edit, true);
+        assert.equal(created.json.realm.can_delete, true);
+        assert.deepEqual(created.json.realm.owner, {
+          id: userId(env, 'admin'),
+          username: 'admin',
+          display_name: 'System Admin',
+        });
+
+        const realmRow = withSystemDatabase(env, (database) =>
+          database.prepare('SELECT id, db_file, owner_user_id FROM realms WHERE slug = ?').get(slug)
+        );
+        assert.equal(realmRow.owner_user_id, userId(env, 'admin'));
+        withRealmDatabase(env, slug, (database) => {
+          assert.equal(
+            database
+              .prepare('SELECT status FROM realm_memberships WHERE user_id = ?')
+              .get(realmRow.owner_user_id).status,
+            'active'
+          );
+          assert.equal(
+            database
+              .prepare(
+                `SELECT 1 AS granted
+                   FROM membership_roles mr
+                   JOIN roles r ON r.id = mr.role_id
+                  WHERE mr.user_id = ? AND r.slug = 'realm-admin'`
+              )
+              .get(realmRow.owner_user_id).granted,
+            1
+          );
+          assert.deepEqual(
+            JSON.parse(database.prepare('SELECT branding FROM realm_settings WHERE id = 1').get().branding),
+            { logo_url: 'http://localhost/logo.png', primary_color: '#2255aa' }
+          );
+        });
+
+        const duplicate = await adminRequest(systemAdmin, {
+          method: 'POST',
+          path: '/api/v1/admin/realms',
+          body: { slug, display_name: 'Duplicate Realm' },
+        });
+        assert.equal(duplicate.status, 409);
+        assert.equal(duplicate.json.error.code, 'realm_slug_exists');
+
+        const ownerId = userId(env, 'contractor');
+        withSystemDatabase(env, (database) => {
+          database.prepare('UPDATE realms SET owner_user_id = ? WHERE slug = ?').run(ownerId, slug);
+        });
+        const ownerAdmin = await adminToken('contractor@personal.test');
+        const ownerList = await adminRequest(ownerAdmin, { path: '/api/v1/admin/realms' });
+        assert.equal(ownerList.status, 200);
+        const listedRealm = ownerList.json.realms.find((realm) => realm.slug === slug);
+        assert.ok(listedRealm);
+        assert.equal(listedRealm.can_edit, true);
+        assert.equal(listedRealm.can_delete, true);
+        assert.deepEqual(listedRealm.owner, {
+          id: ownerId,
+          username: 'contractor',
+          display_name: 'Contractor',
+        });
+
+        const ownerSettings = await adminRequest(ownerAdmin, {
+          path: `/api/v1/admin/realms/${slug}/settings`,
+        });
+        assert.equal(ownerSettings.status, 200);
+        assert.equal(ownerSettings.json.settings.slug, slug);
+
+        const ownerUsers = await adminRequest(ownerAdmin, {
+          path: `/api/v1/admin/realms/${slug}/users`,
+        });
+        assert.equal(ownerUsers.status, 200);
+        const listedOwner = ownerUsers.json.users.find((user) => user.id === ownerId);
+        assert.ok(listedOwner);
+        assert.equal(listedOwner.relationship, 'guest');
+        assert.equal(listedOwner.membership_status, 'active');
+        assert.ok(listedOwner.roles.includes('realm-admin'));
+
+        const ownerDetail = await adminRequest(systemAdmin, {
+          path: `/api/v1/admin/realms/${slug}/users/${ownerId}`,
+        });
+        assert.equal(ownerDetail.status, 200);
+        assert.equal(ownerDetail.json.permissions.can_suspend_membership, false);
+        assert.equal(ownerDetail.json.permissions.reason, 'realm_owner_active');
+
+        const suspendOwner = await adminRequest(systemAdmin, {
+          method: 'PATCH',
+          path: `/api/v1/admin/realms/${slug}/users/${ownerId}/membership`,
+          body: { status: 'suspended' },
+        });
+        assert.equal(suspendOwner.status, 409);
+        assert.equal(suspendOwner.json.error.code, 'realm_owner_active');
+
+        const otherAdminId = userId(env, 'acme-it');
+        withRealmDatabase(env, slug, (database) => {
+          const now = Date.now();
+          database
+            .prepare(
+              'INSERT INTO realm_memberships (user_id, status, created_at, updated_at) VALUES (?, ?, ?, ?)'
+            )
+            .run(otherAdminId, 'active', now, now);
+          database
+            .prepare(
+              `INSERT INTO membership_roles (user_id, role_id)
+               SELECT ?, id FROM roles WHERE slug = 'realm-admin'`
+            )
+            .run(otherAdminId);
+        });
+        const manageOwnerForbidden = await adminRequest(acmeAdmin, {
+          path: `/api/v1/admin/realms/${slug}/users/${ownerId}`,
+        });
+        assert.equal(manageOwnerForbidden.status, 200);
+        assert.equal(manageOwnerForbidden.json.permissions.can_manage_membership, false);
+        assert.equal(manageOwnerForbidden.json.permissions.can_edit_roles, false);
+        assert.equal(manageOwnerForbidden.json.permissions.reason, 'not_authorized');
+
+        const manageOwnerRolesForbidden = await adminRequest(acmeAdmin, {
+          method: 'PUT',
+          path: `/api/v1/admin/realms/${slug}/users/${ownerId}/roles`,
+          body: { roles: [] },
+        });
+        assert.equal(manageOwnerRolesForbidden.status, 403);
+        assert.equal(manageOwnerRolesForbidden.json.error.code, 'forbidden');
+
+        const homeUserId = insertTestUser(env, {
+          username: 'realm-mgmt-home',
+          email: `home@${slug}.test`,
+        });
+        withSystemDatabase(env, (database) => {
+          const now = Date.now();
+          database.prepare('UPDATE users SET home_realm_id = ? WHERE id = ?').run(realmRow.id, homeUserId);
+          database
+            .prepare('INSERT INTO realm_hosts (host, realm_id, created_at) VALUES (?, ?, ?)')
+            .run(host, realmRow.id, now);
+          database
+            .prepare(
+              `INSERT INTO realm_email_domains
+                (domain, realm_id, verified, verification_token, verified_at, created_at)
+               VALUES (?, ?, 1, NULL, ?, ?)`
+            )
+            .run(`${slug}.test`, realmRow.id, now, now);
+        });
+
+        const client = await createAdminClient(systemAdmin, slug, {
+          client_id: clientId,
+          name: 'Realm Management Public',
+          access_mode: 'public',
+          redirect_uris: [redirectUri],
+        });
+        assert.equal(client.status, 200);
+
+        const publicToken = await accessToken(realmRequest, {
+          clientId,
+          identifier: 'guest@personal.test',
+          redirectUri,
+        });
+        const cookie = publicToken.cookie;
+        const sessionId = activeSessionId(env, cookie);
+        const groupId = sessionGroupId(env, cookie);
+        withSystemDatabase(env, (database) => {
+          database
+            .prepare('INSERT INTO oidc_client_hosts (host, client_id, created_at) VALUES (?, ?, ?)')
+            .run(host, clientId, Date.now());
+        });
+        setAdminConsent(env, {
+          username: 'guest',
+          realm: slug,
+          clientId,
+        });
+        insertRefreshToken(env, {
+          sessionId,
+          userId: userId(env, 'guest'),
+          realmId: realmRow.id,
+          clientId,
+        });
+
+        const nonOwnerDelete = await adminRequest(acmeAdmin, {
+          method: 'DELETE',
+          path: `/api/v1/admin/realms/${slug}`,
+        });
+        assert.equal(nonOwnerDelete.status, 403);
+        assert.equal(nonOwnerDelete.json.error.code, 'forbidden');
+
+        const deleted = await adminRequest(ownerAdmin, {
+          method: 'DELETE',
+          path: `/api/v1/admin/realms/${slug}`,
+        });
+        assert.equal(deleted.status, 200);
+        assert.equal(deleted.json.ok, true);
+        assert.equal(deleted.json.removed, true);
+
+        for (const query of [
+          'SELECT COUNT(*) AS count FROM realms WHERE id = ?',
+          'SELECT COUNT(*) AS count FROM realm_hosts WHERE realm_id = ?',
+          'SELECT COUNT(*) AS count FROM realm_email_domains WHERE realm_id = ?',
+          'SELECT COUNT(*) AS count FROM client_realms WHERE realm_id = ?',
+          'SELECT COUNT(*) AS count FROM sessions WHERE realm_id = ?',
+          'SELECT COUNT(*) AS count FROM session_realms WHERE realm_id = ?',
+          'SELECT COUNT(*) AS count FROM refresh_tokens WHERE realm_id = ?',
+          'SELECT COUNT(*) AS count FROM client_consents WHERE realm_id = ?',
+        ]) {
+          assert.equal(
+            withSystemDatabase(env, (database) => database.prepare(query).get(realmRow.id).count),
+            0
+          );
+        }
+        assert.equal(
+          withSystemDatabase(env, (database) =>
+            database
+              .prepare('SELECT COUNT(*) AS count FROM oidc_client_hosts WHERE client_id = ?')
+              .get(clientId).count
+          ),
+          0
+        );
+        assert.equal(sessionGroupCount(env, groupId), 0);
+        assert.equal(
+          withSystemDatabase(env, (database) =>
+            database.prepare('SELECT home_realm_id FROM users WHERE id = ?').get(homeUserId).home_realm_id
+          ),
+          null
+        );
+        for (const suffix of ['', '-wal', '-shm']) {
+          await assert.rejects(
+            () => fs.access(path.join(env.AUTH_REALMS_PATH, `${realmRow.db_file}${suffix}`)),
+            (error) => {
+              assert.equal(error.code, 'ENOENT');
+              return true;
+            }
+          );
+        }
+
+        const afterDelete = await adminRequest(systemAdmin, {
+          path: `/api/v1/admin/realms/${slug}/settings`,
+        });
+        assert.equal(afterDelete.status, 404);
+
+        const globalUsername = 'realm-mgmt-global';
+        insertTestUser(env, { username: globalUsername });
+        setTestUserPasswordFrom(env, { username: globalUsername, sourceUsername: 'admin' });
+        const deniedAdminLogin = await identity({
+          method: 'POST',
+          path: '/api/v1/login/password',
+          body: { client_id: 'admin', identifier: globalUsername, password: 'demo' },
+        });
+        assert.equal(deniedAdminLogin.status, 401);
+        assert.equal(deniedAdminLogin.json.error.code, 'invalid_credentials');
+      } finally {
+        const cleanup = await adminRequest(systemAdmin, {
+          method: 'DELETE',
+          path: `/api/v1/admin/realms/${slug}`,
+        });
+        assert.ok(cleanup.status === 200 || cleanup.status === 404);
+      }
     });
 
     await t.test('admin session APIs require an active admin token', async () => {

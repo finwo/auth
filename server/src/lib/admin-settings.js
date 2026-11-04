@@ -22,7 +22,7 @@ function isPlainObject(value) {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
 
-function validateDisplayName(value) {
+export function validateDisplayName(value) {
   if (typeof value !== 'string') {
     throw invalidRequest('display_name must be a string');
   }

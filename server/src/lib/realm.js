@@ -7,6 +7,9 @@ import { MIGRATIONS_ROOT } from './db/migrate.js';
 import { HttpError } from './http/http-error.js';
 import { isSystemClient } from './oidc/clients.js';
 
+export const REALM_SLUG_MAX_LENGTH = 63;
+
+const RESERVED_REALM_SLUGS = new Set(['admin', 'account', 'global']);
 let systemDb = null;
 let dialect = 'sqlite';
 let realmsPath = null;
@@ -46,6 +49,28 @@ async function ensureRole(db, slug, name, now) {
 async function seedRealmDefaults(db) {
   const now = Date.now();
   await ensureRole(db, 'realm-admin', 'Realm administrator', now);
+}
+
+function removeRealmFiles(fullPath) {
+  for (const suffix of ['', '-wal', '-shm']) {
+    fs.rmSync(`${fullPath}${suffix}`, { force: true });
+  }
+}
+
+export function normalizeRealmSlug(slug) {
+  const value = String(slug || '').trim();
+  if (!/^[a-z0-9][a-z0-9-]*$/.test(value)) {
+    throw new Error(`invalid realm slug: ${JSON.stringify(slug)}`);
+  }
+  if (value.length > REALM_SLUG_MAX_LENGTH) {
+    throw new Error(
+      `realm slug must be at most ${REALM_SLUG_MAX_LENGTH} characters: ${JSON.stringify(value)}`
+    );
+  }
+  if (RESERVED_REALM_SLUGS.has(value)) {
+    throw new Error(`realm slug is reserved: ${value}`);
+  }
+  return value;
 }
 
 async function writeRealmSettings(db, settings) {
@@ -119,6 +144,23 @@ export function getSystemDatabase() {
   return systemDb;
 }
 
+export async function removeRealmDatabase(realm) {
+  if (!realmsPath) throw new Error('realm registry is not initialized');
+
+  const fullPath = path.resolve(realmsPath, realm.db_file);
+  if (path.dirname(fullPath) !== realmsPath) {
+    throw new HttpError(404, 'unknown_realm', 'Unknown realm');
+  }
+
+  const db = realmDbs.get(realm.id);
+  if (db) {
+    realmDbs.delete(realm.id);
+    await db.close();
+  }
+
+  removeRealmFiles(fullPath);
+}
+
 export async function openRealmDatabase(realm) {
   const cached = realmDbs.get(realm.id);
   if (cached) return cached;
@@ -164,7 +206,7 @@ export async function resolveRealm({ host, slug } = {}) {
   const normalizedHost = normalizeHost(host);
   if (normalizedHost) {
     const byClientHost = await systemDb.get(
-      `SELECT r.id, r.slug, r.db_file, r.owner_user_id
+      `SELECT r.id, r.slug, r.db_file, r.owner_user_id, r.created_at
          FROM oidc_client_hosts h
          JOIN client_realms cr ON cr.client_id = h.client_id
          JOIN realms r ON r.id = cr.realm_id
@@ -179,7 +221,7 @@ export async function resolveRealm({ host, slug } = {}) {
     }
 
     const byHost = await systemDb.get(
-      `SELECT r.id, r.slug, r.db_file, r.owner_user_id
+      `SELECT r.id, r.slug, r.db_file, r.owner_user_id, r.created_at
          FROM realm_hosts h
          JOIN realms r ON r.id = h.realm_id
         WHERE h.host = {host}`,
@@ -195,7 +237,7 @@ export async function resolveRealm({ host, slug } = {}) {
 
   if (slug) {
     const bySlug = await systemDb.get(
-      'SELECT id, slug, db_file, owner_user_id FROM realms WHERE slug = {slug}',
+      'SELECT id, slug, db_file, owner_user_id, created_at FROM realms WHERE slug = {slug}',
       { slug }
     );
     if (bySlug) return bySlug;
@@ -213,12 +255,12 @@ export async function createRealm({
   allowSessionDurationChoice = true,
 }) {
   if (!systemDb) throw new Error('realm registry is not initialized');
-  if (!/^[a-z0-9][a-z0-9-]*$/.test(slug || '')) {
-    throw new Error(`invalid realm slug: ${JSON.stringify(slug)}`);
-  }
+  const normalizedSlug = normalizeRealmSlug(slug);
 
-  const existing = await systemDb.get('SELECT id FROM realms WHERE slug = {slug}', { slug });
-  if (existing) throw new Error(`realm already exists: ${slug}`);
+  const existing = await systemDb.get('SELECT id FROM realms WHERE slug = {slug}', {
+    slug: normalizedSlug,
+  });
+  if (existing) throw new Error(`realm already exists: ${normalizedSlug}`);
 
   const id = crypto.randomUUID();
   const dbFile = `${id}.sqlite`;
@@ -226,9 +268,9 @@ export async function createRealm({
 
   const db = await openDatabase({ dialect, path: fullPath });
   try {
-    await migrateRealm(db, `realm ${slug}`);
+    await migrateRealm(db, `realm ${normalizedSlug}`);
     await writeRealmSettings(db, {
-      slug,
+      slug: normalizedSlug,
       displayName,
       kind: 'realm',
       branding,
@@ -237,7 +279,7 @@ export async function createRealm({
     await seedRealmDefaults(db);
   } catch (e) {
     await db.close();
-    fs.rmSync(fullPath, { force: true });
+    removeRealmFiles(fullPath);
     throw e;
   }
 
@@ -245,7 +287,7 @@ export async function createRealm({
     await systemDb.run(
       `INSERT INTO realms (id, slug, db_file, owner_user_id, created_at)
        VALUES ({id}, {slug}, {dbFile}, {ownerUserId}, {createdAt})`,
-      { id, slug, dbFile, ownerUserId, createdAt: Date.now() }
+      { id, slug: normalizedSlug, dbFile, ownerUserId, createdAt: Date.now() }
     );
 
     for (const host of hosts) {
@@ -254,12 +296,12 @@ export async function createRealm({
   } catch (e) {
     await systemDb.run('DELETE FROM realms WHERE id = {id}', { id });
     await db.close();
-    fs.rmSync(fullPath, { force: true });
+    removeRealmFiles(fullPath);
     throw e;
   }
 
   realmDbs.set(id, db);
-  return { id, slug, db_file: dbFile, owner_user_id: ownerUserId };
+  return { id, slug: normalizedSlug, db_file: dbFile, owner_user_id: ownerUserId };
 }
 
 export async function addRealmHost(realmId, host) {
@@ -398,7 +440,7 @@ export async function findRealmBySlug(slug) {
 export async function findRealmById(id) {
   if (!systemDb) throw new Error('realm registry is not initialized');
   return systemDb.get(
-    'SELECT id, slug, db_file, owner_user_id FROM realms WHERE id = {id}',
+    'SELECT id, slug, db_file, owner_user_id, created_at FROM realms WHERE id = {id}',
     { id }
   );
 }

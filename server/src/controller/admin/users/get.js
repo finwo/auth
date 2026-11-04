@@ -14,7 +14,7 @@ export default {
     const detail = await getAdminRealmUserDetail({
       systemDb: auth.systemDb,
       realmDb: auth.realmDb,
-      realmId: auth.realm.id,
+      realm: auth.realm,
       userId: req.params.userId,
       actor: auth.user,
       actorRoles: auth.roles,

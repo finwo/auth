@@ -13,7 +13,7 @@ export default {
     const detail = await updateAdminRealmRoles({
       systemDb: auth.systemDb,
       realmDb: auth.realmDb,
-      realmId: auth.realm.id,
+      realm: auth.realm,
       userId: req.params.userId,
       body: req.body || {},
       actor: auth.user,

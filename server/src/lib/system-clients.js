@@ -1,15 +1,22 @@
-import { isSystemAdmin } from './policy.js';
+import { isRealmOwner, isSystemAdmin } from './policy.js';
 import { openRealmDatabase, realmMetadata } from './realm.js';
 import { getMembership, getUserRoles } from './users.js';
 
 export async function listAdminRealms(systemDb, user) {
+  if (!user || user.status !== 'active') return [];
+
   const realms = await systemDb.all(
-    'SELECT id, slug, db_file, owner_user_id FROM realms ORDER BY slug ASC'
+    'SELECT id, slug, db_file, owner_user_id, created_at FROM realms ORDER BY slug ASC'
   );
   if (isSystemAdmin(user)) return realms;
 
   const accessible = [];
   for (const realm of realms) {
+    if (isRealmOwner(user, realm)) {
+      accessible.push(realm);
+      continue;
+    }
+
     try {
       const db = await openRealmDatabase(realm);
       const membership = await getMembership(db, user.id);
