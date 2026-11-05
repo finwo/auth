@@ -1,0 +1,1216 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Admin realms mockup</title>
+    <link rel="stylesheet" href="./global.css" />
+    <style>
+      .realm-meta {
+        display: block;
+        color: var(--muted);
+        font-size: 0.8125rem;
+        line-height: 1.4;
+      }
+
+      .realm-meta > span {
+        display: inline;
+        margin-right: 0.75rem;
+      }
+
+      .realm-meta > span:last-child {
+        margin-right: 0;
+      }
+
+      .realm-slug,
+      .realm-owner-meta {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      }
+
+      .realm-owner-name {
+        display: block;
+        font-weight: 500;
+        line-height: 1.4;
+      }
+
+      .realm-owner-meta {
+        display: block;
+        margin-top: 0.125rem;
+        color: var(--muted);
+        font-size: 0.8125rem;
+        line-height: 1.4;
+        overflow-wrap: normal;
+      }
+
+      .realm-table td.realm-action-column {
+        padding-bottom: 0.75rem;
+      }
+
+      .realm-row-action {
+        display: flex;
+        align-items: center;
+      }
+
+      .realm-row-action .button-danger {
+        width: 100%;
+        white-space: nowrap;
+      }
+
+      .field-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 1rem;
+        margin-bottom: 1rem;
+      }
+
+      .branding-preview {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.75rem;
+        margin-top: 0.25rem;
+      }
+
+      .branding-logo-preview,
+      .branding-color-preview {
+        width: 2rem;
+        height: 2rem;
+        overflow: hidden;
+        background: var(--row);
+      }
+
+      .branding-logo-preview {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--muted);
+      }
+
+      .branding-logo-preview img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+      }
+
+      .branding-color-preview {
+        border-radius: 0.25rem;
+        background: var(--field-line);
+      }
+
+      .branding-logo-preview.is-empty,
+      .branding-color-preview.is-empty {
+        border-bottom: 1pt solid var(--field-line);
+      }
+
+      .state-preview {
+        margin-top: 2rem;
+      }
+
+      .state-preview > h2 {
+        margin-bottom: 0.75rem;
+      }
+
+      .empty {
+        padding: 2rem;
+        color: var(--muted);
+        font-size: 0.875rem;
+      }
+
+      .empty p {
+        margin: 0;
+      }
+
+      @media (max-width: 39.999em) {
+        .mockup-controls {
+          flex-direction: column;
+          align-items: flex-start;
+          width: min(18rem, calc(100vw - 2rem));
+        }
+
+        .mockup-separator {
+          display: none;
+        }
+
+        .table-actions {
+          width: 100%;
+          flex-direction: column;
+          align-items: stretch;
+        }
+
+        .table-actions .button {
+          width: 100%;
+        }
+      }
+
+      @media (min-width: 40em) {
+        .field-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .realm-meta {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 0.25rem 0.75rem;
+        }
+
+        .realm-meta > span {
+          margin-right: 0;
+        }
+
+        .realm-table {
+          table-layout: fixed;
+        }
+
+        .realm-table .table-icon-column {
+          width: 4rem;
+        }
+
+        .realm-table .realm-owner-column {
+          width: 13rem;
+        }
+
+        .realm-table .realm-action-column {
+          width: 12rem;
+        }
+
+        .realm-row-action {
+          justify-content: flex-start;
+        }
+
+        .realm-row-action .button-danger {
+          width: auto;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="./admin-dashboard.html">
+        <svg class="brand-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+        </svg>
+        <span class="brand-name">Auth</span>
+      </a>
+      <div class="topbar-actions">
+        <button class="mobile-nav-toggle" type="button" id="mobile-nav-toggle" aria-controls="mobile-navigation" aria-expanded="false" aria-label="Open navigation">
+          <span class="mobile-nav-toggle-bars" aria-hidden="true"></span>
+        </button>
+        <details class="user-menu">
+          <summary aria-label="Account menu">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="10" />
+              <circle cx="12" cy="10" r="3" />
+              <path d="M7 20.662V19a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v1.662" />
+            </svg>
+          </summary>
+          <div class="user-panel">
+            <div class="user-summary">
+              <span class="user-name">System Admin</span>
+              <span class="user-meta">admin@system.test</span>
+            </div>
+            <div class="user-menu-list">
+              <a class="user-menu-item" href="#">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
+                  <circle cx="12" cy="12" r="3" />
+                </svg>
+                <span>Account settings</span>
+              </a>
+              <button class="user-menu-item" type="button" data-user-theme>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <circle cx="12" cy="12" r="4" />
+                  <path d="M12 2v2" />
+                  <path d="M12 20v2" />
+                  <path d="m4.93 4.93 1.41 1.41" />
+                  <path d="m17.66 17.66 1.41 1.41" />
+                  <path d="M2 12h2" />
+                  <path d="M20 12h2" />
+                  <path d="m6.34 17.66-1.41 1.41" />
+                  <path d="m19.07 4.93-1.41 1.41" />
+                </svg>
+                <span>Theme</span>
+                <span class="user-menu-value" data-user-theme-value>Auto</span>
+              </button>
+              <a class="user-menu-item" href="#">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                  <path d="m16 17 5-5-5-5" />
+                  <path d="M21 12H9" />
+                </svg>
+                <span>Sign out</span>
+              </a>
+            </div>
+          </div>
+        </details>
+      </div>
+    </header>
+
+    <div class="mobile-nav" id="mobile-navigation" aria-hidden="true">
+      <nav class="nav" aria-label="Administration">
+        <p class="nav-label">Administration</p>
+        <a class="nav-item" href="./admin-dashboard.html">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="3" y="3" width="7" height="7" />
+            <rect x="14" y="3" width="7" height="7" />
+            <rect x="3" y="14" width="7" height="7" />
+            <rect x="14" y="14" width="7" height="7" />
+          </svg>
+          <span>Overview</span>
+        </a>
+        <a class="nav-item is-active" data-realm-nav href="./admin-realms.html" aria-current="page">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z" />
+            <path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2" />
+            <path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2" />
+            <path d="M10 6h4" />
+            <path d="M10 10h4" />
+            <path d="M10 14h4" />
+            <path d="M10 18h4" />
+          </svg>
+          <span data-realm-nav-label>Realms</span>
+        </a>
+        <a class="nav-item" href="./admin-clients.html">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="2" y="4" width="20" height="16" rx="2" />
+            <path d="M10 4v4" />
+            <path d="M2 8h20" />
+            <path d="M6 4v4" />
+          </svg>
+          <span>Clients</span>
+        </a>
+        <a class="nav-item" href="#">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M22 12h-4l-3 8-6-16-3 8H2" />
+          </svg>
+          <span>Sessions</span>
+        </a>
+        <a class="nav-item" href="./admin-users.html">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+            <circle cx="12" cy="7" r="4" />
+          </svg>
+          <span>Users</span>
+        </a>
+        <a class="nav-item" data-settings-nav href="./admin-system-settings.html">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
+            <circle cx="12" cy="12" r="3" />
+          </svg>
+          <span>Settings</span>
+        </a>
+      </nav>
+      <div class="mobile-nav-divider" aria-hidden="true"></div>
+      <section class="mobile-nav-account" aria-label="Account">
+        <div class="user-summary">
+          <span class="user-name">System Admin</span>
+          <span class="user-meta">admin@system.test</span>
+        </div>
+        <div class="user-menu-list">
+          <a class="user-menu-item" href="#">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
+              <circle cx="12" cy="12" r="3" />
+            </svg>
+            <span>Account settings</span>
+          </a>
+          <button class="user-menu-item" type="button" data-user-theme>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="4" />
+              <path d="M12 2v2" />
+              <path d="M12 20v2" />
+              <path d="m4.93 4.93 1.41 1.41" />
+              <path d="m17.66 17.66 1.41 1.41" />
+              <path d="M2 12h2" />
+              <path d="M20 12h2" />
+              <path d="m6.34 17.66-1.41 1.41" />
+              <path d="m19.07 4.93-1.41 1.41" />
+            </svg>
+            <span>Theme</span>
+            <span class="user-menu-value" data-user-theme-value>Auto</span>
+          </button>
+          <a class="user-menu-item" href="#">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+              <path d="m16 17 5-5-5-5" />
+              <path d="M21 12H9" />
+            </svg>
+            <span>Sign out</span>
+          </a>
+        </div>
+      </section>
+    </div>
+
+    <div class="app">
+      <aside class="sidebar">
+        <nav class="nav" aria-label="Administration">
+          <p class="nav-label">Administration</p>
+          <a class="nav-item" href="./admin-dashboard.html">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="3" y="3" width="7" height="7" />
+              <rect x="14" y="3" width="7" height="7" />
+              <rect x="3" y="14" width="7" height="7" />
+              <rect x="14" y="14" width="7" height="7" />
+            </svg>
+            <span>Overview</span>
+          </a>
+          <a class="nav-item is-active" data-realm-nav href="./admin-realms.html" aria-current="page">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z" />
+              <path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2" />
+              <path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2" />
+              <path d="M10 6h4" />
+              <path d="M10 10h4" />
+              <path d="M10 14h4" />
+              <path d="M10 18h4" />
+            </svg>
+            <span data-realm-nav-label>Realms</span>
+          </a>
+          <a class="nav-item" href="./admin-clients.html">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="2" y="4" width="20" height="16" rx="2" />
+              <path d="M10 4v4" />
+              <path d="M2 8h20" />
+              <path d="M6 4v4" />
+            </svg>
+            <span>Clients</span>
+          </a>
+          <a class="nav-item" href="#">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M22 12h-4l-3 8-6-16-3 8H2" />
+            </svg>
+            <span>Sessions</span>
+          </a>
+          <a class="nav-item" href="./admin-users.html">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+              <circle cx="12" cy="7" r="4" />
+            </svg>
+            <span>Users</span>
+          </a>
+          <a class="nav-item" data-settings-nav href="./admin-system-settings.html">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
+              <circle cx="12" cy="12" r="3" />
+            </svg>
+            <span>Settings</span>
+          </a>
+        </nav>
+      </aside>
+
+      <div class="main">
+        <main class="content">
+          <div class="page-header">
+            <div class="client-breadcrumb">
+              <span id="realm-breadcrumb-root" aria-current="page">Realms</span>
+            </div>
+            <h1 id="realm-page-title">Realms</h1>
+            <p>Realm registry and administrative access.</p>
+          </div>
+
+          <div id="realm-notice" class="notice" role="status" hidden></div>
+
+          <section class="table-panel" aria-labelledby="realm-table-title">
+            <h2 id="realm-table-title" class="sr-only">Realm registry</h2>
+            <div class="table-toolbar">
+              <div class="table-search">
+                <input id="realm-search" type="search" aria-label="Search realms" placeholder="Search realms" />
+              </div>
+              <div class="table-actions">
+                <button id="realm-register-button" class="button" type="button">Register realm</button>
+              </div>
+            </div>
+
+            <div class="data-table-wrap">
+              <table class="data-table realm-table">
+                <thead>
+                  <tr>
+                    <th class="table-icon-column" scope="col"><span class="sr-only">Realm</span></th>
+                    <th class="data-table-primary realm-name-column" scope="col">Realm</th>
+                    <th class="realm-owner-column" scope="col">Owner</th>
+                    <th class="realm-action-column" scope="col">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="realm-rows">
+                  <tr
+                    class="realm-row"
+                    tabindex="0"
+                    data-row-href="./admin-settings.html"
+                    data-roles="system owner"
+                    data-delete-roles="system owner"
+                    data-owners='{"system":{"name":"Acme IT","meta":"it@acme.test"},"owner":{"name":"Realm Owner","meta":"owner@acme.test"},"admin":{"name":"Acme IT","meta":"it@acme.test"}}'
+                  >
+                    <td class="table-icon-column">
+                      <span class="table-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z" />
+                          <path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2" />
+                          <path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2" />
+                          <path d="M10 6h4" />
+                          <path d="M10 10h4" />
+                          <path d="M10 14h4" />
+                          <path d="M10 18h4" />
+                        </svg>
+                      </span>
+                    </td>
+                    <td class="data-table-primary realm-name-column">
+                      <a class="realm-display" href="./admin-settings.html">Acme</a>
+                      <span class="realm-meta">
+                        <span class="realm-slug">acme</span>
+                        <span class="realm-count">6 members</span>
+                        <span class="realm-count">2 hosts</span>
+                        <span class="realm-count">3 domains</span>
+                        <span class="realm-count">4 clients</span>
+                      </span>
+                    </td>
+                    <td class="realm-owner-column" data-label="Owner">
+                      <span class="realm-owner-name">Acme IT</span>
+                      <span class="realm-owner-meta">it@acme.test</span>
+                    </td>
+                    <td class="realm-action-column" data-label="Actions">
+                      <div class="realm-row-action">
+                        <button class="button-danger" type="button" data-delete-realm>Delete realm</button>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr
+                    class="realm-row"
+                    tabindex="0"
+                    data-row-href="./admin-settings.html"
+                    data-roles="system admin"
+                    data-delete-roles="system"
+                    data-owners='{"system":{"name":"Globex IT","meta":"it@globex.test"},"admin":{"name":"Globex IT","meta":"it@globex.test"}}'
+                  >
+                    <td class="table-icon-column">
+                      <span class="table-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z" />
+                          <path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2" />
+                          <path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2" />
+                          <path d="M10 6h4" />
+                          <path d="M10 10h4" />
+                          <path d="M10 14h4" />
+                          <path d="M10 18h4" />
+                        </svg>
+                      </span>
+                    </td>
+                    <td class="data-table-primary realm-name-column">
+                      <a class="realm-display" href="./admin-settings.html">Globex</a>
+                      <span class="realm-meta">
+                        <span class="realm-slug">globex</span>
+                        <span class="realm-count">5 members</span>
+                        <span class="realm-count">1 host</span>
+                        <span class="realm-count">1 domain</span>
+                        <span class="realm-count">2 clients</span>
+                      </span>
+                    </td>
+                    <td class="realm-owner-column" data-label="Owner">
+                      <span class="realm-owner-name">Globex IT</span>
+                      <span class="realm-owner-meta">it@globex.test</span>
+                    </td>
+                    <td class="realm-action-column" data-label="Actions">
+                      <div class="realm-row-action">
+                        <button class="button-danger" type="button" data-delete-realm>Delete realm</button>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr
+                    class="realm-row"
+                    tabindex="0"
+                    data-row-href="./admin-settings.html"
+                    data-roles="system"
+                    data-delete-roles="system"
+                    data-owners='{"system":{"name":"Unassigned","meta":"No owner assigned"}}'
+                  >
+                    <td class="table-icon-column">
+                      <span class="table-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z" />
+                          <path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2" />
+                          <path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2" />
+                          <path d="M10 6h4" />
+                          <path d="M10 10h4" />
+                          <path d="M10 14h4" />
+                          <path d="M10 18h4" />
+                        </svg>
+                      </span>
+                    </td>
+                    <td class="data-table-primary realm-name-column">
+                      <a class="realm-display" href="./admin-settings.html">Northwind</a>
+                      <span class="realm-meta">
+                        <span class="realm-slug">northwind</span>
+                        <span class="realm-count">0 members</span>
+                        <span class="realm-count">0 hosts</span>
+                        <span class="realm-count">0 domains</span>
+                        <span class="realm-count">0 clients</span>
+                      </span>
+                    </td>
+                    <td class="realm-owner-column" data-label="Owner">
+                      <span class="realm-owner-name">Unassigned</span>
+                      <span class="realm-owner-meta">No owner assigned</span>
+                    </td>
+                    <td class="realm-action-column" data-label="Actions">
+                      <div class="realm-row-action">
+                        <button class="button-danger" type="button" data-delete-realm>Delete realm</button>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+              <div id="realm-search-empty" class="empty" hidden>
+                <p>No realms match this search.</p>
+              </div>
+              <div id="realm-empty" class="empty" hidden>
+                <p>No realms are available for this account.</p>
+              </div>
+            </div>
+          </section>
+
+          <section class="state-preview">
+            <h2>Loading state</h2>
+            <div class="panel" aria-busy="true">
+              <div class="skeleton skeleton-title"></div>
+              <div class="skeleton"></div>
+              <div class="skeleton skeleton-short"></div>
+              <div class="skeleton"></div>
+              <div class="skeleton skeleton-short"></div>
+            </div>
+          </section>
+
+          <section class="state-preview">
+            <h2>Empty state</h2>
+            <div class="table-panel">
+              <div class="table-toolbar">
+                <div class="table-search">
+                  <input type="search" aria-label="Search realms" placeholder="Search realms" disabled />
+                </div>
+                <div class="table-actions">
+                  <button class="button" type="button">Register realm</button>
+                </div>
+              </div>
+              <div class="empty">
+                <p>No realms are available for this account.</p>
+              </div>
+            </div>
+          </section>
+        </main>
+      </div>
+    </div>
+
+    <div id="realm-create-dialog" class="modal-overlay" hidden>
+      <form id="realm-create-form" class="modal" role="dialog" aria-modal="true" aria-labelledby="realm-create-title" novalidate>
+        <div class="modal-header">
+          <h2 id="realm-create-title">Register a realm</h2>
+          <button class="modal-close" type="button" aria-label="Close dialog" data-dialog-close>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M18 6 6 18" />
+              <path d="m6 6 12 12" />
+            </svg>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div id="realm-create-alert" class="alert" role="alert" hidden></div>
+
+          <label class="form-field" for="realm-display-name">
+            <span class="field-label">Display name</span>
+            <input id="realm-display-name" class="field-control" type="text" maxlength="100" placeholder="Acme Inc" />
+          </label>
+
+          <label class="form-field" for="realm-slug-input">
+            <span class="field-label">Realm ID</span>
+            <input id="realm-slug-input" class="field-control" type="text" maxlength="63" placeholder="acme" spellcheck="false" />
+          </label>
+          <p class="modal-note">Lowercase letters, numbers and hyphens. admin, account and global are reserved.</p>
+
+          <div class="field-grid">
+            <label class="form-field" for="realm-logo-url">
+              <span class="field-label">Logo URL</span>
+              <input id="realm-logo-url" class="field-control" type="text" placeholder="https://app.example.test/logo.svg" maxlength="2048" />
+            </label>
+
+            <label class="form-field" for="realm-primary-color">
+              <span class="field-label">Primary color</span>
+              <input id="realm-primary-color" class="field-control" type="text" placeholder="#25a" maxlength="7" spellcheck="false" />
+            </label>
+          </div>
+
+          <div class="branding-preview" aria-hidden="true">
+            <span class="branding-logo-preview is-empty" id="realm-logo-preview"></span>
+            <span class="branding-color-preview is-empty" id="realm-color-preview"></span>
+          </div>
+
+          <div class="modal-actions">
+            <button class="button-secondary" type="button" data-dialog-close>Cancel</button>
+            <button class="button" type="submit">Create realm</button>
+          </div>
+        </div>
+      </form>
+    </div>
+
+    <div id="realm-delete-dialog" class="modal-overlay" hidden>
+      <div class="modal" role="dialog" aria-modal="true" aria-labelledby="realm-delete-title">
+        <div class="modal-header">
+          <h2 id="realm-delete-title">Delete realm</h2>
+          <button class="modal-close" type="button" aria-label="Close dialog" data-dialog-close>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M18 6 6 18" />
+              <path d="m6 6 12 12" />
+            </svg>
+          </button>
+        </div>
+        <div class="modal-body">
+          <p id="realm-delete-message" class="modal-note"></p>
+          <label class="form-field" for="realm-delete-confirm">
+            <span class="field-label">Confirm realm ID</span>
+            <input id="realm-delete-confirm" class="field-control" type="text" maxlength="63" autocomplete="off" spellcheck="false" />
+          </label>
+          <p class="modal-note">Type the realm ID exactly to confirm.</p>
+          <div class="modal-actions">
+            <button class="button-secondary" type="button" data-dialog-close>Cancel</button>
+            <button id="realm-delete-confirm-button" class="button-danger" type="button" disabled>Delete realm</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="mockup-controls" aria-label="Mockup controls">
+      <span class="mockup-label">Mockup</span>
+      <button class="mockup-button is-active" type="button" data-theme-target="auto">Auto</button>
+      <button class="mockup-button" type="button" data-theme-target="light">Light</button>
+      <button class="mockup-button" type="button" data-theme-target="dark">Dark</button>
+      <span class="mockup-separator" aria-hidden="true"></span>
+      <span class="mockup-label">View as</span>
+      <button class="mockup-button is-active" type="button" data-role-target="system" aria-pressed="true">System admin</button>
+      <button class="mockup-button" type="button" data-role-target="owner" aria-pressed="false">Realm owner</button>
+      <button class="mockup-button" type="button" data-role-target="admin" aria-pressed="false">Realm admin</button>
+    </div>
+
+    <script>
+      const root = document.documentElement;
+      const themeButtons = document.querySelectorAll('[data-theme-target]');
+      const userThemeButtons = document.querySelectorAll('[data-user-theme]');
+      const userThemeValues = document.querySelectorAll('[data-user-theme-value]');
+      let currentTheme = 'auto';
+
+      function setTheme(value) {
+        currentTheme = value;
+        if (value === 'auto') {
+          root.removeAttribute('data-theme');
+        } else {
+          root.setAttribute('data-theme', value);
+        }
+
+        themeButtons.forEach((button) => {
+          button.classList.toggle('is-active', button.dataset.themeTarget === value);
+        });
+        userThemeValues.forEach((element) => {
+          element.textContent = value.charAt(0).toUpperCase() + value.slice(1);
+        });
+      }
+
+      themeButtons.forEach((button) => {
+        button.addEventListener('click', () => setTheme(button.dataset.themeTarget));
+      });
+
+      userThemeButtons.forEach((button) => {
+        button.addEventListener('click', () => {
+          const themes = ['auto', 'light', 'dark'];
+          setTheme(themes[(themes.indexOf(currentTheme) + 1) % themes.length]);
+        });
+      });
+
+      const userMenu = document.querySelector('.user-menu');
+      document.addEventListener('click', (event) => {
+        if (userMenu && userMenu.open && !userMenu.contains(event.target)) {
+          userMenu.open = false;
+        }
+      });
+
+      document.querySelectorAll('[data-dialog-close]').forEach((button) => {
+        button.addEventListener('click', () => {
+          button.closest('.modal-overlay').hidden = true;
+        });
+      });
+
+      document.querySelectorAll('.modal-overlay').forEach((overlay) => {
+        overlay.addEventListener('mousedown', (event) => {
+          if (event.target === overlay) overlay.hidden = true;
+        });
+      });
+
+      document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') {
+          document.querySelectorAll('.modal-overlay:not([hidden])').forEach((dialog) => {
+            dialog.hidden = true;
+          });
+        }
+      });
+
+      const identities = {
+        system: {
+          name: 'System Admin',
+          email: 'admin@system.test',
+        },
+        owner: {
+          name: 'Realm Owner',
+          email: 'owner@acme.test',
+        },
+        admin: {
+          name: 'Realm Admin',
+          email: 'realm-admin@managed.test',
+        },
+      };
+
+      const currentRole = { value: 'system' };
+      const roleButtons = document.querySelectorAll('[data-role-target]');
+      const registerButton = document.getElementById('realm-register-button');
+      const searchInput = document.getElementById('realm-search');
+      const searchEmpty = document.getElementById('realm-search-empty');
+      const realmEmpty = document.getElementById('realm-empty');
+      const realmRows = document.getElementById('realm-rows');
+      const notice = document.getElementById('realm-notice');
+
+      function realmRowList() {
+        return [...realmRows.querySelectorAll('.realm-row')];
+      }
+
+      function searchableRealmText(row) {
+        return [...row.querySelectorAll('.realm-display,.realm-slug,.realm-count,.realm-owner-name,.realm-owner-meta')]
+          .map((element) => element.textContent)
+          .join(' ')
+          .toLowerCase();
+      }
+
+      const realmNavLinks = document.querySelectorAll('[data-realm-nav]');
+      const realmNavLabels = document.querySelectorAll('[data-realm-nav-label]');
+      const settingsNavLinks = document.querySelectorAll('[data-settings-nav]');
+      const realmBreadcrumbRoot = document.getElementById('realm-breadcrumb-root');
+      const realmPageTitle = document.getElementById('realm-page-title');
+
+      function accessibleRealmCount() {
+        return realmRowList().filter((row) => (row.dataset.roles || '').split(' ').includes(currentRole.value)).length;
+      }
+
+      function applySearch() {
+        const term = searchInput.value.trim().toLowerCase();
+        let roleCount = 0;
+        let visibleCount = 0;
+
+        realmRowList().forEach((row) => {
+          const roleVisible = (row.dataset.roles || '').split(' ').includes(currentRole.value);
+          if (roleVisible) roleCount += 1;
+
+          const termVisible = !term || searchableRealmText(row).includes(term);
+          row.hidden = !(roleVisible && termVisible);
+          if (!row.hidden) visibleCount += 1;
+        });
+
+        searchEmpty.hidden = roleCount === 0 || visibleCount !== 0;
+        realmEmpty.hidden = roleCount !== 0;
+      }
+
+      function updateRealmNavigation() {
+        const count = accessibleRealmCount();
+        const label = count === 1 ? 'Realm' : 'Realms';
+        const href = count === 1 ? './admin-settings.html' : './admin-realms.html';
+
+        realmNavLinks.forEach((link) => {
+          link.href = href;
+          link.classList.toggle('is-active', count !== 1);
+          if (count === 1) {
+            link.removeAttribute('aria-current');
+          } else {
+            link.setAttribute('aria-current', 'page');
+          }
+        });
+        realmNavLabels.forEach((labelElement) => {
+          labelElement.textContent = label;
+        });
+        if (realmBreadcrumbRoot) realmBreadcrumbRoot.textContent = label;
+        if (realmPageTitle) realmPageTitle.textContent = label;
+        settingsNavLinks.forEach((link) => {
+          link.hidden = currentRole.value !== 'system';
+        });
+      }
+
+      function setRole(role) {
+        currentRole.value = role;
+        const identity = identities[role];
+
+        document.querySelectorAll('.user-name').forEach((element) => {
+          element.textContent = identity.name;
+        });
+        document.querySelectorAll('.user-meta').forEach((element) => {
+          element.textContent = identity.email;
+        });
+
+        roleButtons.forEach((button) => {
+          const active = button.dataset.roleTarget === role;
+          button.classList.toggle('is-active', active);
+          button.setAttribute('aria-pressed', String(active));
+        });
+
+        registerButton.hidden = role !== 'system';
+
+        realmRowList().forEach((row) => {
+          let owners = {};
+          try {
+            owners = JSON.parse(row.dataset.owners || '{}');
+          } catch {
+            owners = {};
+          }
+
+          const owner = owners[role];
+          if (owner) {
+            row.querySelector('.realm-owner-name').textContent = owner.name;
+            row.querySelector('.realm-owner-meta').textContent = owner.meta;
+          }
+
+          const canDelete = (row.dataset.deleteRoles || '').split(' ').includes(role);
+          row.querySelectorAll('[data-delete-realm]').forEach((button) => {
+            button.hidden = !canDelete;
+          });
+        });
+
+        applySearch();
+        updateRealmNavigation();
+      }
+
+      roleButtons.forEach((button) => {
+        button.addEventListener('click', () => setRole(button.dataset.roleTarget));
+      });
+
+      const createDialog = document.getElementById('realm-create-dialog');
+      const createForm = document.getElementById('realm-create-form');
+      const createAlert = document.getElementById('realm-create-alert');
+      const displayNameInput = document.getElementById('realm-display-name');
+      const slugInput = document.getElementById('realm-slug-input');
+      const logoUrlInput = document.getElementById('realm-logo-url');
+      const primaryColorInput = document.getElementById('realm-primary-color');
+      const logoPreview = document.getElementById('realm-logo-preview');
+      const colorPreview = document.getElementById('realm-color-preview');
+
+      const existingSlugs = new Set(
+        realmRowList().map((row) => row.querySelector('.realm-slug').textContent.trim())
+      );
+      const reservedSlugs = new Set(['admin', 'account', 'global']);
+      const slugPattern = /^[a-z0-9][a-z0-9-]*$/;
+      const colorPattern = /^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i;
+      let slugTouched = false;
+
+      function slugify(value) {
+        return value
+          .trim()
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/^-+|-+$/g, '')
+          .slice(0, 63);
+      }
+
+      function isLoopbackHostname(hostname) {
+        const host = hostname.startsWith('[') && hostname.endsWith(']')
+          ? hostname.slice(1, -1)
+          : hostname;
+        return host === 'localhost' || host.endsWith('.localhost') || host === '127.0.0.1' || host === '::1';
+      }
+
+      function logoUrlError(value) {
+        const url = value.trim();
+        if (!url) return null;
+        if (url.length > 2048) return 'Logo URL must be 2048 characters or fewer.';
+        if (url.includes('*')) return 'Logo URL cannot contain wildcards.';
+
+        let parsed;
+        try {
+          parsed = new URL(url);
+        } catch {
+          return 'Logo URL must be absolute.';
+        }
+
+        const allowedProtocol =
+          parsed.protocol === 'https:' ||
+          (parsed.protocol === 'http:' && isLoopbackHostname(parsed.hostname));
+        if (!allowedProtocol) return 'Logo URL must use https, or http for a loopback host.';
+        if (parsed.username || parsed.password) return 'Logo URL cannot contain credentials.';
+        if (parsed.hash) return 'Logo URL cannot contain a fragment.';
+        return null;
+      }
+
+      function normalizedColor(value) {
+        const color = value.trim().toLowerCase();
+        if (!colorPattern.test(color)) return '';
+        if (color.length === 4) {
+          return `#${color[1]}${color[1]}${color[2]}${color[2]}${color[3]}${color[3]}`;
+        }
+        return color;
+      }
+
+      function updateCreatePreview() {
+        const color = normalizedColor(primaryColorInput.value);
+        colorPreview.classList.toggle('is-empty', !color);
+        if (color) {
+          colorPreview.style.background = color;
+        } else {
+          colorPreview.style.background = '';
+        }
+
+        const logo = logoUrlInput.value.trim();
+        const logoValid = Boolean(logo) && !logoUrlError(logo);
+        logoPreview.classList.toggle('is-empty', !logoValid);
+        logoPreview.replaceChildren();
+        if (logoValid) {
+          const image = document.createElement('img');
+          image.alt = '';
+          image.src = logo;
+          image.addEventListener('error', () => {
+            image.style.visibility = 'hidden';
+          });
+          logoPreview.appendChild(image);
+        }
+      }
+
+      function clearCreateErrors() {
+        createAlert.hidden = true;
+        createAlert.textContent = '';
+        [displayNameInput, slugInput, logoUrlInput, primaryColorInput].forEach((field) => {
+          field.removeAttribute('aria-invalid');
+        });
+      }
+
+      function showCreateError(message, field) {
+        createAlert.hidden = false;
+        createAlert.textContent = message;
+        [displayNameInput, slugInput, logoUrlInput, primaryColorInput].forEach((candidate) => {
+          candidate.removeAttribute('aria-invalid');
+        });
+        if (field) field.setAttribute('aria-invalid', 'true');
+      }
+
+      function validateCreate() {
+        const displayName = displayNameInput.value.trim();
+        const slug = slugInput.value.trim().toLowerCase();
+        const logo = logoUrlInput.value.trim();
+        const color = primaryColorInput.value.trim();
+
+        if (!displayName) {
+          return { ok: false, message: 'Display name is required.', field: displayNameInput };
+        }
+        if (/[\r\n]/.test(displayNameInput.value)) {
+          return { ok: false, message: 'Display name must be a single line.', field: displayNameInput };
+        }
+        if (displayName.length > 100) {
+          return { ok: false, message: 'Display name must be 100 characters or fewer.', field: displayNameInput };
+        }
+        if (!slug) {
+          return { ok: false, message: 'Realm ID is required.', field: slugInput };
+        }
+        if (!slugPattern.test(slug)) {
+          return {
+            ok: false,
+            message: 'Realm ID must use lowercase letters, numbers and hyphens.',
+            field: slugInput,
+          };
+        }
+        if (slug.length > 63) {
+          return { ok: false, message: 'Realm ID must be 63 characters or fewer.', field: slugInput };
+        }
+        if (reservedSlugs.has(slug)) {
+          return { ok: false, message: `Realm ID ${slug} is reserved.`, field: slugInput };
+        }
+        if (existingSlugs.has(slug)) {
+          return { ok: false, message: 'Realm ID already exists.', field: slugInput };
+        }
+
+        const logoError = logoUrlError(logo);
+        if (logoError) {
+          return { ok: false, message: logoError, field: logoUrlInput };
+        }
+        if (color && !normalizedColor(color)) {
+          return { ok: false, message: 'Primary color must be a #rgb or #rrggbb hex color.', field: primaryColorInput };
+        }
+
+        return { ok: true, realm: { displayName, slug } };
+      }
+
+      function escapeHtml(value) {
+        return String(value).replace(/[&<>"']/g, (character) => {
+          const entities = {
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#39;',
+          };
+          return entities[character];
+        });
+      }
+
+      function addRealmRow({ displayName, slug }) {
+        const identity = identities[currentRole.value];
+        const row = document.createElement('tr');
+        row.className = 'realm-row';
+        row.tabIndex = 0;
+        row.setAttribute('data-row-href', './admin-settings.html');
+        row.setAttribute('data-roles', currentRole.value);
+        row.setAttribute('data-delete-roles', currentRole.value);
+        row.dataset.owners = JSON.stringify({
+          [currentRole.value]: { name: identity.name, meta: identity.email },
+        });
+        row.innerHTML = `
+          <td class="table-icon-column">
+            <span class="table-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z" />
+                <path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2" />
+                <path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2" />
+                <path d="M10 6h4" />
+                <path d="M10 10h4" />
+                <path d="M10 14h4" />
+                <path d="M10 18h4" />
+              </svg>
+            </span>
+          </td>
+          <td class="data-table-primary realm-name-column">
+            <a class="realm-display" href="./admin-settings.html">${escapeHtml(displayName)}</a>
+            <span class="realm-meta">
+              <span class="realm-slug">${escapeHtml(slug)}</span>
+              <span class="realm-count">0 members</span>
+              <span class="realm-count">0 hosts</span>
+              <span class="realm-count">0 domains</span>
+              <span class="realm-count">0 clients</span>
+            </span>
+          </td>
+          <td class="realm-owner-column" data-label="Owner">
+            <span class="realm-owner-name">${escapeHtml(identity.name)}</span>
+            <span class="realm-owner-meta">${escapeHtml(identity.email)}</span>
+          </td>
+          <td class="realm-action-column" data-label="Actions">
+            <div class="realm-row-action">
+              <button class="button-danger" type="button" data-delete-realm>Delete realm</button>
+            </div>
+          </td>`;
+        realmRows.prepend(row);
+      }
+
+      function showNotice(message) {
+        notice.textContent = message;
+        notice.hidden = false;
+      }
+
+      function resetCreateForm() {
+        createForm.reset();
+        slugInput.value = '';
+        slugTouched = false;
+        clearCreateErrors();
+        updateCreatePreview();
+      }
+
+      registerButton.addEventListener('click', () => {
+        resetCreateForm();
+        createDialog.hidden = false;
+        requestAnimationFrame(() => displayNameInput.focus());
+      });
+
+      displayNameInput.addEventListener('input', () => {
+        clearCreateErrors();
+        if (!slugTouched) {
+          slugInput.value = slugify(displayNameInput.value);
+        }
+        updateCreatePreview();
+      });
+
+      slugInput.addEventListener('input', () => {
+        slugTouched = true;
+        clearCreateErrors();
+        updateCreatePreview();
+      });
+
+      logoUrlInput.addEventListener('input', () => {
+        clearCreateErrors();
+        updateCreatePreview();
+      });
+
+      primaryColorInput.addEventListener('input', () => {
+        clearCreateErrors();
+        updateCreatePreview();
+      });
+
+      createForm.addEventListener('submit', (event) => {
+        event.preventDefault();
+        const result = validateCreate();
+        if (!result.ok) {
+          showCreateError(result.message, result.field);
+          return;
+        }
+
+        addRealmRow(result.realm);
+        existingSlugs.add(result.realm.slug);
+        createDialog.hidden = true;
+        showNotice(`Realm ${result.realm.displayName} created.`);
+        setRole(currentRole.value);
+      });
+
+      const deleteDialog = document.getElementById('realm-delete-dialog');
+      const deleteMessage = document.getElementById('realm-delete-message');
+      const deleteInput = document.getElementById('realm-delete-confirm');
+      const confirmDeleteButton = document.getElementById('realm-delete-confirm-button');
+      let pendingDeleteRow = null;
+      let pendingDeleteSlug = '';
+
+      function openDeleteDialog(row) {
+        pendingDeleteRow = row;
+        pendingDeleteSlug = row.querySelector('.realm-slug').textContent.trim();
+        const displayName = row.querySelector('.realm-display').textContent.trim();
+
+        deleteMessage.textContent = `Delete ${displayName} (${pendingDeleteSlug})? Realm settings, clients, hosts, email domains, sessions, consents, refresh tokens and memberships will be permanently removed. Users remain global accounts; home-realm users return to no home realm.`;
+        deleteInput.value = '';
+        deleteInput.placeholder = pendingDeleteSlug;
+        confirmDeleteButton.disabled = true;
+        deleteDialog.hidden = false;
+        requestAnimationFrame(() => deleteInput.focus());
+      }
+
+      deleteInput.addEventListener('input', () => {
+        confirmDeleteButton.disabled = deleteInput.value.trim() !== pendingDeleteSlug;
+      });
+
+      confirmDeleteButton.addEventListener('click', () => {
+        if (!pendingDeleteRow || confirmDeleteButton.disabled) return;
+
+        const displayName = pendingDeleteRow.querySelector('.realm-display').textContent.trim();
+        existingSlugs.delete(pendingDeleteSlug);
+        pendingDeleteRow.remove();
+        pendingDeleteRow = null;
+        deleteDialog.hidden = true;
+        showNotice(`Realm ${displayName} deleted.`);
+        setRole(currentRole.value);
+      });
+
+      realmRows.addEventListener('click', (event) => {
+        const deleteButton = event.target.closest('[data-delete-realm]');
+        if (deleteButton) {
+          event.stopPropagation();
+          openDeleteDialog(deleteButton.closest('.realm-row'));
+          return;
+        }
+
+        const row = event.target.closest('[data-row-href]');
+        if (row && !event.target.closest('a')) {
+          window.location.href = row.dataset.rowHref;
+        }
+      });
+
+      realmRows.addEventListener('keydown', (event) => {
+        const row = event.target.closest('[data-row-href]');
+        if (!row || event.target !== row) return;
+        if (event.key !== 'Enter' && event.key !== ' ') return;
+        event.preventDefault();
+        window.location.href = row.dataset.rowHref;
+      });
+
+      searchInput.addEventListener('input', applySearch);
+      resetCreateForm();
+      setRole('system');
+    </script>
+    <script src="./shell.js"></script>
+  </body>
+</html>
