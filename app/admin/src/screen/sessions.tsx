@@ -1,5 +1,6 @@
 import m from 'mithril';
 import { PageHeader } from '@component/page-header';
+import { Breadcrumb } from '../component/breadcrumb';
 import { RealmSelector } from '../component/realm-selector';
 import type { AdminRealm, AdminSession } from '../util/api';
 import {
@@ -51,6 +52,10 @@ export const SessionsPage: m.Component<SessionsAttrs> = {
       this.sessions = [];
       this.loading = false;
       this.error = null;
+      if (!this.redirecting) {
+        this.redirecting = true;
+        m.route.set('/realms', null, { replace: true });
+      }
       return;
     }
 
@@ -136,6 +141,7 @@ export const SessionsPage: m.Component<SessionsAttrs> = {
 
     return (
       <div>
+        <Breadcrumb items={[{ label: 'Sessions' }]} />
         <PageHeader
           row
           title="Sessions"

@@ -1,6 +1,6 @@
 import m from 'mithril';
 import { PageHeader } from '@component/page-header';
-import { SettingsTargetSelector } from '../component/settings-target-selector';
+import { Breadcrumb } from '../component/breadcrumb';
 import {
   brandingFromInput,
   brandingValidationErrorField,
@@ -9,10 +9,9 @@ import {
   validateBrandingFields,
 } from '@util/branding';
 import { loadAdminSystemSettings, updateAdminSystemSettings } from '../util/auth';
-import type { AdminRealm, AdminSystemSettings } from '../util/api';
+import type { AdminSystemSettings } from '../util/api';
 
 interface SystemSettingsAttrs {
-  realms: AdminRealm[] | null;
   onAuthExpired: () => void;
 }
 
@@ -123,27 +122,16 @@ export const SystemSettingsPage: m.Component<SystemSettingsAttrs> = {
   },
 
   view(this: any) {
-    const realms = this.attrs?.realms || null;
     const previewLogo = logoUrlError(this.form.logo_url) ? '' : this.form.logo_url.trim();
     const previewColor = normalizePreviewColor(this.form.primary_color);
 
     return (
       <div>
+        <Breadcrumb items={[{ label: 'Settings' }]} />
         <PageHeader
-          row
-          title="System branding"
-          subtitle="Global logo and primary color for the identity provider."
-        >
-          <SettingsTargetSelector
-            realms={realms}
-            selectedSystem
-            selectedRealm={null}
-            onchange={(target: string) => {
-              if (target === 'system') return;
-              m.route.set(`/settings/${encodeURIComponent(target)}`);
-            }}
-          />
-        </PageHeader>
+          title="System settings"
+          subtitle="Provider branding for authentication surfaces."
+        />
 
         {this.error ? (
           <div class="alert" role="alert">

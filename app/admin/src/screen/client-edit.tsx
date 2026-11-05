@@ -5,6 +5,7 @@ import {
   brandingValidationErrorField,
   type BrandingField,
 } from '@util/branding';
+import { Breadcrumb } from '../component/breadcrumb';
 import { RealmSelector } from '../component/realm-selector';
 import {
   ClientForm,
@@ -237,6 +238,12 @@ export const ClientEditPage: m.Component<ClientEditAttrs> = {
 
     return (
       <div>
+        <Breadcrumb
+          items={[
+            { label: 'Clients', path: `/clients/${encodeURIComponent(this.attrs.realmSlug || '')}` },
+            { label: clientId || 'Unknown' },
+          ]}
+        />
         <PageHeader row title="Edit client" subtitle="OIDC client registration.">
           <RealmSelector
             realms={realms}
@@ -246,20 +253,6 @@ export const ClientEditPage: m.Component<ClientEditAttrs> = {
             }}
           />
         </PageHeader>
-
-        <div class="client-breadcrumb">
-          <a
-            href={appUrl(`/clients/${encodeURIComponent(this.attrs.realmSlug || '')}`)}
-            onclick={(event: Event) => {
-              event.preventDefault();
-              m.route.set(`/clients/${encodeURIComponent(this.attrs.realmSlug || '')}`);
-            }}
-          >
-            Clients
-          </a>
-          <span aria-hidden="true">/</span>
-          <span>{clientId || 'Unknown'}</span>
-        </div>
 
         {realmsError ? (
           <div class="alert" role="alert">

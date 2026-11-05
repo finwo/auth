@@ -2,6 +2,7 @@ import m from 'mithril';
 import { Modal } from '@component/modal';
 import { PageHeader } from '@component/page-header';
 import { SelectMenu } from '@component/select-menu';
+import { Breadcrumb } from '../component/breadcrumb';
 import { RealmSelector } from '../component/realm-selector';
 import {
   createAdminUserBan,
@@ -341,6 +342,7 @@ export const UserPage: m.Component<UserAttrs> = {
 
     return (
       <div>
+        <Breadcrumb items={[{ label: 'Users', path: usersHref }, { label: displayName }]} />
         <PageHeader row title="User" subtitle="Account, consent and app restrictions.">
           <RealmSelector
             realms={realms}
@@ -350,20 +352,6 @@ export const UserPage: m.Component<UserAttrs> = {
             }}
           />
         </PageHeader>
-
-        <div class="client-breadcrumb">
-          <a
-            href={appUrl(usersHref)}
-            onclick={(event: Event) => {
-              event.preventDefault();
-              m.route.set(usersHref);
-            }}
-          >
-            Users
-          </a>
-          <span aria-hidden="true">/</span>
-          <span>{displayName}</span>
-        </div>
 
         {realmsError ? (
           <div class="alert" role="alert">

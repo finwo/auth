@@ -1,5 +1,6 @@
 import m from 'mithril';
 import { PageHeader } from '@component/page-header';
+import { Breadcrumb } from '../component/breadcrumb';
 import { loadAdminGlobalUser } from '../util/auth';
 import { appUrl, type AdminGlobalUserMembership, type AdminGlobalUserDetail } from '../util/api';
 import { formatTime } from '@util/format';
@@ -69,6 +70,7 @@ export const GlobalUserPage: m.Component<GlobalUserAttrs> = {
 
     return (
       <div>
+        <Breadcrumb items={[{ label: 'Users', path: '/users/global' }, { label: displayName }]} />
         <PageHeader row title="User" subtitle="Global identity and realm memberships.">
           <a class="button-secondary" href={appUrl('/users/global')} onclick={(event: Event) => {
             event.preventDefault();
@@ -77,20 +79,6 @@ export const GlobalUserPage: m.Component<GlobalUserAttrs> = {
             All realms
           </a>
         </PageHeader>
-
-        <div class="client-breadcrumb">
-          <a
-            href={appUrl('/users/global')}
-            onclick={(event: Event) => {
-              event.preventDefault();
-              m.route.set('/users/global');
-            }}
-          >
-            Users
-          </a>
-          <span aria-hidden="true">/</span>
-          <span>{displayName}</span>
-        </div>
 
         {realmsError ? (
           <div class="alert" role="alert">

@@ -2720,6 +2720,7 @@ test('HTTP realm, login, OIDC and logout flows', async (t) => {
           id: userId(env, 'admin'),
           username: 'admin',
           display_name: 'System Admin',
+          email: 'admin@system.test',
         });
 
         const realmRow = withSystemDatabase(env, (database) =>
@@ -2773,6 +2774,7 @@ test('HTTP realm, login, OIDC and logout flows', async (t) => {
           id: ownerId,
           username: 'contractor',
           display_name: 'Contractor',
+          email: 'contractor@personal.test',
         });
 
         const ownerSettings = await adminRequest(ownerAdmin, {

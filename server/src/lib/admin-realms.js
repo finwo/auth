@@ -11,7 +11,7 @@ import {
 } from './realm.js';
 import { destroySessionById } from './session.js';
 import { listAdminRealms } from './system-clients.js';
-import { assignRole, ensureMembership } from './users.js';
+import { assignRole, ensureMembership, getPrimaryEmail } from './users.js';
 
 const CREATE_ALLOWED_FIELDS = new Set(['slug', 'display_name', 'logo_url', 'primary_color']);
 
@@ -73,12 +73,14 @@ export function normalizeCreateRealmInput(body) {
   return { slug, displayName, branding };
 }
 
-function serializeOwner(ownerUserId, owner) {
+async function serializeOwner(systemDb, ownerUserId, owner) {
   if (!ownerUserId) return null;
+  const email = await getPrimaryEmail(systemDb, ownerUserId);
   return {
     id: ownerUserId,
     username: owner?.username || null,
     display_name: owner?.display_name || null,
+    email: email?.email || null,
   };
 }
 
@@ -116,7 +118,7 @@ export async function loadAdminRealmDetail(systemDb, realm, actor) {
   return {
     slug: realm.slug,
     display_name: settings.display_name,
-    owner: serializeOwner(realm.owner_user_id, owner),
+    owner: await serializeOwner(systemDb, realm.owner_user_id, owner),
     host_count: await countRealmRows(systemDb, 'realm_hosts', realm.id),
     email_domain_count: await countRealmRows(systemDb, 'realm_email_domains', realm.id),
     client_count: await countRealmRows(systemDb, 'client_realms', realm.id),

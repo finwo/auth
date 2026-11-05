@@ -1,4 +1,4 @@
-import { Activity, AppWindow, LayoutGrid, Settings, Users } from 'lucide';
+import { Activity, AppWindow, LayoutGrid, LibraryBig, Settings, Users } from 'lucide';
 import m from 'mithril';
 import { AppShell } from '@component/app-shell';
 import { type NavItem } from '@component/nav';
@@ -18,7 +18,9 @@ import {
   startAdminLogin,
 } from '../util/auth';
 import { appUrl, getAuthUrl, type AdminRealm, type UserInfo } from '../util/api';
+import { realmNavigation } from '../util/navigation';
 import { OverviewPage } from './overview';
+import { RealmsPage } from './realms';
 import { SessionsPage } from './sessions';
 import { ClientEditPage } from './client-edit';
 import { ClientsPage } from './clients';
@@ -124,6 +126,10 @@ function settingsRealm() {
 export const Admin: m.Component = {
   user: null as UserInfo | null,
   systemAdmin: false,
+  canCreateRealm: false,
+  adminAccessLoaded: false,
+  accountRedirecting: false,
+  routeGuardActive: false,
   realms: null as AdminRealm[] | null,
   realmsError: null as Error | null,
   error: null as Error | null,
@@ -160,6 +166,7 @@ export const Admin: m.Component = {
       this.lastPath = path;
       this.mobileNavOpen = false;
     }
+    this.ensureRouteAccess();
     this.updateTitle();
   },
 
@@ -203,13 +210,18 @@ export const Admin: m.Component = {
     try {
       const me = await loadAdminMe();
       this.systemAdmin = me.is_system_admin;
+      this.canCreateRealm = me.can_create_realm;
+      this.adminAccessLoaded = true;
     } catch (e: any) {
       if (e?.status === 401 || e?.status === 400) {
         await this.login();
         return;
       }
       this.systemAdmin = false;
+      this.canCreateRealm = false;
     }
+
+    this.ensureRouteAccess();
     m.redraw();
   },
 
@@ -228,28 +240,87 @@ export const Admin: m.Component = {
   },
 
   async reloadRealms(this: any) {
+    let reloadFailed = false;
+
     try {
       this.realms = await loadAdminRealms();
       this.realmsError = null;
     } catch (e: any) {
+      reloadFailed = true;
       if (e?.status === 401 || e?.status === 400) {
         await this.login();
         return;
       }
       this.realmsError = e as Error;
     }
+
+    try {
+      const me = await loadAdminMe();
+      this.systemAdmin = me.is_system_admin;
+      this.canCreateRealm = me.can_create_realm;
+      this.adminAccessLoaded = true;
+    } catch (e: any) {
+      reloadFailed = true;
+      if (e?.status === 401 || e?.status === 400) {
+        await this.login();
+        return;
+      }
+      this.canCreateRealm = false;
+      this.adminAccessLoaded = false;
+    }
+
+    if (!reloadFailed) {
+      this.ensureRouteAccess();
+    }
     m.redraw();
+  },
+
+  ensureRouteAccess(this: any) {
+    if (!this.realms || !this.adminAccessLoaded || this.accountRedirecting) return false;
+
+    const path = currentPath();
+
+    if (this.realms.length === 0 && !this.canCreateRealm) {
+      this.accountRedirecting = true;
+      this.routeGuardActive = true;
+      clearAdminTokens();
+      window.location.assign(`${this.authUrl}/app/account`);
+      return true;
+    }
+
+    if (
+      path === '/realms' &&
+      this.realms.length === 1 &&
+      !this.canCreateRealm
+    ) {
+      this.routeGuardActive = true;
+      m.route.set(`/settings/${encodeURIComponent(this.realms[0].slug)}`, null, {
+        replace: true,
+      });
+      return true;
+    }
+
+    if (path === '/system-settings' && !this.systemAdmin) {
+      this.routeGuardActive = true;
+      m.route.set('/', null, { replace: true });
+      return true;
+    }
+
+    this.routeGuardActive = false;
+    return false;
   },
 
   updateTitle(this: any) {
     const path = currentPath();
+    const realmsPath = path === '/realms';
     const clients = path === '/clients' || path.startsWith('/clients/');
     const sessions = path === '/sessions' || path.startsWith('/sessions/');
     const users = path === '/users' || path.startsWith('/users/');
     const systemSettings = path === '/system-settings';
     const realmSettings = path === '/settings' || path.startsWith('/settings/');
-    const settings = systemSettings || realmSettings;
-    const title = clients
+    const title = realmsPath
+      ? 'Realms | Administration'
+      : clients
       ? path.includes('/edit/')
         ? 'Edit client | Administration'
         : 'Clients | Administration'
@@ -261,7 +332,7 @@ export const Admin: m.Component = {
             : 'Users | Administration'
           : systemSettings
             ? 'System settings | Administration'
-            : settings
+            : realmSettings
               ? 'Realm settings | Administration'
               : 'Administration';
     document.title = title;
@@ -282,12 +353,13 @@ export const Admin: m.Component = {
   view(this: any) {
     const user = this.user;
     const path = currentPath();
+    const routeGuardActive = Boolean(this.routeGuardActive || this.accountRedirecting);
+    const realmsPath = path === '/realms';
     const sessions = path === '/sessions' || path.startsWith('/sessions/');
     const clients = path === '/clients' || path.startsWith('/clients/');
     const users = path === '/users' || path.startsWith('/users/');
     const systemSettings = path === '/system-settings';
     const realmSettings = path === '/settings' || path.startsWith('/settings/');
-    const settings = systemSettings || realmSettings;
     const realmSlug = sessionsRealm();
     const clientRealmSlug = clientsRealm();
     const userRealmSlug = usersRealm();
@@ -304,38 +376,51 @@ export const Admin: m.Component = {
       ? `/clients/${encodeURIComponent(firstRealm)}`
       : '/clients';
     const usersHref = firstRealm ? `/users/${encodeURIComponent(firstRealm)}` : '/users';
-    const settingsHref = this.systemAdmin
-      ? '/system-settings'
-      : firstRealm
-        ? `/settings/${encodeURIComponent(firstRealm)}`
-        : '/settings';
+    const realmNav = realmNavigation(this.realms, Boolean(this.canCreateRealm));
 
     const navItems: NavItem[] = [
       {
         href: appUrl('/'),
         label: 'Overview',
         icon: LayoutGrid,
-        active: !sessions && !clients && !users && !settings,
+        active: path === '/',
         onclick: (event: Event) => {
           event.preventDefault();
           m.route.set('/');
         },
       },
-      {
-        href: appUrl(clientsHref),
-        label: 'Clients',
-        icon: AppWindow,
-        active: clients,
+    ];
+
+    if (realmNav.visible) {
+      navItems.push({
+        href: appUrl(realmNav.href),
+        label: realmNav.label,
+        icon: LibraryBig,
+        active: realmsPath || realmSettings,
         onclick: (event: Event) => {
           event.preventDefault();
-          m.route.set(clientsHref);
+          m.route.set(realmNav.href);
         },
-      },
-      {
-        href: appUrl(sessionsHref),
-        label: 'Sessions',
-        icon: Activity,
-        active: sessions,
+      });
+    }
+
+    if (firstRealm) {
+      navItems.push(
+        {
+          href: appUrl(clientsHref),
+          label: 'Clients',
+          icon: AppWindow,
+          active: clients,
+          onclick: (event: Event) => {
+            event.preventDefault();
+            m.route.set(clientsHref);
+          },
+        },
+        {
+          href: appUrl(sessionsHref),
+          label: 'Sessions',
+          icon: Activity,
+          active: sessions,
           onclick: (event: Event) => {
             event.preventDefault();
             m.route.set(sessionsHref);
@@ -350,18 +435,22 @@ export const Admin: m.Component = {
             event.preventDefault();
             m.route.set(usersHref);
           },
+        }
+      );
+    }
+
+    if (this.systemAdmin) {
+      navItems.push({
+        href: appUrl('/system-settings'),
+        label: 'Settings',
+        icon: Settings,
+        active: systemSettings,
+        onclick: (event: Event) => {
+          event.preventDefault();
+          m.route.set('/system-settings');
         },
-        {
-          href: appUrl(settingsHref),
-          label: 'Settings',
-          icon: Settings,
-          active: settings,
-          onclick: (event: Event) => {
-            event.preventDefault();
-            m.route.set(settingsHref);
-          },
-        },
-      ];
+      });
+    }
 
     return (
       <AppShell
@@ -424,8 +513,16 @@ export const Admin: m.Component = {
           </div>
         ) : null}
 
-        {!user ? (
+        {!user || routeGuardActive || this.accountRedirecting ? (
           <div class="loading">Loading session</div>
+        ) : realmsPath ? (
+          <RealmsPage
+            realms={this.realms}
+            realmsError={this.realmsError}
+            canCreateRealm={Boolean(this.canCreateRealm)}
+            onAuthExpired={() => this.authExpired()}
+            onRealmsChanged={() => this.reloadRealms()}
+          />
         ) : clients && clientEdit ? (
           <ClientEditPage
             realmSlug={clientEdit.realmSlug}
@@ -465,16 +562,13 @@ export const Admin: m.Component = {
             isGlobal={isGlobalUsers}
           />
         ) : systemSettings ? (
-          <SystemSettingsPage
-            realms={this.realms}
-            onAuthExpired={() => this.authExpired()}
-          />
+          <SystemSettingsPage onAuthExpired={() => this.authExpired()} />
         ) : realmSettings ? (
           <SettingsPage
             realmSlug={settingsRealmSlug}
             realms={this.realms}
             realmsError={this.realmsError}
-            isSystemAdmin={Boolean(this.systemAdmin)}
+            canCreateRealm={Boolean(this.canCreateRealm)}
             onAuthExpired={() => this.authExpired()}
             onRealmsChanged={() => this.reloadRealms()}
           />
@@ -486,11 +580,7 @@ export const Admin: m.Component = {
             onAuthExpired={() => this.authExpired()}
           />
         ) : (
-          <OverviewPage
-            user={user}
-            realms={this.realms}
-            realmsError={this.realmsError}
-          />
+          <OverviewPage user={user} />
         )}
       </AppShell>
     );

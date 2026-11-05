@@ -1,12 +1,11 @@
 import m from 'mithril';
 import { PageHeader } from '@component/page-header';
-import { appUrl, type AdminRealm, type UserInfo } from '../util/api';
+import { Breadcrumb } from '../component/breadcrumb';
+import { type UserInfo } from '../util/api';
 import { getAdminTokens } from '../util/auth';
 
 interface OverviewAttrs {
   user: UserInfo;
-  realms: AdminRealm[] | null;
-  realmsError: Error | null;
 }
 
 function roleLabel(user: UserInfo) {
@@ -15,15 +14,13 @@ function roleLabel(user: UserInfo) {
 
 export const OverviewPage: m.Component<OverviewAttrs> = {
   view({ attrs }) {
-    const { user, realms, realmsError } = attrs;
+    const { user } = attrs;
     const tokens = getAdminTokens();
 
     return (
       <div>
-        <PageHeader
-          title="Overview"
-          subtitle="Provider summary and administration."
-        />
+        <Breadcrumb items={[{ label: 'Overview' }]} />
+        <PageHeader title="Overview" subtitle="Provider summary and administration." />
 
         <div class="grid">
           <section class="panel">
@@ -70,36 +67,6 @@ export const OverviewPage: m.Component<OverviewAttrs> = {
             </dl>
           </section>
 
-          <section class="panel panel-wide">
-            <h2>Administration</h2>
-            {realmsError ? (
-              <p class="note" role="alert">
-                {realmsError.message}
-              </p>
-            ) : realms === null ? (
-              <p class="note">Loading realms.</p>
-            ) : realms.length === 0 ? (
-              <p class="note">No realms are available for this account.</p>
-            ) : (
-              <ul class="realm-list">
-                {realms.map((realm) => (
-                  <li>
-                    <a
-                      class="realm-link"
-                      href={appUrl(`/sessions/${encodeURIComponent(realm.slug)}`)}
-                      onclick={(event: Event) => {
-                        event.preventDefault();
-                        m.route.set(`/sessions/${encodeURIComponent(realm.slug)}`);
-                      }}
-                    >
-                      <span class="realm-name">{realm.display_name}</span>
-                      <span class="realm-slug">{realm.slug}</span>
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
         </div>
       </div>
     );

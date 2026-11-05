@@ -5,9 +5,42 @@ import type { Discovery, TokenResponse, UserInfo } from '@api/oidc';
 
 export type { ApiError, Discovery, TokenResponse, UserInfo };
 
+export interface AdminRealmOwner {
+  id: string;
+  username: string | null;
+  display_name: string | null;
+  email: string | null;
+}
+
 export interface AdminRealm {
   slug: string;
   display_name: string;
+  owner: AdminRealmOwner | null;
+  host_count: number;
+  email_domain_count: number;
+  client_count: number;
+  member_count: number;
+  created_at: number;
+  updated_at: number;
+  can_edit: boolean;
+  can_delete: boolean;
+}
+
+export interface AdminRealmCreateInput {
+  slug: string;
+  display_name: string;
+  logo_url?: string | null;
+  primary_color?: string | null;
+}
+
+export interface AdminRealmCreateResponse {
+  ok: boolean;
+  realm: AdminRealm;
+}
+
+export interface AdminRealmDeleteResponse {
+  ok: boolean;
+  removed: boolean;
 }
 
 export interface AdminRealmSettings {
@@ -199,6 +232,8 @@ export interface AdminMeUser {
   display_name: string;
   email: string | null;
   is_system_admin: boolean;
+  home_realm_slug: string | null;
+  can_create_realm: boolean;
 }
 
 export interface AdminGlobalUser {

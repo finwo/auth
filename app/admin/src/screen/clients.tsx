@@ -7,6 +7,7 @@ import {
   brandingValidationErrorField,
   type BrandingField,
 } from '@util/branding';
+import { Breadcrumb } from '../component/breadcrumb';
 import { RealmSelector } from '../component/realm-selector';
 import {
   ClientForm,
@@ -91,6 +92,10 @@ export const ClientsPage: m.Component<ClientsAttrs> = {
       this.clients = [];
       this.loading = false;
       this.error = null;
+      if (!this.redirecting) {
+        this.redirecting = true;
+        m.route.set('/realms', null, { replace: true });
+      }
       return;
     }
 
@@ -226,6 +231,7 @@ export const ClientsPage: m.Component<ClientsAttrs> = {
 
     return (
       <div>
+        <Breadcrumb items={[{ label: 'Clients' }]} />
         <PageHeader
           row
           title="Clients"

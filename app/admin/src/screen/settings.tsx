@@ -7,8 +7,9 @@ import {
   normalizePreviewColor,
   validateBrandingFields,
 } from '@util/branding';
+import { Breadcrumb } from '../component/breadcrumb';
 import { RealmSelector } from '../component/realm-selector';
-import { SettingsTargetSelector } from '../component/settings-target-selector';
+import { realmBreadcrumbItems } from '../util/navigation';
 import { loadAdminRealmSettings, updateAdminRealmSettings } from '../util/auth';
 import type { AdminRealm, AdminRealmSettings } from '../util/api';
 
@@ -16,7 +17,7 @@ interface SettingsAttrs {
   realmSlug: string | null;
   realms: AdminRealm[] | null;
   realmsError: Error | null;
-  isSystemAdmin: boolean;
+  canCreateRealm: boolean;
   onAuthExpired: () => void;
   onRealmsChanged: () => Promise<void>;
 }
@@ -108,6 +109,10 @@ export const SettingsPage: m.Component<SettingsAttrs> = {
       this.settings = null;
       this.loading = false;
       this.error = null;
+      if (!this.redirecting) {
+        this.redirecting = true;
+        m.route.set('/realms', null, { replace: true });
+      }
       return;
     }
 
@@ -212,37 +217,30 @@ export const SettingsPage: m.Component<SettingsAttrs> = {
   },
 
   view(this: any) {
-    const { realms, realmsError, realmSlug, isSystemAdmin } = this.attrs;
+    const { realms, realmsError, realmSlug } = this.attrs;
     const selected =
       realms?.find((realm) => realm.slug === realmSlug) || realms?.[0] || null;
     const previewLogo = logoUrlError(this.form.logo_url) ? '' : this.form.logo_url.trim();
     const previewColor = normalizePreviewColor(this.form.primary_color);
+    const breadcrumbRealm = selected?.slug || realmSlug || '';
 
     return (
       <div>
-        <PageHeader row title="Realm settings" subtitle="Realm name, branding, and login behavior.">
-          {isSystemAdmin ? (
-            <SettingsTargetSelector
-              realms={realms}
-              selectedSystem={false}
-              selectedRealm={selected}
-              onchange={(target: string) => {
-                if (target === 'system') {
-                  m.route.set('/system-settings');
-                  return;
-                }
-                m.route.set(`/settings/${encodeURIComponent(target)}`);
-              }}
-            />
-          ) : (
-            <RealmSelector
-              realms={realms}
-              selected={selected}
-              onchange={(slug: string) => {
-                m.route.set(`/settings/${encodeURIComponent(slug)}`);
-              }}
-            />
+        <Breadcrumb
+          items={realmBreadcrumbItems(
+            realms,
+            Boolean(this.attrs.canCreateRealm),
+            selected?.display_name || breadcrumbRealm
           )}
+        />
+        <PageHeader row title="Realm settings" subtitle="Realm name, branding, and login behavior.">
+          <RealmSelector
+            realms={realms}
+            selected={selected}
+            onchange={(slug: string) => {
+              m.route.set(`/settings/${encodeURIComponent(slug)}`);
+            }}
+          />
         </PageHeader>
 
         {realmsError ? (

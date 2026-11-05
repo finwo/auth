@@ -13,6 +13,9 @@ import {
   type AdminGlobalUserDetail,
   type AdminMeUser,
   type AdminRealm,
+  type AdminRealmCreateInput,
+  type AdminRealmCreateResponse,
+  type AdminRealmDeleteResponse,
   type AdminRealmSettings,
   type AdminRealmSettingsInput,
   type AdminRealmUser,
@@ -67,6 +70,22 @@ export async function loadAdminMe(): Promise<AdminMeUser> {
 export async function loadAdminRealms(): Promise<AdminRealm[]> {
   const response = await adminJson<{ realms: AdminRealm[] }>('/api/v1/admin/realms');
   return response.realms;
+}
+
+export async function createAdminRealm(
+  input: AdminRealmCreateInput
+): Promise<AdminRealmCreateResponse> {
+  return adminJson<AdminRealmCreateResponse>('/api/v1/admin/realms', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
+}
+
+export async function deleteAdminRealm(realmSlug: string): Promise<AdminRealmDeleteResponse> {
+  const realm = encodeURIComponent(realmSlug);
+  return adminJson<AdminRealmDeleteResponse>(`/api/v1/admin/realms/${realm}`, {
+    method: 'DELETE',
+  });
 }
 
 export async function loadAdminSessions(realmSlug: string): Promise<AdminSession[]> {

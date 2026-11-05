@@ -10,6 +10,9 @@ const routes: m.RouteDefs = {
   '/': {
     render: () => m(Admin, {}),
   },
+  '/realms': {
+    render: () => m(Admin, {}),
+  },
   '/sessions': {
     render: () => m(Admin, {}),
   },

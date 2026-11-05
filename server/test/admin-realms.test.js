@@ -16,7 +16,7 @@ import {
   listAdminRealmsDetail,
   normalizeCreateRealmInput,
 } from '../src/lib/admin-realms.js';
-import { createUser, getUserRoles } from '../src/lib/users.js';
+import { addUserEmail, createUser, getUserRoles } from '../src/lib/users.js';
 
 async function withRealmRegistry(fn) {
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'auth-admin-realms-'));
@@ -86,6 +86,10 @@ test('createAdminRealm assigns creator ownership, membership and realm-admin rol
       displayName: 'Creator',
       isSystemAdmin: true,
     });
+    await addUserEmail(systemDb, actorId, 'creator@example.test', {
+      verified: true,
+      primary: true,
+    });
     const actor = { id: actorId, status: 'active', is_system_admin: 1 };
 
     const realm = await createAdminRealm({
@@ -108,6 +112,7 @@ test('createAdminRealm assigns creator ownership, membership and realm-admin rol
       id: actorId,
       username: 'creator',
       display_name: 'Creator',
+      email: 'creator@example.test',
     });
 
     const row = await findRealmBySlug('acme');
@@ -156,6 +161,10 @@ test('listAdminRealmsDetail includes owned realms and owner deletion permission'
       isSystemAdmin: true,
     });
     const ownerId = await createUser(systemDb, { username: 'owner' });
+    await addUserEmail(systemDb, ownerId, 'owner@example.test', {
+      verified: true,
+      primary: true,
+    });
     await createAdminRealm({
       systemDb,
       actor: { id: adminId, status: 'active', is_system_admin: 1 },
@@ -176,6 +185,7 @@ test('listAdminRealmsDetail includes owned realms and owner deletion permission'
       id: ownerId,
       username: 'owner',
       display_name: 'owner',
+      email: 'owner@example.test',
     });
     assert.equal(listed[0].member_count, 2);
   });

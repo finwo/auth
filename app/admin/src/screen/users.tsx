@@ -3,6 +3,7 @@ import m from 'mithril';
 import { Icon } from '@component/icon';
 import { Modal } from '@component/modal';
 import { PageHeader } from '@component/page-header';
+import { Breadcrumb } from '../component/breadcrumb';
 import { RealmSelector } from '../component/realm-selector';
 import {
   addAdminRealmMember,
@@ -102,6 +103,10 @@ export const UsersPage: m.Component<UsersAttrs> = {
       this.users = [];
       this.loading = false;
       this.error = null;
+      if (!this.redirecting) {
+        this.redirecting = true;
+        m.route.set('/realms', null, { replace: true });
+      }
       return;
     }
 
@@ -228,6 +233,7 @@ export const UsersPage: m.Component<UsersAttrs> = {
 
     return (
       <div>
+        <Breadcrumb items={[{ label: 'Users' }]} />
         <PageHeader
           row
           title="Users"
