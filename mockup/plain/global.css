@@ -21,6 +21,8 @@
   --skeleton: #00000012;
   --danger: #c9190b;
   --danger-text: #c9190b;
+  --warn: #a15c00;
+  --warn-bg: #a15c001a;
   --field-line: rgba(0, 0, 0, 0.42);
   --shadow: 0 0.125em 0.25em #0008;
   --hex: url('./hex-grid-light.svg');
@@ -1410,6 +1412,8 @@ summary:focus-visible {
     --row-hover: #ffffff14;
     --skeleton: #ffffff14;
     --danger-text: #f28b82;
+    --warn: #e0a63d;
+    --warn-bg: #e0a63d26;
     --field-line: rgba(255, 255, 255, 0.42);
     --hex: url('./hex-grid-dark.svg');
     color-scheme: dark;
@@ -1432,6 +1436,8 @@ summary:focus-visible {
   --row-hover: #ffffff14;
   --skeleton: #ffffff14;
   --danger-text: #f28b82;
+  --warn: #e0a63d;
+  --warn-bg: #e0a63d26;
   --field-line: rgba(255, 255, 255, 0.42);
   --hex: url('./hex-grid-dark.svg');
   color-scheme: dark;

@@ -102,6 +102,25 @@
         margin-bottom: 0.75rem;
       }
 
+      .realm-access-links {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        margin-top: 1rem;
+      }
+
+      .realm-access-count {
+        margin-left: 0.375rem;
+        opacity: 0.7;
+      }
+
+      @media (max-width: 39.999em) {
+        .realm-access-links .button-secondary {
+          width: 100%;
+          text-align: center;
+        }
+      }
+
       @media (min-width: 40em) {
         .field-grid {
           grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -330,7 +349,7 @@
               <div class="client-breadcrumb">
                 <a id="realm-breadcrumb-link" href="./admin-realms.html"><span data-realm-breadcrumb-root>Realms</span></a>
                 <span id="realm-breadcrumb-root-text" hidden><span data-realm-breadcrumb-root>Realm</span></span>
-                <span id="realm-breadcrumb-separator" aria-hidden="true">/</span>
+                <span id="realm-breadcrumb-separator">/</span>
                 <span aria-current="page">Acme</span>
               </div>
               <h1>Realm settings</h1>
@@ -431,6 +450,15 @@
                 <div class="settings-actions">
                   <button class="button" type="submit">Save changes</button>
                 </div>
+              </div>
+            </section>
+
+            <section class="panel realm-access-panel">
+              <h2>Realm access</h2>
+              <p class="note">Configure the hostnames and email domains that route to this realm.</p>
+              <div class="realm-access-links">
+                <a id="settings-hosts-link" class="button-secondary" href="./admin-realm-hosts.html?realm=acme">Hosts <span class="realm-access-count">2</span></a>
+                <a id="settings-domains-link" class="button-secondary" href="./admin-realm-email-domains.html?realm=acme">Email domains <span class="realm-access-count">3</span></a>
               </div>
             </section>
           </div>
@@ -602,6 +630,8 @@
       const userThemeButtons = document.querySelectorAll('[data-user-theme]');
       const userThemeValues = document.querySelectorAll('[data-user-theme-value]');
       let currentTheme = 'auto';
+      let currentRealm = 'acme';
+      let currentRole = 'system';
 
       function setTheme(value) {
         currentTheme = value;
@@ -616,6 +646,8 @@
         userThemeValues.forEach((element) => {
           element.textContent = value.charAt(0).toUpperCase() + value.slice(1);
         });
+
+        if (typeof syncAccessLinks === 'function') syncAccessLinks();
       }
 
       const queryTheme = new URLSearchParams(window.location.search).get('theme');
@@ -655,7 +687,24 @@
       const realmBreadcrumbRootText = document.getElementById('realm-breadcrumb-root-text');
       const realmBreadcrumbRootLabels = document.querySelectorAll('[data-realm-breadcrumb-root]');
 
+      const hostsLink = document.getElementById('settings-hosts-link');
+      const domainsLink = document.getElementById('settings-domains-link');
+
+      function subpageParams(realm) {
+        const params = new URLSearchParams();
+        params.set('realm', realm);
+        params.set('role', currentRole);
+        if (currentTheme !== 'auto') params.set('theme', currentTheme);
+        return params.toString();
+      }
+
+      function syncAccessLinks() {
+        if (hostsLink) hostsLink.href = `./admin-realm-hosts.html?${subpageParams(currentRealm)}`;
+        if (domainsLink) domainsLink.href = `./admin-realm-email-domains.html?${subpageParams(currentRealm)}`;
+      }
+
       function setRole(role) {
+        currentRole = role;
         const count = realmCounts[role] || 0;
         const label = count === 1 ? 'Realm' : 'Realms';
         const identity = identities[role];
@@ -674,7 +723,9 @@
         realmNavLabels.forEach((element) => {
           element.textContent = label;
         });
-        const realmHref = count === 1 ? './admin-settings.html' : './admin-realms.html';
+        const realmHref = count === 1
+          ? `./admin-settings.html?${subpageParams(currentRealm)}`
+          : `./admin-realms.html?${subpageParams(currentRealm)}`;
         realmNavLinks.forEach((link) => {
           link.href = realmHref;
           link.classList.toggle('is-active', true);
@@ -688,12 +739,17 @@
         });
         realmBreadcrumbLink.hidden = count === 1;
         realmBreadcrumbRootText.hidden = count !== 1;
+        syncAccessLinks();
       }
 
       roleButtons.forEach((button) => {
         button.addEventListener('click', () => setRole(button.dataset.roleTarget));
       });
-      setRole('system');
+      const initialParams = new URLSearchParams(window.location.search);
+      const initialRealm = initialParams.get('realm');
+      if (initialRealm) currentRealm = initialRealm;
+      const initialRole = initialParams.get('role');
+      setRole(identities[initialRole] ? initialRole : 'system');
     </script>
     <script src="./shell.js"></script>
   </body>

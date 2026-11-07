@@ -1,0 +1,958 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Admin realm hosts mockup</title>
+    <link rel="stylesheet" href="./global.css" />
+    <link rel="stylesheet" href="./select-menu.css" />
+    <style>
+      .host-name {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        font-size: 0.8125rem;
+        overflow-wrap: anywhere;
+      }
+
+      .host-added {
+        color: var(--muted);
+        font-size: 0.8125rem;
+      }
+
+      .host-row-action {
+        display: flex;
+        align-items: center;
+      }
+
+      .action-button {
+        display: inline-flex;
+        align-items: center;
+        min-height: 2rem;
+        padding: 0.25rem 0.625rem;
+        border: 0;
+        border-radius: 0.25rem;
+        background: transparent;
+        color: var(--muted);
+        font: inherit;
+        font-size: 0.8125rem;
+        font-weight: 500;
+        line-height: 1.4;
+        white-space: nowrap;
+        cursor: pointer;
+      }
+
+      .action-button:hover {
+        background: var(--row-hover);
+        color: var(--text);
+      }
+
+      .action-button:first-child {
+        margin-left: -0.625rem;
+      }
+
+      .action-button.is-danger {
+        color: var(--danger-text);
+      }
+
+      .action-button.is-danger:hover {
+        background: color-mix(in srgb, var(--danger) 12%, transparent);
+        color: var(--danger-text);
+      }
+
+      .host-table td.host-action-column {
+        padding-bottom: 0.75rem;
+      }
+
+      .empty {
+        padding: 2rem;
+        color: var(--muted);
+        font-size: 0.875rem;
+      }
+
+      .empty p {
+        margin: 0;
+      }
+
+      .state-preview {
+        margin-top: 2rem;
+      }
+
+      .state-preview > h2 {
+        margin-bottom: 0.75rem;
+      }
+
+      @media (max-width: 39.999em) {
+        .mockup-controls {
+          flex-direction: column;
+          align-items: flex-start;
+          width: min(18rem, calc(100vw - 2rem));
+        }
+
+        .mockup-separator {
+          display: none;
+        }
+
+        .table-actions {
+          width: 100%;
+          flex-direction: column;
+          align-items: stretch;
+        }
+
+        .table-actions .button {
+          width: 100%;
+        }
+      }
+
+      @media (min-width: 40em) {
+        .host-table {
+          table-layout: fixed;
+        }
+
+        .host-table .host-added-column {
+          width: 10rem;
+        }
+
+        .host-table .host-action-column {
+          width: 9rem;
+        }
+
+        .host-row-action {
+          justify-content: flex-start;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="./admin-dashboard.html">
+        <svg class="brand-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+        </svg>
+        <span class="brand-name">Auth</span>
+      </a>
+      <div class="topbar-actions">
+        <button class="mobile-nav-toggle" type="button" id="mobile-nav-toggle" aria-controls="mobile-navigation" aria-expanded="false" aria-label="Open navigation">
+          <span class="mobile-nav-toggle-bars" aria-hidden="true"></span>
+        </button>
+        <details class="user-menu">
+          <summary aria-label="Account menu">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="10" />
+              <circle cx="12" cy="10" r="3" />
+              <path d="M7 20.662V19a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v1.662" />
+            </svg>
+          </summary>
+          <div class="user-panel">
+            <div class="user-summary">
+              <span class="user-name">System Admin</span>
+              <span class="user-meta">admin@system.test</span>
+            </div>
+            <div class="user-menu-list">
+              <a class="user-menu-item" href="#">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1-1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
+                  <circle cx="12" cy="12" r="3" />
+                </svg>
+                <span>Account settings</span>
+              </a>
+              <button class="user-menu-item" type="button" data-user-theme>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <circle cx="12" cy="12" r="4" />
+                  <path d="M12 2v2" />
+                  <path d="M12 20v2" />
+                  <path d="m4.93 4.93 1.41 1.41" />
+                  <path d="m17.66 17.66 1.41 1.41" />
+                  <path d="M2 12h2" />
+                  <path d="M20 12h2" />
+                  <path d="m6.34 17.66-1.41 1.41" />
+                  <path d="m19.07 4.93-1.41 1.41" />
+                </svg>
+                <span>Theme</span>
+                <span class="user-menu-value" data-user-theme-value>Auto</span>
+              </button>
+              <a class="user-menu-item" href="#">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                  <path d="m16 17 5-5-5-5" />
+                  <path d="M21 12H9" />
+                </svg>
+                <span>Sign out</span>
+              </a>
+            </div>
+          </div>
+        </details>
+      </div>
+    </header>
+
+    <div class="mobile-nav" id="mobile-navigation" aria-hidden="true">
+      <nav class="nav" aria-label="Administration">
+        <p class="nav-label">Administration</p>
+        <a class="nav-item" href="./admin-dashboard.html">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="3" y="3" width="7" height="7" />
+            <rect x="14" y="3" width="7" height="7" />
+            <rect x="3" y="14" width="7" height="7" />
+            <rect x="14" y="14" width="7" height="7" />
+          </svg>
+          <span>Overview</span>
+        </a>
+        <a class="nav-item is-active" data-realm-nav href="./admin-realms.html">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z" />
+            <path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2" />
+            <path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2" />
+            <path d="M10 6h4" />
+            <path d="M10 10h4" />
+            <path d="M10 14h4" />
+            <path d="M10 18h4" />
+          </svg>
+          <span data-realm-nav-label>Realms</span>
+        </a>
+        <a class="nav-item" href="./admin-clients.html">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="2" y="4" width="20" height="16" rx="2" />
+            <path d="M10 4v4" />
+            <path d="M2 8h20" />
+            <path d="M6 4v4" />
+          </svg>
+          <span>Clients</span>
+        </a>
+        <a class="nav-item" href="#">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M22 12h-4l-3 8-6-16-3 8H2" />
+          </svg>
+          <span>Sessions</span>
+        </a>
+        <a class="nav-item" href="./admin-users.html">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+            <circle cx="12" cy="7" r="4" />
+          </svg>
+          <span>Users</span>
+        </a>
+        <a class="nav-item" data-settings-nav href="./admin-system-settings.html">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1-1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
+            <circle cx="12" cy="12" r="3" />
+          </svg>
+          <span>Settings</span>
+        </a>
+      </nav>
+      <div class="mobile-nav-divider" aria-hidden="true"></div>
+      <section class="mobile-nav-account" aria-label="Account">
+        <div class="user-summary">
+          <span class="user-name">System Admin</span>
+          <span class="user-meta">admin@system.test</span>
+        </div>
+        <div class="user-menu-list">
+          <a class="user-menu-item" href="#">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1-1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
+              <circle cx="12" cy="12" r="3" />
+            </svg>
+            <span>Account settings</span>
+          </a>
+          <button class="user-menu-item" type="button" data-user-theme>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="4" />
+              <path d="M12 2v2" />
+              <path d="M12 20v2" />
+              <path d="m4.93 4.93 1.41 1.41" />
+              <path d="m17.66 17.66 1.41 1.41" />
+              <path d="M2 12h2" />
+              <path d="M20 12h2" />
+              <path d="m6.34 17.66-1.41 1.41" />
+              <path d="m19.07 4.93-1.41 1.41" />
+            </svg>
+            <span>Theme</span>
+            <span class="user-menu-value" data-user-theme-value>Auto</span>
+          </button>
+          <a class="user-menu-item" href="#">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+              <path d="m16 17 5-5-5-5" />
+              <path d="M21 12H9" />
+            </svg>
+            <span>Sign out</span>
+          </a>
+        </div>
+      </section>
+    </div>
+
+    <div class="app">
+      <aside class="sidebar">
+        <nav class="nav" aria-label="Administration">
+          <p class="nav-label">Administration</p>
+          <a class="nav-item" href="./admin-dashboard.html">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="3" y="3" width="7" height="7" />
+              <rect x="14" y="3" width="7" height="7" />
+              <rect x="3" y="14" width="7" height="7" />
+              <rect x="14" y="14" width="7" height="7" />
+            </svg>
+            <span>Overview</span>
+          </a>
+          <a class="nav-item is-active" data-realm-nav href="./admin-realms.html">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z" />
+              <path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2" />
+              <path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2" />
+              <path d="M10 6h4" />
+              <path d="M10 10h4" />
+              <path d="M10 14h4" />
+              <path d="M10 18h4" />
+            </svg>
+            <span data-realm-nav-label>Realms</span>
+          </a>
+          <a class="nav-item" href="./admin-clients.html">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="2" y="4" width="20" height="16" rx="2" />
+              <path d="M10 4v4" />
+              <path d="M2 8h20" />
+              <path d="M6 4v4" />
+            </svg>
+            <span>Clients</span>
+          </a>
+          <a class="nav-item" href="#">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M22 12h-4l-3 8-6-16-3 8H2" />
+            </svg>
+            <span>Sessions</span>
+          </a>
+          <a class="nav-item" href="./admin-users.html">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+              <circle cx="12" cy="7" r="4" />
+            </svg>
+            <span>Users</span>
+          </a>
+          <a class="nav-item" data-settings-nav href="./admin-system-settings.html">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1-1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
+              <circle cx="12" cy="12" r="3" />
+            </svg>
+            <span>Settings</span>
+          </a>
+        </nav>
+      </aside>
+
+      <div class="main">
+        <main class="content">
+          <div class="page-header page-header-row">
+            <div>
+              <div class="client-breadcrumb">
+                <a id="hosts-breadcrumb-root" href="./admin-realms.html"><span data-realm-breadcrumb-root>Realms</span></a>
+                <span>/</span>
+                <a id="hosts-breadcrumb-realm" href="./admin-settings.html?realm=acme">Acme</a>
+                <span>/</span>
+                <span aria-current="page">Hosts</span>
+              </div>
+              <h1>Hosts</h1>
+              <p>Hostnames that resolve to this realm.</p>
+            </div>
+            <div class="realm-select">
+              <span id="hosts-realm-label">Realm</span>
+              <div class="select" id="hosts-realm-select" data-select data-value="acme">
+                <button
+                  class="select-trigger"
+                  type="button"
+                  id="hosts-realm-trigger"
+                  role="combobox"
+                  aria-haspopup="listbox"
+                  aria-expanded="false"
+                  aria-controls="hosts-realm-listbox"
+                  aria-labelledby="hosts-realm-label"
+                >
+                  <span class="select-value">Acme</span>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="m6 9 6 6 6-6" />
+                  </svg>
+                </button>
+                <div class="select-list" id="hosts-realm-listbox" role="listbox" aria-labelledby="hosts-realm-label" hidden>
+                  <div class="select-option is-selected" id="hosts-realm-acme" role="option" aria-selected="true" data-value="acme" data-label="Acme">
+                    <span class="select-option-mark" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20 6 9 17l-5-5" />
+                      </svg>
+                    </span>
+                    <span class="select-option-label">Acme</span>
+                  </div>
+                  <div class="select-option" id="hosts-realm-globex" role="option" aria-selected="false" data-value="globex" data-label="Globex">
+                    <span class="select-option-mark" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20 6 9 17l-5-5" />
+                      </svg>
+                    </span>
+                    <span class="select-option-label">Globex</span>
+                  </div>
+                  <div class="select-option" id="hosts-realm-northwind" role="option" aria-selected="false" data-value="northwind" data-label="Northwind">
+                    <span class="select-option-mark" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20 6 9 17l-5-5" />
+                      </svg>
+                    </span>
+                    <span class="select-option-label">Northwind</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div id="hosts-notice" class="notice" role="status" hidden></div>
+
+          <section class="table-panel" aria-labelledby="hosts-table-title">
+            <h2 id="hosts-table-title" class="sr-only">Realm hosts</h2>
+            <div class="table-toolbar">
+              <div class="table-search">
+                <input id="hosts-search" type="search" aria-label="Search hosts" placeholder="Search hosts" />
+              </div>
+              <div class="table-actions">
+                <button id="hosts-add-button" class="button" type="button">Add host</button>
+              </div>
+            </div>
+
+            <div class="data-table-wrap">
+              <table class="data-table data-table-static host-table">
+                <thead>
+                  <tr>
+                    <th class="data-table-primary host-name-column" scope="col">Hostname</th>
+                    <th class="host-added-column" scope="col">Added</th>
+                    <th class="host-action-column" scope="col">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="hosts-rows"></tbody>
+              </table>
+              <div id="hosts-search-empty" class="empty" hidden>
+                <p>No hosts match this search.</p>
+              </div>
+              <div id="hosts-realm-empty" class="empty" hidden>
+                <p>No hosts are assigned to this realm.</p>
+              </div>
+            </div>
+          </section>
+
+          <section class="state-preview">
+            <h2>Loading state</h2>
+            <div class="panel" aria-busy="true">
+              <div class="skeleton skeleton-title"></div>
+              <div class="skeleton"></div>
+              <div class="skeleton skeleton-short"></div>
+            </div>
+          </section>
+        </main>
+      </div>
+    </div>
+
+    <div id="hosts-create-dialog" class="modal-overlay" hidden>
+      <form id="hosts-create-form" class="modal" role="dialog" aria-modal="true" aria-labelledby="hosts-create-title" novalidate>
+        <div class="modal-header">
+          <h2 id="hosts-create-title">Add host</h2>
+          <button class="modal-close" type="button" aria-label="Close dialog" data-dialog-close>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M18 6 6 18" />
+              <path d="m6 6 12 12" />
+            </svg>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div id="hosts-create-alert" class="alert" role="alert" hidden></div>
+
+          <label class="form-field" for="hosts-host-input">
+            <span class="field-label">Hostname</span>
+            <input id="hosts-host-input" class="field-control" type="text" maxlength="253" placeholder="login.acme.test" autocomplete="off" spellcheck="false" />
+          </label>
+          <p class="modal-note">Lowercase hostname. Do not include a scheme, port, path or wildcard.</p>
+
+          <div class="modal-actions">
+            <button class="button-secondary" type="button" data-dialog-close>Cancel</button>
+            <button class="button" type="submit">Add host</button>
+          </div>
+        </div>
+      </form>
+    </div>
+
+    <div id="hosts-remove-dialog" class="modal-overlay" hidden>
+      <div class="modal" role="dialog" aria-modal="true" aria-labelledby="hosts-remove-title">
+        <div class="modal-header">
+          <h2 id="hosts-remove-title">Remove host</h2>
+          <button class="modal-close" type="button" aria-label="Close dialog" data-dialog-close>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M18 6 6 18" />
+              <path d="m6 6 12 12" />
+            </svg>
+          </button>
+        </div>
+        <div class="modal-body">
+          <p id="hosts-remove-message" class="modal-note"></p>
+          <label class="form-field" for="hosts-remove-confirm">
+            <span class="field-label">Confirm hostname</span>
+            <input id="hosts-remove-confirm" class="field-control" type="text" maxlength="253" autocomplete="off" spellcheck="false" />
+          </label>
+          <p class="modal-note">Type the hostname exactly to confirm.</p>
+          <div class="modal-actions">
+            <button class="button-secondary" type="button" data-dialog-close>Cancel</button>
+            <button id="hosts-remove-confirm-button" class="button-danger" type="button" disabled>Remove host</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="mockup-controls" aria-label="Mockup controls">
+      <span class="mockup-label">Mockup</span>
+      <button class="mockup-button is-active" type="button" data-theme-target="auto">Auto</button>
+      <button class="mockup-button" type="button" data-theme-target="light">Light</button>
+      <button class="mockup-button" type="button" data-theme-target="dark">Dark</button>
+      <span class="mockup-separator" aria-hidden="true"></span>
+      <span class="mockup-label">View as</span>
+      <button class="mockup-button is-active" type="button" data-role-target="system" aria-pressed="true">System admin</button>
+      <button class="mockup-button" type="button" data-role-target="owner" aria-pressed="false">Realm owner</button>
+      <button class="mockup-button" type="button" data-role-target="admin" aria-pressed="false">Realm admin</button>
+    </div>
+
+    <script>
+      const root = document.documentElement;
+      const themeButtons = document.querySelectorAll('[data-theme-target]');
+      const userThemeButtons = document.querySelectorAll('[data-user-theme]');
+      const userThemeValues = document.querySelectorAll('[data-user-theme-value]');
+      let currentTheme = 'auto';
+
+      function setTheme(value) {
+        currentTheme = value;
+        if (value === 'auto') {
+          root.removeAttribute('data-theme');
+        } else {
+          root.setAttribute('data-theme', value);
+        }
+
+        themeButtons.forEach((button) => {
+          button.classList.toggle('is-active', button.dataset.themeTarget === value);
+        });
+        userThemeValues.forEach((element) => {
+          element.textContent = value.charAt(0).toUpperCase() + value.slice(1);
+        });
+
+        if (typeof syncUrl === 'function') syncUrl();
+        if (typeof syncRealmLinks === 'function') syncRealmLinks();
+      }
+
+      themeButtons.forEach((button) => {
+        button.addEventListener('click', () => setTheme(button.dataset.themeTarget));
+      });
+
+      userThemeButtons.forEach((button) => {
+        button.addEventListener('click', () => {
+          const themes = ['auto', 'light', 'dark'];
+          setTheme(themes[(themes.indexOf(currentTheme) + 1) % themes.length]);
+        });
+      });
+
+      const userMenu = document.querySelector('.user-menu');
+      document.addEventListener('click', (event) => {
+        if (userMenu && userMenu.open && !userMenu.contains(event.target)) {
+          userMenu.open = false;
+        }
+      });
+
+      document.querySelectorAll('[data-dialog-close]').forEach((button) => {
+        button.addEventListener('click', () => {
+          button.closest('.modal-overlay').hidden = true;
+        });
+      });
+
+      document.querySelectorAll('.modal-overlay').forEach((overlay) => {
+        overlay.addEventListener('mousedown', (event) => {
+          if (event.target === overlay) overlay.hidden = true;
+        });
+      });
+
+      document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') {
+          document.querySelectorAll('.modal-overlay:not([hidden])').forEach((dialog) => {
+            dialog.hidden = true;
+          });
+        }
+      });
+
+      const identities = {
+        system: { name: 'System Admin', email: 'admin@system.test' },
+        owner: { name: 'Realm Owner', email: 'owner@acme.test' },
+        admin: { name: 'Realm Admin', email: 'realm-admin@managed.test' },
+      };
+
+      const realmInfo = {
+        acme: { label: 'Acme', roles: ['system', 'owner'] },
+        globex: { label: 'Globex', roles: ['system', 'admin'] },
+        northwind: { label: 'Northwind', roles: ['system'] },
+      };
+      const realmOrder = ['acme', 'globex', 'northwind'];
+
+      const hosts = {
+        acme: [
+          { host: 'acme.localhost', added: '12 Mar 2026' },
+          { host: 'login.acme.test', added: '12 Mar 2026' },
+        ],
+        globex: [{ host: 'globex.localhost', added: '04 Feb 2026' }],
+        northwind: [],
+      };
+
+      const hostAssignments = {
+        'acme.localhost': { realm: 'acme' },
+        'login.acme.test': { realm: 'acme' },
+        'globex.localhost': { realm: 'globex' },
+        'app.acme.localhost': { realm: 'acme', client: true },
+        'auth.example.test': { reserved: true },
+      };
+
+      const currentRole = { value: 'system' };
+      let currentRealm = 'acme';
+
+      const roleButtons = document.querySelectorAll('[data-role-target]');
+      const realmNavLinks = document.querySelectorAll('[data-realm-nav]');
+      const realmNavLabels = document.querySelectorAll('[data-realm-nav-label]');
+      const settingsNavLinks = document.querySelectorAll('[data-settings-nav]');
+      const breadcrumbRootLink = document.getElementById('hosts-breadcrumb-root');
+      const breadcrumbRealmLink = document.getElementById('hosts-breadcrumb-realm');
+      const breadcrumbRootLabels = document.querySelectorAll('[data-realm-breadcrumb-root]');
+
+      const realmSelect = document.getElementById('hosts-realm-select');
+      const realmSelectValue = realmSelect.querySelector('.select-value');
+      const realmSelectOptions = [...realmSelect.querySelectorAll('.select-option')];
+
+      const notice = document.getElementById('hosts-notice');
+      const searchInput = document.getElementById('hosts-search');
+      const searchEmpty = document.getElementById('hosts-search-empty');
+      const realmEmpty = document.getElementById('hosts-realm-empty');
+      const hostsRows = document.getElementById('hosts-rows');
+      const addButton = document.getElementById('hosts-add-button');
+
+      function accessibleRealms() {
+        return realmOrder.filter((slug) => realmInfo[slug].roles.includes(currentRole.value));
+      }
+
+      function hostRowList() {
+        return [...hostsRows.querySelectorAll('.host-row')];
+      }
+
+      function showNotice(message) {
+        notice.textContent = message;
+        notice.hidden = false;
+      }
+
+      function escapeHtml(value) {
+        return String(value).replace(/[&<>"']/g, (character) => {
+          const entities = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+          return entities[character];
+        });
+      }
+
+      function hostRowElement(entry) {
+        const row = document.createElement('tr');
+        row.className = 'host-row';
+        row.dataset.search = entry.host.toLowerCase();
+        row.innerHTML = `
+          <td class="data-table-primary host-name-column" data-label="Hostname">
+            <span class="host-name">${escapeHtml(entry.host)}</span>
+          </td>
+          <td class="host-added-column" data-label="Added"><span class="host-added">${escapeHtml(entry.added)}</span></td>
+          <td class="host-action-column" data-label="Actions">
+            <div class="host-row-action">
+              <button class="action-button is-danger" type="button" data-remove-host="${escapeHtml(entry.host)}">Remove</button>
+            </div>
+          </td>`;
+        return row;
+      }
+
+      function renderHosts() {
+        const list = hosts[currentRealm] || [];
+        hostsRows.replaceChildren(...list.map(hostRowElement));
+        applySearch();
+      }
+
+      function applySearch() {
+        const term = searchInput.value.trim().toLowerCase();
+        const total = (hosts[currentRealm] || []).length;
+        let visible = 0;
+
+        hostRowList().forEach((row) => {
+          const match = !term || (row.dataset.search || '').includes(term);
+          row.hidden = !match;
+          if (match) visible += 1;
+        });
+
+        searchEmpty.hidden = total === 0 || visible !== 0;
+        realmEmpty.hidden = total !== 0;
+      }
+
+      function syncSelector() {
+        realmSelectOptions.forEach((option) => {
+          const slug = option.dataset.value;
+          const accessible = realmInfo[slug].roles.includes(currentRole.value);
+          option.hidden = !accessible;
+          const selected = slug === currentRealm;
+          option.classList.toggle('is-selected', selected);
+          option.setAttribute('aria-selected', String(selected));
+        });
+        realmSelectValue.textContent = realmInfo[currentRealm].label;
+        realmSelect.dataset.value = currentRealm;
+      }
+
+      function subpageUrl(path) {
+        const params = new URLSearchParams();
+        params.set('realm', currentRealm);
+        params.set('role', currentRole.value);
+        if (currentTheme !== 'auto') params.set('theme', currentTheme);
+        return `./${path}?${params.toString()}`;
+      }
+
+      function realmNavHref() {
+        return accessibleRealms().length === 1
+          ? subpageUrl('admin-settings.html')
+          : `./admin-realms.html?${realmListParams()}`;
+      }
+
+      function realmListParams() {
+        const params = new URLSearchParams();
+        params.set('role', currentRole.value);
+        if (currentTheme !== 'auto') params.set('theme', currentTheme);
+        return params.toString();
+      }
+
+      function syncRealmLinks() {
+        const count = accessibleRealms().length;
+        const label = count === 1 ? 'Realm' : 'Realms';
+        const href = realmNavHref();
+
+        realmNavLabels.forEach((element) => {
+          element.textContent = label;
+        });
+        realmNavLinks.forEach((link) => {
+          link.href = href;
+          link.classList.add('is-active');
+          link.removeAttribute('aria-current');
+        });
+        breadcrumbRootLabels.forEach((element) => {
+          element.textContent = label;
+        });
+        breadcrumbRootLink.href = href;
+        breadcrumbRealmLink.textContent = realmInfo[currentRealm].label;
+        breadcrumbRealmLink.href = subpageUrl('admin-settings.html');
+      }
+
+      function syncUrl() {
+        const params = new URLSearchParams();
+        params.set('realm', currentRealm);
+        params.set('role', currentRole.value);
+        if (currentTheme !== 'auto') params.set('theme', currentTheme);
+        try {
+          window.history.replaceState({}, '', `${window.location.pathname}?${params.toString()}`);
+        } catch (e) {
+          /* ignore history updates when opened from file:// */
+        }
+      }
+
+      function setRole(role) {
+        currentRole.value = role;
+        const identity = identities[role];
+
+        document.querySelectorAll('.user-name').forEach((element) => {
+          element.textContent = identity.name;
+        });
+        document.querySelectorAll('.user-meta').forEach((element) => {
+          element.textContent = identity.email;
+        });
+
+        roleButtons.forEach((button) => {
+          const active = button.dataset.roleTarget === role;
+          button.classList.toggle('is-active', active);
+          button.setAttribute('aria-pressed', String(active));
+        });
+
+        settingsNavLinks.forEach((link) => {
+          link.hidden = role !== 'system';
+        });
+
+        if (!accessibleRealms().includes(currentRealm)) {
+          currentRealm = accessibleRealms()[0] || 'acme';
+        }
+
+        syncSelector();
+        renderHosts();
+        syncRealmLinks();
+        syncUrl();
+      }
+
+      roleButtons.forEach((button) => {
+        button.addEventListener('click', () => setRole(button.dataset.roleTarget));
+      });
+
+      const selectObserver = new MutationObserver(() => {
+        const value = realmSelect.dataset.value;
+        if (value && value !== currentRealm) {
+          currentRealm = value;
+          renderHosts();
+          syncSelector();
+          syncRealmLinks();
+          syncUrl();
+        }
+      });
+      selectObserver.observe(realmSelect, { attributes: true, attributeFilter: ['data-value'] });
+
+      const createDialog = document.getElementById('hosts-create-dialog');
+      const createForm = document.getElementById('hosts-create-form');
+      const createAlert = document.getElementById('hosts-create-alert');
+      const hostInput = document.getElementById('hosts-host-input');
+
+      function normalizeHostname(value) {
+        return value.trim().toLowerCase();
+      }
+
+      function hostnameError(raw) {
+        const value = raw.trim();
+        const host = normalizeHostname(value);
+
+        if (!host) return 'Hostname is required.';
+        if (/\s/.test(value)) return 'Hostname must not contain spaces.';
+        if (host.includes('://') || /^[a-z][a-z0-9+.-]*:\/\//i.test(value)) {
+          return 'Hostname must not include a scheme such as https://.';
+        }
+        if (host.includes('@')) return 'Hostname must not include @.';
+        if (host.includes('/')) return 'Hostname must not include a path.';
+        if (host.includes('*')) return 'Wildcard hostnames are not supported.';
+        if (host.startsWith('[')) {
+          if (!host.endsWith(']')) return 'Enter a valid IPv6 hostname.';
+        } else if (host.includes(':')) {
+          return 'Hostname must not include a port.';
+        }
+        if (host.length > 253) return 'Hostname must be 253 characters or fewer.';
+        if (host.startsWith('.') || host.endsWith('.')) return 'Hostname must not start or end with a dot.';
+
+        const labels = host.replace(/^\[|\]$/g, '').split('.');
+        if (!host.startsWith('[') && labels.length < 2) return 'Enter a complete hostname such as login.acme.test.';
+        for (const label of host.startsWith('[') ? [] : labels) {
+          if (!/^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/.test(label)) {
+            return 'Hostname labels may use lowercase letters, numbers and hyphens.';
+          }
+          if (label.length > 63) return 'Each hostname label must be 63 characters or fewer.';
+        }
+
+        if (hostAssignments[host]?.reserved) return 'This hostname is reserved for the authentication service.';
+
+        const assignment = hostAssignments[host];
+        if (assignment) {
+          if (assignment.client) {
+            return currentRole.value === 'system'
+              ? 'This hostname is already assigned to a client application.'
+              : 'This hostname is already assigned.';
+          }
+          if (assignment.realm === currentRealm) return 'This hostname is already assigned to this realm.';
+          if (currentRole.value === 'system') {
+            return `This hostname is already assigned to ${realmInfo[assignment.realm].label}.`;
+          }
+          return 'This hostname is already assigned to another realm.';
+        }
+
+        return null;
+      }
+
+      function clearCreateError() {
+        createAlert.hidden = true;
+        createAlert.textContent = '';
+        hostInput.removeAttribute('aria-invalid');
+      }
+
+      function showCreateError(message) {
+        createAlert.hidden = false;
+        createAlert.textContent = message;
+        hostInput.setAttribute('aria-invalid', 'true');
+      }
+
+      function resetCreateForm() {
+        createForm.reset();
+        clearCreateError();
+      }
+
+      addButton.addEventListener('click', () => {
+        resetCreateForm();
+        createDialog.hidden = false;
+        requestAnimationFrame(() => hostInput.focus());
+      });
+
+      hostInput.addEventListener('input', clearCreateError);
+
+      createForm.addEventListener('submit', (event) => {
+        event.preventDefault();
+        const host = normalizeHostname(hostInput.value);
+        const error = hostnameError(hostInput.value);
+        if (error) {
+          showCreateError(error);
+          return;
+        }
+
+        hosts[currentRealm].unshift({ host, added: 'Just now' });
+        hostAssignments[host] = { realm: currentRealm };
+        createDialog.hidden = true;
+        renderHosts();
+        showNotice(`Host ${host} added.`);
+      });
+
+      const removeDialog = document.getElementById('hosts-remove-dialog');
+      const removeMessage = document.getElementById('hosts-remove-message');
+      const removeInput = document.getElementById('hosts-remove-confirm');
+      const confirmRemoveButton = document.getElementById('hosts-remove-confirm-button');
+      let pendingRemoveHost = '';
+
+      function openRemoveDialog(host) {
+        pendingRemoveHost = host;
+        const realmLabel = realmInfo[currentRealm].label;
+        removeMessage.textContent = `Remove ${host}? This hostname will stop resolving to ${realmLabel}. Sessions for this realm on that host will end. Realm settings, clients and users are unaffected.`;
+        removeInput.value = '';
+        removeInput.placeholder = host;
+        confirmRemoveButton.disabled = true;
+        removeDialog.hidden = false;
+        requestAnimationFrame(() => removeInput.focus());
+      }
+
+      removeInput.addEventListener('input', () => {
+        confirmRemoveButton.disabled = normalizeHostname(removeInput.value) !== pendingRemoveHost;
+      });
+
+      confirmRemoveButton.addEventListener('click', () => {
+        if (!pendingRemoveHost || confirmRemoveButton.disabled) return;
+
+        hosts[currentRealm] = (hosts[currentRealm] || []).filter((entry) => entry.host !== pendingRemoveHost);
+        delete hostAssignments[pendingRemoveHost];
+        const removed = pendingRemoveHost;
+        pendingRemoveHost = '';
+        removeDialog.hidden = true;
+        renderHosts();
+        showNotice(`Host ${removed} removed.`);
+      });
+
+      hostsRows.addEventListener('click', (event) => {
+        const removeButton = event.target.closest('[data-remove-host]');
+        if (removeButton) {
+          event.stopPropagation();
+          openRemoveDialog(removeButton.dataset.removeHost);
+        }
+      });
+
+      searchInput.addEventListener('input', applySearch);
+
+      const initialParams = new URLSearchParams(window.location.search);
+      const initialTheme = initialParams.get('theme');
+      if (initialTheme === 'light' || initialTheme === 'dark') setTheme(initialTheme);
+
+      const initialRole = initialParams.get('role');
+      if (identities[initialRole]) currentRole.value = initialRole;
+
+      const initialRealm = initialParams.get('realm');
+      if (realmInfo[initialRealm] && realmInfo[initialRealm].roles.includes(currentRole.value)) {
+        currentRealm = initialRealm;
+      } else {
+        currentRealm = accessibleRealms()[0] || 'acme';
+      }
+
+      setRole(currentRole.value);
+    </script>
+    <script src="./shell.js"></script>
+  </body>
+</html>

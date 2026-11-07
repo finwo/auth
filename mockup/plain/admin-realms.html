@@ -13,13 +13,25 @@
         line-height: 1.4;
       }
 
-      .realm-meta > span {
+      .realm-meta > span,
+      .realm-meta > a {
         display: inline;
         margin-right: 0.75rem;
       }
 
-      .realm-meta > span:last-child {
+      .realm-meta > span:last-child,
+      .realm-meta > a:last-child {
         margin-right: 0;
+      }
+
+      .realm-count-link {
+        color: var(--muted);
+        text-decoration: none;
+      }
+
+      .realm-count-link:hover {
+        color: var(--accent-text);
+        text-decoration: underline;
       }
 
       .realm-slug,
@@ -51,9 +63,39 @@
         align-items: center;
       }
 
-      .realm-row-action .button-danger {
-        width: 100%;
+      .action-button {
+        display: inline-flex;
+        align-items: center;
+        min-height: 2rem;
+        padding: 0.25rem 0.625rem;
+        border: 0;
+        border-radius: 0.25rem;
+        background: transparent;
+        color: var(--muted);
+        font: inherit;
+        font-size: 0.8125rem;
+        font-weight: 500;
+        line-height: 1.4;
         white-space: nowrap;
+        cursor: pointer;
+      }
+
+      .action-button:hover {
+        background: var(--row-hover);
+        color: var(--text);
+      }
+
+      .action-button:first-child {
+        margin-left: -0.625rem;
+      }
+
+      .action-button.is-danger {
+        color: var(--danger-text);
+      }
+
+      .action-button.is-danger:hover {
+        background: color-mix(in srgb, var(--danger) 12%, transparent);
+        color: var(--danger-text);
       }
 
       .field-grid {
@@ -153,7 +195,8 @@
           gap: 0.25rem 0.75rem;
         }
 
-        .realm-meta > span {
+        .realm-meta > span,
+        .realm-meta > a {
           margin-right: 0;
         }
 
@@ -175,10 +218,6 @@
 
         .realm-row-action {
           justify-content: flex-start;
-        }
-
-        .realm-row-action .button-danger {
-          width: auto;
         }
       }
     </style>
@@ -457,8 +496,8 @@
                       <span class="realm-meta">
                         <span class="realm-slug">acme</span>
                         <span class="realm-count">6 members</span>
-                        <span class="realm-count">2 hosts</span>
-                        <span class="realm-count">3 domains</span>
+                        <a class="realm-count realm-count-link" data-count-kind="hosts" href="./admin-realm-hosts.html?realm=acme">2 hosts</a>
+                        <a class="realm-count realm-count-link" data-count-kind="domains" href="./admin-realm-email-domains.html?realm=acme">3 domains</a>
                         <span class="realm-count">4 clients</span>
                       </span>
                     </td>
@@ -468,7 +507,7 @@
                     </td>
                     <td class="realm-action-column" data-label="Actions">
                       <div class="realm-row-action">
-                        <button class="button-danger" type="button" data-delete-realm>Delete realm</button>
+                        <button class="action-button is-danger" type="button" data-delete-realm>Delete realm</button>
                       </div>
                     </td>
                   </tr>
@@ -498,8 +537,8 @@
                       <span class="realm-meta">
                         <span class="realm-slug">globex</span>
                         <span class="realm-count">5 members</span>
-                        <span class="realm-count">1 host</span>
-                        <span class="realm-count">1 domain</span>
+                        <a class="realm-count realm-count-link" data-count-kind="hosts" href="./admin-realm-hosts.html?realm=globex">1 host</a>
+                        <a class="realm-count realm-count-link" data-count-kind="domains" href="./admin-realm-email-domains.html?realm=globex">1 domain</a>
                         <span class="realm-count">2 clients</span>
                       </span>
                     </td>
@@ -509,7 +548,7 @@
                     </td>
                     <td class="realm-action-column" data-label="Actions">
                       <div class="realm-row-action">
-                        <button class="button-danger" type="button" data-delete-realm>Delete realm</button>
+                        <button class="action-button is-danger" type="button" data-delete-realm>Delete realm</button>
                       </div>
                     </td>
                   </tr>
@@ -539,8 +578,8 @@
                       <span class="realm-meta">
                         <span class="realm-slug">northwind</span>
                         <span class="realm-count">0 members</span>
-                        <span class="realm-count">0 hosts</span>
-                        <span class="realm-count">0 domains</span>
+                        <a class="realm-count realm-count-link" data-count-kind="hosts" href="./admin-realm-hosts.html?realm=northwind">0 hosts</a>
+                        <a class="realm-count realm-count-link" data-count-kind="domains" href="./admin-realm-email-domains.html?realm=northwind">0 domains</a>
                         <span class="realm-count">0 clients</span>
                       </span>
                     </td>
@@ -550,7 +589,7 @@
                     </td>
                     <td class="realm-action-column" data-label="Actions">
                       <div class="realm-row-action">
-                        <button class="button-danger" type="button" data-delete-realm>Delete realm</button>
+                        <button class="action-button is-danger" type="button" data-delete-realm>Delete realm</button>
                       </div>
                     </td>
                   </tr>
@@ -705,6 +744,8 @@
         userThemeValues.forEach((element) => {
           element.textContent = value.charAt(0).toUpperCase() + value.slice(1);
         });
+
+        if (typeof refreshRealmLinks === 'function') refreshRealmLinks();
       }
 
       themeButtons.forEach((button) => {
@@ -829,6 +870,29 @@
         if (realmPageTitle) realmPageTitle.textContent = label;
         settingsNavLinks.forEach((link) => {
           link.hidden = currentRole.value !== 'system';
+        });
+        refreshRealmLinks();
+      }
+
+      const countLinkTargets = {
+        hosts: './admin-realm-hosts.html',
+        domains: './admin-realm-email-domains.html',
+      };
+
+      function refreshRealmLinks() {
+        realmRowList().forEach((row) => {
+          const slugEl = row.querySelector('.realm-slug');
+          if (!slugEl) return;
+          const slug = slugEl.textContent.trim();
+          row.querySelectorAll('[data-count-kind]').forEach((link) => {
+            const target = countLinkTargets[link.dataset.countKind];
+            if (!target) return;
+            const params = new URLSearchParams();
+            params.set('realm', slug);
+            params.set('role', currentRole.value);
+            if (currentTheme !== 'auto') params.set('theme', currentTheme);
+            link.setAttribute('href', `${target}?${params.toString()}`);
+          });
         });
       }
 
@@ -1074,8 +1138,8 @@
             <span class="realm-meta">
               <span class="realm-slug">${escapeHtml(slug)}</span>
               <span class="realm-count">0 members</span>
-              <span class="realm-count">0 hosts</span>
-              <span class="realm-count">0 domains</span>
+              <a class="realm-count realm-count-link" data-count-kind="hosts" href="./admin-realm-hosts.html?realm=${escapeHtml(slug)}">0 hosts</a>
+              <a class="realm-count realm-count-link" data-count-kind="domains" href="./admin-realm-email-domains.html?realm=${escapeHtml(slug)}">0 domains</a>
               <span class="realm-count">0 clients</span>
             </span>
           </td>
@@ -1085,7 +1149,7 @@
           </td>
           <td class="realm-action-column" data-label="Actions">
             <div class="realm-row-action">
-              <button class="button-danger" type="button" data-delete-realm>Delete realm</button>
+              <button class="action-button is-danger" type="button" data-delete-realm>Delete realm</button>
             </div>
           </td>`;
         realmRows.prepend(row);
@@ -1209,7 +1273,12 @@
 
       searchInput.addEventListener('input', applySearch);
       resetCreateForm();
-      setRole('system');
+
+      const initialParams = new URLSearchParams(window.location.search);
+      const initialTheme = initialParams.get('theme');
+      if (initialTheme === 'light' || initialTheme === 'dark') setTheme(initialTheme);
+      const initialRole = initialParams.get('role');
+      setRole(identities[initialRole] ? initialRole : 'system');
     </script>
     <script src="./shell.js"></script>
   </body>
