@@ -1,6 +1,7 @@
 import m from 'mithril';
 import { Login } from './screen/login';
 
+import '@style/global.css';
 import './assets/login.css';
 
 const routes: m.RouteDefs = {

@@ -1,4 +1,4 @@
-import { Check, CircleUserRound } from 'lucide';
+import { Check, CircleAlert, CircleUserRound } from 'lucide';
 import m from 'mithril';
 import { Icon } from '@component/icon';
 import {
@@ -58,9 +58,18 @@ function scopeDescription(scope: string, realmName: string) {
   return `Use the ${scope} permission.`;
 }
 
-function primaryColor(value: unknown) {
-  if (typeof value !== 'string') return '#25A';
-  return /^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i.test(value) ? value : '#25A';
+function brandColor(value: unknown) {
+  if (typeof value === 'string' && /^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i.test(value)) {
+    return value;
+  }
+  return null;
+}
+
+function applyAccent(branding?: { primary_color?: string }) {
+  const color = brandColor(branding?.primary_color);
+  if (color) {
+    document.documentElement.style.setProperty('--accent', color);
+  }
 }
 
 const TextField: m.Component<TextFieldAttrs> = {
@@ -114,6 +123,7 @@ export const Login: m.Component<{ clientId?: string }> = {
       this.discovery = discovery;
       this.clientId = discovery.client_id;
       document.title = discovery.display_name;
+      applyAccent(discovery.branding);
       if (this.consentRoute) {
         this.step = 'consent';
         await this.loadConsent();
@@ -265,41 +275,61 @@ export const Login: m.Component<{ clientId?: string }> = {
 
   view(this: any) {
     const branding = this.discovery?.branding || {};
-    const primary = primaryColor(branding.primary_color);
-    const style = { '--realm-primary': primary } as any;
+    const realmName: string | null = this.discovery?.display_name || null;
+    const logoAlt = realmName || 'Sign in';
+    const eyebrow = realmName ? `${realmName} account` : '';
 
-    if (!this.discovery && this.error) {
+    if (!this.discovery) {
+      if (this.error) {
+        return (
+          <div class="auth-page">
+            <div class="auth-status-panel">
+              {Icon(CircleAlert, { class: 'auth-status-icon' })}
+              <h1>Sign-in unavailable</h1>
+              <p class="auth-error">{this.error.message}</p>
+              <div class="auth-actions">
+                <a class="button" href={window.location.href}>Try again</a>
+              </div>
+            </div>
+          </div>
+        );
+      }
+
       return (
-        <div class="auth-page" style={style}>
+        <div class="auth-page" aria-busy="true">
           <div class="auth-card">
-            <h1>Sign in</h1>
-            <p class="auth-error">{this.error.message}</p>
+            <div class="auth-spinner" aria-hidden="true"></div>
+            <h1>Signing in</h1>
+            <p class="auth-note">Loading your sign-in options.</p>
           </div>
         </div>
       );
     }
 
-    const title =
+    const heading =
       this.step === 'consent'
         ? this.consentRequest
           ? `Authorize ${this.consentRequest.client.name}`
           : 'Authorize access'
-        : this.discovery?.display_name || 'Sign in';
+        : this.step === 'done'
+          ? 'Signed in'
+          : 'Sign in';
 
     return (
-      <div class="auth-page" style={style}>
+      <div class="auth-page">
         <div class={`auth-card${this.step === 'consent' ? ' auth-card-consent' : ''}`}>
           {typeof branding.logo_url === 'string' && branding.logo_url ? (
             <img
               class="auth-logo"
               src={branding.logo_url}
-              alt={title}
+              alt={logoAlt}
               onerror={(event: Event) => {
                 (event.target as HTMLImageElement).style.display = 'none';
               }}
             />
           ) : null}
-          <h1>{title}</h1>
+          {this.step !== 'consent' && eyebrow ? <p class="auth-realm">{eyebrow}</p> : null}
+          <h1>{heading}</h1>
 
           {this.step === 'accounts' ? this.renderAccounts() : null}
           {this.step === 'identifier' ? this.renderIdentifier() : null}
@@ -371,11 +401,11 @@ export const Login: m.Component<{ clientId?: string }> = {
         {this.error ? <p class="auth-error">{this.error.message}</p> : null}
         <div class="auth-actions">
           {!this.reauth && this.accounts.length >= 2 ? (
-            <button class="auth-link" type="button" onclick={() => this.backToAccounts()}>
+            <button class="auth-link auth-back" type="button" onclick={() => this.backToAccounts()}>
               Back to accounts
             </button>
           ) : null}
-          <button class="auth-button" type="submit" disabled={this.pending || !this.identifier.trim()}>
+          <button class="button" type="submit" disabled={this.pending || !this.identifier.trim()}>
             {this.pending ? 'Checking' : 'Next'}
           </button>
         </div>
@@ -419,10 +449,10 @@ export const Login: m.Component<{ clientId?: string }> = {
         ) : null}
         {this.error ? <p class="auth-error">{this.error.message}</p> : null}
         <div class="auth-actions">
-          <button class="auth-link" type="button" onclick={() => this.back()}>
+          <button class="auth-link auth-back" type="button" onclick={() => this.back()}>
             Back
           </button>
-          <button class="auth-button" type="submit" disabled={this.pending || !this.password}>
+          <button class="button" type="submit" disabled={this.pending || !this.password}>
             {this.pending ? 'Signing in' : 'Sign in'}
           </button>
         </div>
@@ -441,10 +471,10 @@ export const Login: m.Component<{ clientId?: string }> = {
             : 'This account signs in with an identity provider.'}
         </p>
         <div class="auth-actions">
-          <button class="auth-link" type="button" onclick={() => this.back()}>
+          <button class="auth-link auth-back" type="button" onclick={() => this.back()}>
             Back
           </button>
-          <button class="auth-button" type="button" disabled>
+          <button class="button" type="button" disabled>
             Continue
           </button>
         </div>
@@ -499,7 +529,7 @@ export const Login: m.Component<{ clientId?: string }> = {
           ))}
         </ul>
 
-        <p class="auth-note auth-consent-footer">
+        <p class="auth-consent-footer">
           You can revoke access at any time from your account settings.
         </p>
         {this.error ? <p class="auth-error">{this.error.message}</p> : null}
@@ -514,7 +544,7 @@ export const Login: m.Component<{ clientId?: string }> = {
             Deny
           </button>
           <button
-            class="auth-button"
+            class="button"
             type="button"
             disabled={this.pending}
             onclick={() => this.decideConsent('allow')}
