@@ -908,6 +908,31 @@ html.mobile-nav-open .mobile-nav .nav-item {
   height: 1.125rem;
 }
 
+/* Data tables embedded inside a panel: align to panel content, use row rules */
+.panel .table-toolbar {
+  padding: 0;
+  margin: 1.25rem 0 1rem;
+  background: transparent;
+  box-shadow: none;
+  border-bottom: 0;
+}
+
+.panel .data-table tbody tr {
+  padding: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.panel .data-table th,
+.panel .data-table td {
+  padding-right: 0;
+  padding-left: 0;
+}
+
+.panel .data-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
 .client-breadcrumb {
   display: flex;
   flex-wrap: wrap;
