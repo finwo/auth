@@ -26,6 +26,7 @@ import { ClientEditPage } from './client-edit';
 import { ClientsPage } from './clients';
 import { GlobalUserPage } from './global-user';
 import { HostsPage } from './hosts';
+import { EmailDomainsPage } from './email-domains';
 import { UserPage } from './user';
 import { UsersPage } from './users';
 import { SettingsPage } from './settings';
@@ -128,6 +129,19 @@ function hostsRealm() {
   const path = currentPath();
   if (path !== '/hosts' && !path.startsWith('/hosts/')) return null;
   const suffix = path.slice('/hosts/'.length);
+  if (!suffix) return null;
+  const slug = suffix.split('/')[0];
+  try {
+    return decodeURIComponent(slug);
+  } catch {
+    return null;
+  }
+}
+
+function emailDomainsRealm() {
+  const path = currentPath();
+  if (path !== '/email-domains' && !path.startsWith('/email-domains/')) return null;
+  const suffix = path.slice('/email-domains/'.length);
   if (!suffix) return null;
   const slug = suffix.split('/')[0];
   try {
@@ -333,6 +347,7 @@ export const Admin: m.Component = {
     const systemSettings = path === '/system-settings';
     const realmSettings = path === '/settings' || path.startsWith('/settings/');
     const hosts = path === '/hosts' || path.startsWith('/hosts/');
+    const emailDomains = path === '/email-domains' || path.startsWith('/email-domains/');
     const title = realmsPath
       ? 'Realms | Administration'
       : clients
@@ -349,9 +364,11 @@ export const Admin: m.Component = {
             ? 'System settings | Administration'
             : hosts
               ? 'Hosts | Administration'
-              : realmSettings
-                ? 'Realm settings | Administration'
-                : 'Administration';
+              : emailDomains
+                ? 'Email domains | Administration'
+                : realmSettings
+                  ? 'Realm settings | Administration'
+                  : 'Administration';
     document.title = title;
   },
 
@@ -378,11 +395,13 @@ export const Admin: m.Component = {
     const systemSettings = path === '/system-settings';
     const realmSettings = path === '/settings' || path.startsWith('/settings/');
     const hosts = path === '/hosts' || path.startsWith('/hosts/');
+    const emailDomains = path === '/email-domains' || path.startsWith('/email-domains/');
     const realmSlug = sessionsRealm();
     const clientRealmSlug = clientsRealm();
     const userRealmSlug = usersRealm();
     const settingsRealmSlug = settingsRealm();
     const hostsRealmSlug = hostsRealm();
+    const emailDomainsRealmSlug = emailDomainsRealm();
     const clientEdit = clientEditPath();
     const userDetail = userDetailPath();
     const globalUser = globalUserDetailPath();
@@ -415,7 +434,7 @@ export const Admin: m.Component = {
         href: appUrl(realmNav.href),
         label: realmNav.label,
         icon: LibraryBig,
-        active: realmsPath || realmSettings || hosts,
+        active: realmsPath || realmSettings || hosts || emailDomains,
         onclick: (event: Event) => {
           event.preventDefault();
           m.route.set(realmNav.href);
@@ -585,6 +604,14 @@ export const Admin: m.Component = {
         ) : hosts ? (
           <HostsPage
             realmSlug={hostsRealmSlug}
+            realms={this.realms}
+            realmsError={this.realmsError}
+            canCreateRealm={Boolean(this.canCreateRealm)}
+            onAuthExpired={() => this.authExpired()}
+          />
+        ) : emailDomains ? (
+          <EmailDomainsPage
+            realmSlug={emailDomainsRealmSlug}
             realms={this.realms}
             realmsError={this.realmsError}
             canCreateRealm={Boolean(this.canCreateRealm)}

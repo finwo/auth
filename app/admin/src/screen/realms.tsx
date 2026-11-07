@@ -269,6 +269,8 @@ export const RealmsPage: m.Component<RealmsAttrs> = {
     const settingsPath = (realm: AdminRealm) =>
       `/settings/${encodeURIComponent(realm.slug)}`;
     const hostsPath = (realm: AdminRealm) => `/hosts/${encodeURIComponent(realm.slug)}`;
+    const domainsPath = (realm: AdminRealm) =>
+      `/email-domains/${encodeURIComponent(realm.slug)}`;
     const previewLogo = logoUrlError(this.createValue.logo_url)
       ? ''
       : this.createValue.logo_url.trim();
@@ -394,9 +396,23 @@ export const RealmsPage: m.Component<RealmsAttrs> = {
                             ) : (
                               <span class="realm-count">{pluralCount(realm.host_count, 'host')}</span>
                             )}
-                            <span class="realm-count">
-                              {pluralCount(realm.email_domain_count, 'domain')}
-                            </span>
+                            {realm.can_edit ? (
+                              <a
+                                class="realm-count realm-count-link"
+                                href={appUrl(domainsPath(realm))}
+                                onclick={(event: MouseEvent) => {
+                                  event.preventDefault();
+                                  event.stopPropagation();
+                                  m.route.set(domainsPath(realm));
+                                }}
+                              >
+                                {pluralCount(realm.email_domain_count, 'domain')}
+                              </a>
+                            ) : (
+                              <span class="realm-count">
+                                {pluralCount(realm.email_domain_count, 'domain')}
+                              </span>
+                            )}
                             <span class="realm-count">{pluralCount(realm.client_count, 'client')}</span>
                           </span>
                         </td>

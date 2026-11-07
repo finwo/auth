@@ -16,6 +16,11 @@ import {
   type AdminRealmCreateInput,
   type AdminRealmCreateResponse,
   type AdminRealmDeleteResponse,
+  type AdminRealmEmailDomain,
+  type AdminRealmEmailDomainCreateResponse,
+  type AdminRealmEmailDomainDeleteResponse,
+  type AdminRealmEmailDomainListResponse,
+  type AdminRealmEmailDomainVerifyResponse,
   type AdminRealmHost,
   type AdminRealmHostCreateResponse,
   type AdminRealmHostDeleteResponse,
@@ -119,6 +124,51 @@ export async function deleteAdminRealmHost(
   const encoded = encodeURIComponent(host);
   return adminJson<AdminRealmHostDeleteResponse>(
     `/api/v1/admin/realms/${realm}/hosts/${encoded}`,
+    { method: 'DELETE' }
+  );
+}
+
+export async function loadAdminRealmEmailDomains(
+  realmSlug: string
+): Promise<AdminRealmEmailDomain[]> {
+  const realm = encodeURIComponent(realmSlug);
+  const response = await adminJson<AdminRealmEmailDomainListResponse>(
+    `/api/v1/admin/realms/${realm}/email-domains`
+  );
+  return response.email_domains;
+}
+
+export async function createAdminRealmEmailDomain(
+  realmSlug: string,
+  domain: string
+): Promise<AdminRealmEmailDomainCreateResponse> {
+  const realm = encodeURIComponent(realmSlug);
+  return adminJson<AdminRealmEmailDomainCreateResponse>(
+    `/api/v1/admin/realms/${realm}/email-domains`,
+    { method: 'POST', body: JSON.stringify({ domain }) }
+  );
+}
+
+export async function verifyAdminRealmEmailDomain(
+  realmSlug: string,
+  domain: string
+): Promise<AdminRealmEmailDomainVerifyResponse> {
+  const realm = encodeURIComponent(realmSlug);
+  const encoded = encodeURIComponent(domain);
+  return adminJson<AdminRealmEmailDomainVerifyResponse>(
+    `/api/v1/admin/realms/${realm}/email-domains/${encoded}`,
+    { method: 'PATCH', body: JSON.stringify({ verified: true }) }
+  );
+}
+
+export async function deleteAdminRealmEmailDomain(
+  realmSlug: string,
+  domain: string
+): Promise<AdminRealmEmailDomainDeleteResponse> {
+  const realm = encodeURIComponent(realmSlug);
+  const encoded = encodeURIComponent(domain);
+  return adminJson<AdminRealmEmailDomainDeleteResponse>(
+    `/api/v1/admin/realms/${realm}/email-domains/${encoded}`,
     { method: 'DELETE' }
   );
 }

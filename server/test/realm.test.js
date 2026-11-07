@@ -14,8 +14,11 @@ import {
   findClientRealm,
   findOidcClientHost,
   findRealmByEmailDomain,
+  findRealmEmailDomainOwner,
+  getRealmEmailDomain,
   getSystemDatabase,
   initRealms,
+  markRealmEmailDomainVerified,
   openRealmDatabase,
   realmMetadata,
   resolveRealm,
@@ -171,6 +174,42 @@ test('a realm can disable the long-session choice', async () => {
     });
     const metadata = await realmMetadata(realm);
     assert.equal(metadata.allow_session_duration_choice, false);
+  } finally {
+    await closeRealms();
+    await fs.rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('unverified email domains assign a home realm only once verified', async () => {
+  const { dir, cfg } = await tempConfig();
+  try {
+    await initRealms(cfg);
+    const realm = await createRealm({ slug: 'acme', displayName: 'Acme' });
+    const systemDb = getSystemDatabase();
+
+    await addRealmEmailDomain(realm.id, 'Pending.Test', { verified: false });
+
+    assert.equal(await findRealmByEmailDomain('pending.test'), undefined);
+
+    const owner = await findRealmEmailDomainOwner(systemDb, 'pending.test');
+    assert.equal(owner.realm_id, realm.id);
+    assert.equal(owner.verified, 0);
+
+    const row = await getRealmEmailDomain(systemDb, realm.id, 'pending.test');
+    assert.equal(row.domain, 'pending.test');
+    assert.ok(row.verification_token);
+    assert.equal(row.verified_at, null);
+
+    assert.equal(await markRealmEmailDomainVerified(systemDb, realm.id, 'pending.test'), true);
+    assert.equal(await markRealmEmailDomainVerified(systemDb, realm.id, 'pending.test'), false);
+
+    const verified = await getRealmEmailDomain(systemDb, realm.id, 'pending.test');
+    assert.equal(verified.verified, 1);
+    assert.equal(verified.verification_token, null);
+    assert.ok(verified.verified_at);
+
+    const assigned = await findRealmByEmailDomain('pending.test');
+    assert.equal(assigned.id, realm.id);
   } finally {
     await closeRealms();
     await fs.rm(dir, { recursive: true, force: true });

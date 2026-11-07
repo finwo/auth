@@ -512,3 +512,106 @@ export async function findRealmById(id) {
     { id }
   );
 }
+
+export function validateRealmEmailDomain(raw) {
+  const invalid = (message) => new HttpError(400, 'invalid_request', message);
+
+  if (typeof raw !== 'string') throw invalid('domain must be a string');
+  const value = raw.trim();
+  if (!value) throw invalid('email domain is required');
+  if (/\s/.test(value)) throw invalid('email domain must not contain spaces');
+
+  const lower = value.toLowerCase();
+  const domain = lower.replace(/\.$/, '');
+  if (!domain) throw invalid('email domain is required');
+  if (domain.includes('@')) throw invalid('enter the domain without the @ symbol');
+  if (domain.includes('://') || /^[a-z][a-z0-9+.-]*:\/\//i.test(lower)) {
+    throw invalid('email domain must not include a scheme such as https://');
+  }
+  if (domain.includes('/')) throw invalid('email domain must not include a path');
+  if (domain.includes('*')) throw invalid('wildcard domains are not supported');
+  if (domain.includes(':')) throw invalid('email domain must not include a port');
+  if (lower.endsWith('.')) throw invalid('email domain must not end with a dot');
+  if (domain.startsWith('.')) throw invalid('email domain must not start with a dot');
+  if (domain.length > 253) throw invalid('email domain must be 253 characters or fewer');
+
+  const labels = domain.split('.');
+  if (labels.length < 2) throw invalid('enter a complete domain such as acme.test');
+  for (const label of labels) {
+    if (!/^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/.test(label)) {
+      throw invalid('domain labels may use lowercase letters, numbers and hyphens');
+    }
+    if (label.length > 63) throw invalid('each domain label must be 63 characters or fewer');
+  }
+
+  return domain;
+}
+
+function lookupDomain(domain) {
+  return String(domain || '').trim().toLowerCase().replace(/\.$/, '');
+}
+
+export async function listRealmEmailDomains(targetDb, realmId) {
+  const db = targetDb || systemDb;
+  if (!db) throw new Error('realm registry is not initialized');
+  return db.all(
+    `SELECT domain, verified, verification_token, verified_at, created_at
+       FROM realm_email_domains
+      WHERE realm_id = {realmId}
+      ORDER BY created_at DESC, domain ASC`,
+    { realmId }
+  );
+}
+
+export async function findRealmEmailDomainOwner(targetDb, domain) {
+  const db = targetDb || systemDb;
+  if (!db) throw new Error('realm registry is not initialized');
+  const value = lookupDomain(domain);
+  if (!value) return null;
+  return db.get(
+    `SELECT d.domain, d.verified, d.realm_id, r.slug
+       FROM realm_email_domains d
+       JOIN realms r ON r.id = d.realm_id
+      WHERE d.domain = {domain}`,
+    { domain: value }
+  );
+}
+
+export async function getRealmEmailDomain(targetDb, realmId, domain) {
+  const db = targetDb || systemDb;
+  if (!db) throw new Error('realm registry is not initialized');
+  const value = lookupDomain(domain);
+  if (!value) return null;
+  return db.get(
+    `SELECT domain, realm_id, verified, verification_token, verified_at, created_at
+       FROM realm_email_domains
+      WHERE domain = {domain} AND realm_id = {realmId}`,
+    { domain: value, realmId }
+  );
+}
+
+export async function removeRealmEmailDomain(targetDb, realmId, domain) {
+  const db = targetDb || systemDb;
+  if (!db) throw new Error('realm registry is not initialized');
+  const value = lookupDomain(domain);
+  if (!value) return false;
+  const result = await db.run(
+    'DELETE FROM realm_email_domains WHERE domain = {domain} AND realm_id = {realmId}',
+    { domain: value, realmId }
+  );
+  return result.changes > 0;
+}
+
+export async function markRealmEmailDomainVerified(targetDb, realmId, domain) {
+  const db = targetDb || systemDb;
+  if (!db) throw new Error('realm registry is not initialized');
+  const value = lookupDomain(domain);
+  if (!value) return false;
+  const result = await db.run(
+    `UPDATE realm_email_domains
+        SET verified = 1, verified_at = {now}, verification_token = NULL
+      WHERE domain = {domain} AND realm_id = {realmId} AND verified = 0`,
+    { domain: value, realmId, now: Date.now() }
+  );
+  return result.changes > 0;
+}

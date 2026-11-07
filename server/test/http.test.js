@@ -4830,6 +4830,265 @@ test('HTTP realm, login, OIDC and logout flows', async (t) => {
       }
     });
 
+    await t.test('admin realm email domain management', async () => {
+      const systemAdmin = await adminToken();
+      const acmeAdmin = await adminToken('it@acme.test');
+      const globexAdmin = await adminToken('contractor@personal.test');
+      const added = [];
+
+      const cleanupDomain = async (realm, domain) => {
+        await adminRequest(systemAdmin, {
+          method: 'DELETE',
+          path: `/api/v1/admin/realms/${realm}/email-domains/${encodeURIComponent(domain)}`,
+        });
+      };
+
+      try {
+        const list = await adminRequest(systemAdmin, {
+          path: '/api/v1/admin/realms/acme/email-domains',
+        });
+        assert.equal(list.status, 200);
+        assert.ok(Array.isArray(list.json.email_domains));
+        const seeded = list.json.email_domains.find((entry) => entry.domain === 'acme.test');
+        assert.ok(seeded, 'seeded acme.test present');
+        assert.equal(seeded.status, 'verified');
+        assert.equal(seeded.verification_token, null);
+        assert.equal(typeof seeded.verified_at, 'number');
+        assert.equal(typeof seeded.created_at, 'number');
+
+        const crossRealmList = await adminRequest(acmeAdmin, {
+          path: '/api/v1/admin/realms/globex/email-domains',
+        });
+        assert.equal(crossRealmList.status, 403);
+        assert.equal(crossRealmList.json.error.code, 'forbidden');
+
+        const foreignList = await adminRequest(globexAdmin, {
+          path: '/api/v1/admin/realms/acme/email-domains',
+        });
+        assert.equal(foreignList.status, 403);
+
+        const unknownRealm = await adminRequest(systemAdmin, {
+          path: '/api/v1/admin/realms/does-not-exist/email-domains',
+        });
+        assert.equal(unknownRealm.status, 404);
+
+        const created = await adminRequest(acmeAdmin, {
+          method: 'POST',
+          path: '/api/v1/admin/realms/acme/email-domains',
+          body: { domain: ' Staff.Acme.test ' },
+        });
+        assert.equal(created.status, 200);
+        assert.equal(created.json.ok, true);
+        assert.equal(created.json.email_domain.domain, 'staff.acme.test');
+        assert.equal(created.json.email_domain.status, 'pending');
+        assert.equal(typeof created.json.email_domain.verification_token, 'string');
+        assert.ok(created.json.email_domain.verification_token.length > 0);
+        assert.equal(created.json.email_domain.verified_at, null);
+        added.push({ realm: 'acme', domain: 'staff.acme.test' });
+
+        for (const domain of [
+          'https://x.test',
+          'x.test:443',
+          'x.test/path',
+          '*.acme.test',
+          'user@acme.test',
+          'two words.test',
+          'nodot',
+          'trailing.test.',
+          '@acme.test',
+          'bad_underscore.test',
+        ]) {
+          const invalid = await adminRequest(acmeAdmin, {
+            method: 'POST',
+            path: '/api/v1/admin/realms/acme/email-domains',
+            body: { domain },
+          });
+          assert.equal(invalid.status, 400, `expected 400 for ${domain}`);
+          assert.equal(invalid.json.error.code, 'invalid_request');
+        }
+
+        const emptyBody = await adminRequest(acmeAdmin, {
+          method: 'POST',
+          path: '/api/v1/admin/realms/acme/email-domains',
+          body: {},
+        });
+        assert.equal(emptyBody.status, 400);
+        assert.equal(emptyBody.json.error.code, 'invalid_request');
+
+        const unknownField = await adminRequest(acmeAdmin, {
+          method: 'POST',
+          path: '/api/v1/admin/realms/acme/email-domains',
+          body: { hostname: 'ok.test' },
+        });
+        assert.equal(unknownField.status, 400);
+        assert.equal(unknownField.json.error.code, 'invalid_request');
+
+        const ownRealm = await adminRequest(acmeAdmin, {
+          method: 'POST',
+          path: '/api/v1/admin/realms/acme/email-domains',
+          body: { domain: 'acme.test' },
+        });
+        assert.equal(ownRealm.status, 409);
+        assert.equal(ownRealm.json.error.code, 'domain_in_use');
+        assert.match(ownRealm.json.error.message, /this realm/i);
+
+        const otherSystem = await adminRequest(systemAdmin, {
+          method: 'POST',
+          path: '/api/v1/admin/realms/acme/email-domains',
+          body: { domain: 'globex.test' },
+        });
+        assert.equal(otherSystem.status, 409);
+        assert.equal(otherSystem.json.error.code, 'domain_in_use');
+        assert.match(otherSystem.json.error.message, /globex/);
+
+        const otherAcme = await adminRequest(acmeAdmin, {
+          method: 'POST',
+          path: '/api/v1/admin/realms/acme/email-domains',
+          body: { domain: 'globex.test' },
+        });
+        assert.equal(otherAcme.status, 409);
+        assert.equal(otherAcme.json.error.code, 'domain_in_use');
+        assert.ok(!otherAcme.json.error.message.includes('globex'));
+
+        const shared = await adminRequest(acmeAdmin, {
+          method: 'POST',
+          path: '/api/v1/admin/realms/acme/email-domains',
+          body: { domain: 'shared.test' },
+        });
+        assert.equal(shared.status, 200);
+        added.push({ realm: 'acme', domain: 'shared.test' });
+
+        const sharedDup = await adminRequest(globexAdmin, {
+          method: 'POST',
+          path: '/api/v1/admin/realms/globex/email-domains',
+          body: { domain: 'shared.test' },
+        });
+        assert.equal(sharedDup.status, 409);
+        assert.equal(sharedDup.json.error.code, 'domain_in_use');
+
+        const serviceDomain = await adminRequest(systemAdmin, {
+          method: 'POST',
+          path: '/api/v1/admin/realms/acme/email-domains',
+          body: { domain: 'identity.test' },
+        });
+        assert.equal(serviceDomain.status, 200);
+        assert.equal(serviceDomain.json.email_domain.status, 'pending');
+        added.push({ realm: 'acme', domain: 'identity.test' });
+
+        const falseVerify = await adminRequest(acmeAdmin, {
+          method: 'PATCH',
+          path: '/api/v1/admin/realms/acme/email-domains/staff.acme.test',
+          body: { verified: false },
+        });
+        assert.equal(falseVerify.status, 400);
+        assert.equal(falseVerify.json.error.code, 'invalid_request');
+
+        const verifyUnknownField = await adminRequest(acmeAdmin, {
+          method: 'PATCH',
+          path: '/api/v1/admin/realms/acme/email-domains/staff.acme.test',
+          body: { verified: true, extra: 1 },
+        });
+        assert.equal(verifyUnknownField.status, 400);
+        assert.equal(verifyUnknownField.json.error.code, 'invalid_request');
+
+        const missingVerify = await adminRequest(acmeAdmin, {
+          method: 'PATCH',
+          path: '/api/v1/admin/realms/acme/email-domains/nope.test',
+          body: { verified: true },
+        });
+        assert.equal(missingVerify.status, 404);
+        assert.equal(missingVerify.json.error.code, 'domain_not_found');
+
+        const crossVerify = await adminRequest(systemAdmin, {
+          method: 'PATCH',
+          path: '/api/v1/admin/realms/acme/email-domains/globex.test',
+          body: { verified: true },
+        });
+        assert.equal(crossVerify.status, 404);
+        assert.equal(crossVerify.json.error.code, 'domain_not_found');
+
+        const forbiddenVerify = await adminRequest(acmeAdmin, {
+          method: 'PATCH',
+          path: '/api/v1/admin/realms/globex/email-domains/globex.test',
+          body: { verified: true },
+        });
+        assert.equal(forbiddenVerify.status, 403);
+
+        const verified = await adminRequest(acmeAdmin, {
+          method: 'PATCH',
+          path: '/api/v1/admin/realms/acme/email-domains/staff.acme.test',
+          body: { verified: true },
+        });
+        assert.equal(verified.status, 200);
+        assert.equal(verified.json.ok, true);
+        assert.equal(verified.json.email_domain.domain, 'staff.acme.test');
+        assert.equal(verified.json.email_domain.status, 'verified');
+        assert.equal(verified.json.email_domain.verification_token, null);
+        assert.equal(typeof verified.json.email_domain.verified_at, 'number');
+
+        const dbRow = withSystemDatabase(env, (database) =>
+          database
+            .prepare(
+              'SELECT verified, verification_token, verified_at FROM realm_email_domains WHERE domain = ?'
+            )
+            .get('staff.acme.test')
+        );
+        assert.equal(dbRow.verified, 1);
+        assert.equal(dbRow.verification_token, null);
+        assert.ok(dbRow.verified_at);
+
+        const reVerify = await adminRequest(acmeAdmin, {
+          method: 'PATCH',
+          path: '/api/v1/admin/realms/acme/email-domains/staff.acme.test',
+          body: { verified: true },
+        });
+        assert.equal(reVerify.status, 200);
+        assert.equal(reVerify.json.email_domain.status, 'verified');
+
+        const afterList = await adminRequest(acmeAdmin, {
+          path: '/api/v1/admin/realms/acme/email-domains',
+        });
+        const pendingRow = afterList.json.email_domains.find((e) => e.domain === 'shared.test');
+        assert.equal(pendingRow.status, 'pending');
+        assert.ok(pendingRow.verification_token);
+        const verifiedRow = afterList.json.email_domains.find((e) => e.domain === 'staff.acme.test');
+        assert.equal(verifiedRow.status, 'verified');
+
+        const crossRemove = await adminRequest(systemAdmin, {
+          method: 'DELETE',
+          path: '/api/v1/admin/realms/acme/email-domains/globex.test',
+        });
+        assert.equal(crossRemove.status, 404);
+        assert.equal(crossRemove.json.error.code, 'domain_not_found');
+
+        const forbiddenRemove = await adminRequest(acmeAdmin, {
+          method: 'DELETE',
+          path: '/api/v1/admin/realms/globex/email-domains/globex.test',
+        });
+        assert.equal(forbiddenRemove.status, 403);
+
+        const removed = await adminRequest(acmeAdmin, {
+          method: 'DELETE',
+          path: '/api/v1/admin/realms/acme/email-domains/staff.acme.test',
+        });
+        assert.equal(removed.status, 200);
+        assert.equal(removed.json.ok, true);
+        assert.equal(removed.json.removed, true);
+        assert.equal(removed.json.domain, 'staff.acme.test');
+
+        const again = await adminRequest(acmeAdmin, {
+          method: 'DELETE',
+          path: '/api/v1/admin/realms/acme/email-domains/staff.acme.test',
+        });
+        assert.equal(again.status, 404);
+        assert.equal(again.json.error.code, 'domain_not_found');
+      } finally {
+        for (const entry of added) {
+          await cleanupDomain(entry.realm, entry.domain);
+        }
+      }
+    });
+
     await t.test('system branding updates Admin settings and discovery precedence', async () => {
       const systemAdmin = await adminToken();
       const acmeAdmin = await adminToken('it@acme.test');

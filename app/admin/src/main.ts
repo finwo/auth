@@ -55,6 +55,12 @@ const routes: m.RouteDefs = {
   '/hosts/:realm': {
     render: () => m(Admin, {}),
   },
+  '/email-domains': {
+    render: () => m(Admin, {}),
+  },
+  '/email-domains/:realm': {
+    render: () => m(Admin, {}),
+  },
   '/system-settings': {
     render: () => m(Admin, {}),
   },

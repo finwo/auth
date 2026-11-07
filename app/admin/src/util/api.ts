@@ -63,6 +63,36 @@ export interface AdminRealmHostDeleteResponse {
   host: string;
 }
 
+export type AdminRealmEmailDomainStatus = 'pending' | 'verified';
+
+export interface AdminRealmEmailDomain {
+  domain: string;
+  status: AdminRealmEmailDomainStatus;
+  verification_token: string | null;
+  verified_at: number | null;
+  created_at: number;
+}
+
+export interface AdminRealmEmailDomainListResponse {
+  email_domains: AdminRealmEmailDomain[];
+}
+
+export interface AdminRealmEmailDomainCreateResponse {
+  ok: boolean;
+  email_domain: AdminRealmEmailDomain;
+}
+
+export interface AdminRealmEmailDomainVerifyResponse {
+  ok: boolean;
+  email_domain: AdminRealmEmailDomain;
+}
+
+export interface AdminRealmEmailDomainDeleteResponse {
+  ok: boolean;
+  removed: boolean;
+  domain: string;
+}
+
 export interface AdminRealmSettings {
   slug: string;
   display_name: string;
