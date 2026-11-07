@@ -16,6 +16,10 @@ import {
   type AdminRealmCreateInput,
   type AdminRealmCreateResponse,
   type AdminRealmDeleteResponse,
+  type AdminRealmHost,
+  type AdminRealmHostCreateResponse,
+  type AdminRealmHostDeleteResponse,
+  type AdminRealmHostListResponse,
   type AdminRealmSettings,
   type AdminRealmSettingsInput,
   type AdminRealmUser,
@@ -86,6 +90,37 @@ export async function deleteAdminRealm(realmSlug: string): Promise<AdminRealmDel
   return adminJson<AdminRealmDeleteResponse>(`/api/v1/admin/realms/${realm}`, {
     method: 'DELETE',
   });
+}
+
+export async function loadAdminRealmHosts(realmSlug: string): Promise<AdminRealmHost[]> {
+  const realm = encodeURIComponent(realmSlug);
+  const response = await adminJson<AdminRealmHostListResponse>(
+    `/api/v1/admin/realms/${realm}/hosts`
+  );
+  return response.hosts;
+}
+
+export async function createAdminRealmHost(
+  realmSlug: string,
+  host: string
+): Promise<AdminRealmHostCreateResponse> {
+  const realm = encodeURIComponent(realmSlug);
+  return adminJson<AdminRealmHostCreateResponse>(`/api/v1/admin/realms/${realm}/hosts`, {
+    method: 'POST',
+    body: JSON.stringify({ host }),
+  });
+}
+
+export async function deleteAdminRealmHost(
+  realmSlug: string,
+  host: string
+): Promise<AdminRealmHostDeleteResponse> {
+  const realm = encodeURIComponent(realmSlug);
+  const encoded = encodeURIComponent(host);
+  return adminJson<AdminRealmHostDeleteResponse>(
+    `/api/v1/admin/realms/${realm}/hosts/${encoded}`,
+    { method: 'DELETE' }
+  );
 }
 
 export async function loadAdminSessions(realmSlug: string): Promise<AdminSession[]> {

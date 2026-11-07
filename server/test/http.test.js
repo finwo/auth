@@ -4651,6 +4651,185 @@ test('HTTP realm, login, OIDC and logout flows', async (t) => {
       }
     });
 
+    await t.test('admin realm host management', async () => {
+      const systemAdmin = await adminToken();
+      const acmeAdmin = await adminToken('it@acme.test');
+      const globexAdmin = await adminToken('contractor@personal.test');
+      const added = [];
+
+      const cleanupHost = async (realm, host) => {
+        await adminRequest(systemAdmin, {
+          method: 'DELETE',
+          path: `/api/v1/admin/realms/${realm}/hosts/${encodeURIComponent(host)}`,
+        });
+      };
+
+      try {
+        const list = await adminRequest(systemAdmin, {
+          path: '/api/v1/admin/realms/acme/hosts',
+        });
+        assert.equal(list.status, 200);
+        assert.ok(Array.isArray(list.json.hosts));
+        const seeded = list.json.hosts.find((entry) => entry.host === 'acme.localhost');
+        assert.ok(seeded, 'seeded acme.localhost present');
+        assert.equal(typeof seeded.created_at, 'number');
+
+        const crossRealmList = await adminRequest(acmeAdmin, {
+          path: '/api/v1/admin/realms/globex/hosts',
+        });
+        assert.equal(crossRealmList.status, 403);
+        assert.equal(crossRealmList.json.error.code, 'forbidden');
+
+        const foreignList = await adminRequest(globexAdmin, {
+          path: '/api/v1/admin/realms/acme/hosts',
+        });
+        assert.equal(foreignList.status, 403);
+
+        const unknownRealm = await adminRequest(systemAdmin, {
+          path: '/api/v1/admin/realms/does-not-exist/hosts',
+        });
+        assert.equal(unknownRealm.status, 404);
+
+        const created = await adminRequest(acmeAdmin, {
+          method: 'POST',
+          path: '/api/v1/admin/realms/acme/hosts',
+          body: { host: ' Login.Acme.test ' },
+        });
+        assert.equal(created.status, 200);
+        assert.equal(created.json.ok, true);
+        assert.equal(created.json.host.host, 'login.acme.test');
+        assert.equal(typeof created.json.host.created_at, 'number');
+        added.push('login.acme.test');
+
+        const listed = await adminRequest(acmeAdmin, {
+          path: '/api/v1/admin/realms/acme/hosts',
+        });
+        assert.ok(listed.json.hosts.some((entry) => entry.host === 'login.acme.test'));
+
+        for (const host of [
+          'HTTPS://login.acme.test',
+          'login.acme.test:8443',
+          'login.acme.test/path',
+          '*.acme.test',
+          'user@login.acme.test',
+          'two words.test',
+          'nodot',
+          'trailing.dot.test.',
+          'UPPER.acme.test!',
+        ]) {
+          const invalid = await adminRequest(acmeAdmin, {
+            method: 'POST',
+            path: '/api/v1/admin/realms/acme/hosts',
+            body: { host },
+          });
+          assert.equal(invalid.status, 400, `expected 400 for ${host}`);
+          assert.equal(invalid.json.error.code, 'invalid_request');
+        }
+
+        const emptyBody = await adminRequest(acmeAdmin, {
+          method: 'POST',
+          path: '/api/v1/admin/realms/acme/hosts',
+          body: {},
+        });
+        assert.equal(emptyBody.status, 400);
+        assert.equal(emptyBody.json.error.code, 'invalid_request');
+
+        const unknownField = await adminRequest(acmeAdmin, {
+          method: 'POST',
+          path: '/api/v1/admin/realms/acme/hosts',
+          body: { hostname: 'ok.acme.test' },
+        });
+        assert.equal(unknownField.status, 400);
+        assert.equal(unknownField.json.error.code, 'invalid_request');
+
+        const sameRealm = await adminRequest(acmeAdmin, {
+          method: 'POST',
+          path: '/api/v1/admin/realms/acme/hosts',
+          body: { host: 'acme.localhost' },
+        });
+        assert.equal(sameRealm.status, 409);
+        assert.equal(sameRealm.json.error.code, 'host_in_use');
+        assert.match(sameRealm.json.error.message, /this realm/i);
+
+        const otherSystem = await adminRequest(systemAdmin, {
+          method: 'POST',
+          path: '/api/v1/admin/realms/acme/hosts',
+          body: { host: 'globex.localhost' },
+        });
+        assert.equal(otherSystem.status, 409);
+        assert.equal(otherSystem.json.error.code, 'host_in_use');
+        assert.match(otherSystem.json.error.message, /globex/);
+
+        const otherAcme = await adminRequest(acmeAdmin, {
+          method: 'POST',
+          path: '/api/v1/admin/realms/acme/hosts',
+          body: { host: 'globex.localhost' },
+        });
+        assert.equal(otherAcme.status, 409);
+        assert.equal(otherAcme.json.error.code, 'host_in_use');
+        assert.ok(!otherAcme.json.error.message.includes('globex'));
+
+        const reserved = await adminRequest(systemAdmin, {
+          method: 'POST',
+          path: '/api/v1/admin/realms/acme/hosts',
+          body: { host: 'identity.test' },
+        });
+        assert.equal(reserved.status, 409);
+        assert.equal(reserved.json.error.code, 'host_reserved');
+
+        withSystemDatabase(env, (database) => {
+          database
+            .prepare('INSERT INTO oidc_client_hosts (host, client_id, created_at) VALUES (?, ?, ?)')
+            .run('app.acme.test', 'internal-app', Date.now());
+        });
+        const clientCollision = await adminRequest(acmeAdmin, {
+          method: 'POST',
+          path: '/api/v1/admin/realms/acme/hosts',
+          body: { host: 'app.acme.test' },
+        });
+        assert.equal(clientCollision.status, 409);
+        assert.equal(clientCollision.json.error.code, 'host_in_use');
+        withSystemDatabase(env, (database) => {
+          database.prepare('DELETE FROM oidc_client_hosts WHERE host = ?').run('app.acme.test');
+        });
+
+        const removeWrongRealm = await adminRequest(systemAdmin, {
+          method: 'DELETE',
+          path: '/api/v1/admin/realms/acme/hosts/globex.localhost',
+        });
+        assert.equal(removeWrongRealm.status, 404);
+        assert.equal(removeWrongRealm.json.error.code, 'host_not_found');
+
+        const forbiddenRemove = await adminRequest(acmeAdmin, {
+          method: 'DELETE',
+          path: '/api/v1/admin/realms/globex/hosts/globex.localhost',
+        });
+        assert.equal(forbiddenRemove.status, 403);
+
+        const removed = await adminRequest(acmeAdmin, {
+          method: 'DELETE',
+          path: '/api/v1/admin/realms/acme/hosts/login.acme.test',
+        });
+        assert.equal(removed.status, 200);
+        assert.equal(removed.json.ok, true);
+        assert.equal(removed.json.removed, true);
+        assert.equal(removed.json.host, 'login.acme.test');
+        const index = added.indexOf('login.acme.test');
+        if (index >= 0) added.splice(index, 1);
+
+        const again = await adminRequest(acmeAdmin, {
+          method: 'DELETE',
+          path: '/api/v1/admin/realms/acme/hosts/login.acme.test',
+        });
+        assert.equal(again.status, 404);
+        assert.equal(again.json.error.code, 'host_not_found');
+      } finally {
+        for (const host of added) {
+          await cleanupHost('acme', host);
+        }
+      }
+    });
+
     await t.test('system branding updates Admin settings and discovery precedence', async () => {
       const systemAdmin = await adminToken();
       const acmeAdmin = await adminToken('it@acme.test');

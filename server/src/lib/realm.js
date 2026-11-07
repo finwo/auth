@@ -105,6 +105,53 @@ export function normalizeHost(host) {
   return value.replace(/\.$/, '');
 }
 
+export function validateRealmHostname(raw) {
+  const invalid = (message) => new HttpError(400, 'invalid_request', message);
+
+  if (typeof raw !== 'string') throw invalid('host must be a string');
+  const value = raw.trim();
+  if (!value) throw invalid('host is required');
+  if (/\s/.test(value)) throw invalid('host must not contain spaces');
+  if (value.includes('://') || /^[a-z][a-z0-9+.-]*:\/\//i.test(value)) {
+    throw invalid('host must not include a scheme such as https://');
+  }
+  if (value.includes('@')) throw invalid('host must not include @');
+  if (value.includes('/')) throw invalid('host must not include a path');
+  if (value.includes('*')) throw invalid('wildcard hostnames are not supported');
+
+  const lower = value.toLowerCase();
+  if (lower.startsWith('[')) {
+    const bracketEnd = lower.indexOf(']');
+    if (bracketEnd === -1 || bracketEnd !== lower.length - 1) {
+      throw invalid('enter a valid IPv6 host without a port');
+    }
+  } else if (lower.includes(':')) {
+    throw invalid('host must not include a port');
+  }
+
+  if (lower.length > 253) throw invalid('host must be 253 characters or fewer');
+  if (lower.startsWith('.') || lower.endsWith('.')) {
+    throw invalid('host must not start or end with a dot');
+  }
+
+  const normalized = normalizeHost(value);
+  if (!normalized) throw invalid('host is required');
+  if (normalized !== lower) throw invalid('host must not include a port or trailing dot');
+
+  if (!normalized.startsWith('[')) {
+    const labels = normalized.split('.');
+    if (labels.length < 2) throw invalid('enter a complete hostname such as login.acme.test');
+    for (const label of labels) {
+      if (!/^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/.test(label)) {
+        throw invalid('host labels must use lowercase letters, numbers and hyphens');
+      }
+      if (label.length > 63) throw invalid('each host label must be 63 characters or fewer');
+    }
+  }
+
+  return normalized;
+}
+
 export function normalizeEmailDomain(domain) {
   const value = String(domain || '').trim().toLowerCase().replace(/\.$/, '');
   if (!value || value.includes('@')) {
@@ -314,6 +361,27 @@ export async function addRealmHost(realmId, host) {
     'INSERT INTO realm_hosts (host, realm_id, created_at) VALUES ({host}, {realmId}, {createdAt})',
     { host: normalized, realmId, createdAt: Date.now() }
   );
+}
+
+export async function listRealmHosts(systemDb, realmId) {
+  if (!systemDb) throw new Error('realm registry is not initialized');
+  return systemDb.all(
+    `SELECT host, created_at FROM realm_hosts
+      WHERE realm_id = {realmId}
+      ORDER BY created_at DESC, host ASC`,
+    { realmId }
+  );
+}
+
+export async function removeRealmHost(systemDb, realmId, host) {
+  if (!systemDb) throw new Error('realm registry is not initialized');
+  const normalized = normalizeHost(host);
+  if (!normalized) return false;
+  const result = await systemDb.run(
+    'DELETE FROM realm_hosts WHERE host = {host} AND realm_id = {realmId}',
+    { host: normalized, realmId }
+  );
+  return result.changes > 0;
 }
 
 export async function addClientRealm(clientId, realmId) {

@@ -43,6 +43,26 @@ export interface AdminRealmDeleteResponse {
   removed: boolean;
 }
 
+export interface AdminRealmHost {
+  host: string;
+  created_at: number;
+}
+
+export interface AdminRealmHostListResponse {
+  hosts: AdminRealmHost[];
+}
+
+export interface AdminRealmHostCreateResponse {
+  ok: boolean;
+  host: AdminRealmHost;
+}
+
+export interface AdminRealmHostDeleteResponse {
+  ok: boolean;
+  removed: boolean;
+  host: string;
+}
+
 export interface AdminRealmSettings {
   slug: string;
   display_name: string;

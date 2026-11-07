@@ -24,13 +24,87 @@
   line-height: 1.4;
 }
 
-.realm-meta > span {
+.realm-meta > * {
   display: inline;
   margin-right: 0.75rem;
 }
 
-.realm-meta > span:last-child {
+.realm-meta > *:last-child {
   margin-right: 0;
+}
+
+.realm-count-link {
+  color: var(--accent-text);
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.realm-count-link:hover {
+  color: var(--accent-text-hover);
+}
+
+.action-button {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2rem;
+  padding: 0.25rem 0.625rem;
+  border: 0;
+  border-radius: 0.25rem;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  line-height: 1.4;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.action-button:hover {
+  background: var(--row-hover);
+  color: var(--text);
+}
+
+.action-button:first-child {
+  margin-left: -0.625rem;
+}
+
+.action-button.is-primary {
+  color: var(--accent-text);
+}
+
+.action-button.is-primary:hover {
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  color: var(--accent-text-hover);
+}
+
+.action-button.is-danger {
+  color: var(--danger-text);
+}
+
+.action-button.is-danger:hover {
+  background: color-mix(in srgb, var(--danger) 12%, transparent);
+  color: var(--danger-text);
+}
+
+.host-name {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.8125rem;
+  overflow-wrap: anywhere;
+}
+
+.host-added {
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
+
+.host-row-action {
+  display: flex;
+  align-items: center;
+}
+
+.host-table td.host-action-column:not(:empty) {
+  padding-bottom: 0.75rem;
 }
 
 .realm-display {
@@ -69,11 +143,6 @@
 .realm-row-action {
   display: flex;
   align-items: center;
-}
-
-.realm-row-action .button-danger {
-  width: 100%;
-  white-space: nowrap;
 }
 
 .realm-table-panel .table-actions {
@@ -492,10 +561,6 @@
 
   .realm-row-action {
     justify-content: flex-start;
-  }
-
-  .realm-row-action .button-danger {
-    width: auto;
   }
 
   .realm-table-panel .table-actions {

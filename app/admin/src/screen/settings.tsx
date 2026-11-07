@@ -11,7 +11,7 @@ import { Breadcrumb } from '../component/breadcrumb';
 import { RealmSelector } from '../component/realm-selector';
 import { realmBreadcrumbItems } from '../util/navigation';
 import { loadAdminRealmSettings, updateAdminRealmSettings } from '../util/auth';
-import type { AdminRealm, AdminRealmSettings } from '../util/api';
+import { appUrl, type AdminRealm, type AdminRealmSettings } from '../util/api';
 
 interface SettingsAttrs {
   realmSlug: string | null;
@@ -402,6 +402,23 @@ export const SettingsPage: m.Component<SettingsAttrs> = {
                     {this.pending ? 'Saving' : 'Save changes'}
                   </button>
                 </div>
+              </div>
+            </section>
+
+            <section class="panel">
+              <h2>Realm access</h2>
+              <p class="note">Manage hostnames that resolve to this realm.</p>
+              <div class="settings-actions">
+                <a
+                  class="button-secondary"
+                  href={appUrl(`/hosts/${encodeURIComponent(realmSlug || '')}`)}
+                  onclick={(event: MouseEvent) => {
+                    event.preventDefault();
+                    m.route.set(`/hosts/${encodeURIComponent(realmSlug || '')}`);
+                  }}
+                >
+                  Hosts
+                </a>
               </div>
             </section>
           </div>

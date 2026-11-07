@@ -268,6 +268,7 @@ export const RealmsPage: m.Component<RealmsAttrs> = {
     );
     const settingsPath = (realm: AdminRealm) =>
       `/settings/${encodeURIComponent(realm.slug)}`;
+    const hostsPath = (realm: AdminRealm) => `/hosts/${encodeURIComponent(realm.slug)}`;
     const previewLogo = logoUrlError(this.createValue.logo_url)
       ? ''
       : this.createValue.logo_url.trim();
@@ -377,31 +378,48 @@ export const RealmsPage: m.Component<RealmsAttrs> = {
                           </a>
                           <span class="realm-meta">
                             <span class="realm-slug">{realm.slug}</span>
-                            {realmCounts(realm).map((count) => (
-                              <span class="realm-count">{count}</span>
-                            ))}
+                            <span class="realm-count">{pluralCount(realm.member_count, 'member')}</span>
+                            {realm.can_edit ? (
+                              <a
+                                class="realm-count realm-count-link"
+                                href={appUrl(hostsPath(realm))}
+                                onclick={(event: MouseEvent) => {
+                                  event.preventDefault();
+                                  event.stopPropagation();
+                                  m.route.set(hostsPath(realm));
+                                }}
+                              >
+                                {pluralCount(realm.host_count, 'host')}
+                              </a>
+                            ) : (
+                              <span class="realm-count">{pluralCount(realm.host_count, 'host')}</span>
+                            )}
+                            <span class="realm-count">
+                              {pluralCount(realm.email_domain_count, 'domain')}
+                            </span>
+                            <span class="realm-count">{pluralCount(realm.client_count, 'client')}</span>
                           </span>
                         </td>
                         <td class="realm-owner-column" data-label="Owner">
                           <span class="realm-owner-name">{ownerName(realm)}</span>
                           <span class="realm-owner-meta">{ownerMeta(realm)}</span>
                         </td>
-                        <td class="realm-action-column">
-                          {realm.can_delete ? (
-                            <div class="realm-row-action">
-                              <button
-                                class="button-danger"
-                                type="button"
-                                onclick={(event: MouseEvent) => {
-                                  event.stopPropagation();
-                                  this.openDelete(realm);
-                                }}
-                              >
-                                Delete realm
-                              </button>
-                            </div>
-                          ) : null}
-                        </td>
+                          <td class="realm-action-column">
+                            {realm.can_delete ? (
+                              <div class="realm-row-action">
+                                <button
+                                  class="action-button is-danger"
+                                  type="button"
+                                  onclick={(event: MouseEvent) => {
+                                    event.stopPropagation();
+                                    this.openDelete(realm);
+                                  }}
+                                >
+                                  Delete realm
+                                </button>
+                              </div>
+                            ) : null}
+                          </td>
                       </tr>
                     );
                   })}
