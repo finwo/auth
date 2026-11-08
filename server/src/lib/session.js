@@ -574,6 +574,24 @@ export async function destroySessionById(systemDb, sessionId, now = Date.now()) 
   });
 }
 
+export async function destroyClientHostSessions(
+  systemDb,
+  { realmId, clientId, host, now = Date.now() }
+) {
+  return systemDb.transaction(async (tx) => {
+    const sessions = await tx.all(
+      `SELECT id, group_id FROM sessions
+        WHERE scope_type = 'client' AND realm_id = {realmId}
+          AND client_id = {clientId} AND scope_host = {host}`,
+      { realmId, clientId, host }
+    );
+    for (const session of sessions) {
+      await removeSession(tx, session, now);
+    }
+    return { destroyed: sessions.length };
+  });
+}
+
 export async function getSessionRealmBinding(systemDb, sessionId, realmId) {
   return systemDb.get(
     `SELECT session_id, realm_id, created_at, last_seen_at, revoked_at, revoked_by

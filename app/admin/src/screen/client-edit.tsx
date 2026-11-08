@@ -14,6 +14,7 @@ import {
   toClientInput,
   validateClientBranding,
 } from '../component/client-form';
+import { ClientHostsPanel } from '../component/client-hosts';
 import {
   deleteAdminClient,
   loadAdminClients,
@@ -379,6 +380,14 @@ export const ClientEditPage: m.Component<ClientEditAttrs> = {
                 </div>
               )}
             </section>
+
+            <ClientHostsPanel
+              realmSlug={this.attrs.realmSlug || ''}
+              clientId={clientId || ''}
+              clientName={client.name}
+              canEdit={Boolean(selected?.can_edit)}
+              onAuthExpired={this.attrs.onAuthExpired}
+            />
 
             <section class="panel danger-zone">
               <h2>Danger zone</h2>

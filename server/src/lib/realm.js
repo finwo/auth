@@ -460,6 +460,27 @@ export async function findRealmHost(host) {
   );
 }
 
+export async function listOidcClientHosts(systemDb, clientId) {
+  if (!systemDb) throw new Error('realm registry is not initialized');
+  return systemDb.all(
+    `SELECT host, created_at FROM oidc_client_hosts
+      WHERE client_id = {clientId}
+      ORDER BY created_at DESC, host ASC`,
+    { clientId }
+  );
+}
+
+export async function removeOidcClientHost(systemDb, clientId, host) {
+  if (!systemDb) throw new Error('realm registry is not initialized');
+  const normalized = normalizeHost(host);
+  if (!normalized) return false;
+  const result = await systemDb.run(
+    'DELETE FROM oidc_client_hosts WHERE host = {host} AND client_id = {clientId}',
+    { host: normalized, clientId }
+  );
+  return result.changes > 0;
+}
+
 export async function addRealmEmailDomain(realmId, domain, { verified = true } = {}) {
   if (!systemDb) throw new Error('realm registry is not initialized');
   const normalized = normalizeEmailDomain(domain);

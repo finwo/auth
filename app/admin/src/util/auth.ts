@@ -9,6 +9,10 @@ import {
   type AdminClientInput,
   type AdminClientResponse,
   type AdminClientSecretResponse,
+  type AdminClientHost,
+  type AdminClientHostCreateResponse,
+  type AdminClientHostDeleteResponse,
+  type AdminClientHostListResponse,
   type AdminGlobalUser,
   type AdminGlobalUserDetail,
   type AdminMeUser,
@@ -124,6 +128,45 @@ export async function deleteAdminRealmHost(
   const encoded = encodeURIComponent(host);
   return adminJson<AdminRealmHostDeleteResponse>(
     `/api/v1/admin/realms/${realm}/hosts/${encoded}`,
+    { method: 'DELETE' }
+  );
+}
+
+export async function loadAdminClientHosts(
+  realmSlug: string,
+  clientId: string
+): Promise<AdminClientHost[]> {
+  const realm = encodeURIComponent(realmSlug);
+  const client = encodeURIComponent(clientId);
+  const response = await adminJson<AdminClientHostListResponse>(
+    `/api/v1/admin/realms/${realm}/clients/${client}/hosts`
+  );
+  return response.hosts;
+}
+
+export async function createAdminClientHost(
+  realmSlug: string,
+  clientId: string,
+  host: string
+): Promise<AdminClientHostCreateResponse> {
+  const realm = encodeURIComponent(realmSlug);
+  const client = encodeURIComponent(clientId);
+  return adminJson<AdminClientHostCreateResponse>(
+    `/api/v1/admin/realms/${realm}/clients/${client}/hosts`,
+    { method: 'POST', body: JSON.stringify({ host }) }
+  );
+}
+
+export async function deleteAdminClientHost(
+  realmSlug: string,
+  clientId: string,
+  host: string
+): Promise<AdminClientHostDeleteResponse> {
+  const realm = encodeURIComponent(realmSlug);
+  const client = encodeURIComponent(clientId);
+  const encoded = encodeURIComponent(host);
+  return adminJson<AdminClientHostDeleteResponse>(
+    `/api/v1/admin/realms/${realm}/clients/${client}/hosts/${encoded}`,
     { method: 'DELETE' }
   );
 }

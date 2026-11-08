@@ -6,6 +6,11 @@ export function formatTime(value: number | null | undefined) {
   }).format(new Date(value));
 }
 
+export function formatDate(value: number | null | undefined) {
+  if (!value) return 'Unknown';
+  return new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' }).format(new Date(value));
+}
+
 export function scopeLabel(type: string) {
   if (type === 'global') return 'Canonical session';
   if (type === 'realm') return 'Realm session';
