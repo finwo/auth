@@ -48,7 +48,7 @@ export const SecurityPage: m.Component = {
               {Icon(Monitor)}
               <span>
                 <strong>Current session</strong>
-                <span>account · This device · Active</span>
+                <span>account {'\u00B7'} This device {'\u00B7'} Active</span>
               </span>
               <span class="status">Read-only</span>
             </div>

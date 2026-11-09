@@ -220,7 +220,7 @@ export const SessionsPage: m.Component<SessionsAttrs> = {
                       <p class="session-user">
                         {session.user.username}
                         {session.user.status !== 'active'
-                          ? ` · ${session.user.status}`
+                          ? ` \u00B7 ${session.user.status}`
                           : ''}
                       </p>
                     </div>
@@ -265,7 +265,7 @@ export const SessionsPage: m.Component<SessionsAttrs> = {
                   <div class="session-actions">
                     {session.revoked_at ? null : this.confirmKey === realmKey ? (
                       <div class="confirm">
-                        <span>Revoke this realm’s access?</span>
+                        <span>Revoke this realm's access?</span>
                         <button
                           class="button"
                           type="button"

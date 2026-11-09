@@ -107,43 +107,6 @@
   padding-bottom: 0.75rem;
 }
 
-.domain-name {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 0.8125rem;
-  overflow-wrap: anywhere;
-}
-
-.domain-status {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  color: var(--muted);
-  font-size: 0.8125rem;
-}
-
-.domain-status-dot {
-  width: 0.4375rem;
-  height: 0.4375rem;
-  flex: none;
-  border-radius: 50%;
-  background: var(--muted);
-}
-
-.domain-status.is-pending {
-  color: var(--warn);
-}
-
-.domain-status.is-pending .domain-status-dot {
-  background: var(--warn);
-}
-
-.domain-row-action {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 0.125rem;
-}
-
 .verify-record-name,
 .verify-record-value {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
@@ -154,29 +117,6 @@
   display: flex;
   justify-content: flex-end;
   margin-top: 0.5rem;
-}
-
-@media (min-width: 40em) {
-  .domain-table {
-    table-layout: fixed;
-  }
-
-  .domain-table .domain-status-column {
-    width: 12rem;
-  }
-
-  .domain-table .domain-action-column {
-    width: 14rem;
-  }
-
-  .domain-table td.domain-action-column:not(:empty) {
-    padding-bottom: 0.75rem;
-  }
-
-  .domain-row-action {
-    flex-wrap: nowrap;
-    justify-content: flex-start;
-  }
 }
 
 .realm-display {

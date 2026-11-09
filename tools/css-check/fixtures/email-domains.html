@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>email domains table fixture</title>
+    <link rel="stylesheet" href="../../../app/shared/style/global.css">
+  </head>
+  <body>
+    <main class="content">
+      <section class="card" aria-label="Realm email domains">
+        <div class="toolbar toolbar-panel">
+          <div class="toolbar-search">
+            <input
+              type="search"
+              aria-label="Search email domains"
+              placeholder="Search email domains"
+            >
+          </div>
+          <div class="toolbar-actions">
+            <button class="button button-primary" type="button">Add email domain</button>
+          </div>
+        </div>
+
+        <table class="table table-fixed">
+          <thead>
+            <tr>
+              <th scope="col">Domain</th>
+              <th scope="col" style="--col-w: 14rem">Status</th>
+              <th scope="col" style="--col-w: 14rem">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td data-label="Domain">
+                <span class="table-mono">acme.test</span>
+              </td>
+              <td data-label="Status">
+                <span class="status status-warn">
+                  <span class="status-dot" aria-hidden="true"></span>
+                  Pending verification
+                </span>
+              </td>
+              <td data-label="Actions">
+                <button class="button-inline" type="button">Verify</button>
+                <button class="button-inline button-inline-danger" type="button">Remove</button>
+              </td>
+            </tr>
+            <tr>
+              <td data-label="Domain">
+                <span class="table-mono">widgets.example.org</span>
+              </td>
+              <td data-label="Status">
+                <span class="status">
+                  <span class="status-dot" aria-hidden="true"></span>
+                  Verified
+                </span>
+              </td>
+              <td data-label="Actions">
+                <button class="button-inline button-inline-danger" type="button">Remove</button>
+              </td>
+            </tr>
+            <tr>
+              <td data-label="Domain">
+                <span class="table-mono">a-really-long-domain-name-for-boundary-checking.enterprise.test</span>
+              </td>
+              <td data-label="Status">
+                <span class="status status-warn">
+                  <span class="status-dot" aria-hidden="true"></span>
+                  Pending verification
+                </span>
+              </td>
+              <td data-label="Actions">
+                <button class="button-inline" type="button">Verify</button>
+                <button class="button-inline button-inline-danger" type="button">Remove</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+    </main>
+  </body>
+</html>

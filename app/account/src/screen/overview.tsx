@@ -97,7 +97,7 @@ export const OverviewPage: m.Component<OverviewAttrs> = {
                   </span>
                 </span>
                 <span class="summary-arrow" aria-hidden="true">
-                  ›
+                  {'\u203A'}
                 </span>
               </a>
             </li>
@@ -118,7 +118,7 @@ export const OverviewPage: m.Component<OverviewAttrs> = {
                   </span>
                 </span>
                 <span class="summary-arrow" aria-hidden="true">
-                  ›
+                  {'\u203A'}
                 </span>
               </a>
             </li>

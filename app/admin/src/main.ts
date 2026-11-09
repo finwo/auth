@@ -1,10 +1,10 @@
+import '@style/global.css';
+import './assets/admin.css';
+
 import m from 'mithril';
 import { applyTheme, getTheme } from '@util/theme';
 import { Admin, AdminCallback } from './screen/admin';
 import { getBasePath } from './util/api';
-
-import '@style/global.css';
-import './assets/admin.css';
 
 const routes: m.RouteDefs = {
   '/': {

@@ -393,7 +393,7 @@ export const EmailDomainsPage: m.Component<EmailDomainsAttrs> = {
           <div class="alert" role="alert">
             <p>{this.error.message}</p>
             <button
-              class="button-secondary"
+              class="button button-secondary"
               type="button"
               onclick={() => {
                 if (realmSlug) {
@@ -425,9 +425,9 @@ export const EmailDomainsPage: m.Component<EmailDomainsAttrs> = {
             <div class="skeleton skeleton-short"></div>
           </div>
         ) : (
-          <section class="table-panel domain-table-panel" aria-label="Realm email domains">
-            <div class="table-toolbar">
-              <div class="table-search">
+          <section class="card" aria-label="Realm email domains">
+            <div class="toolbar toolbar-panel">
+              <div class="toolbar-search">
                 <input
                   type="search"
                   value={this.search}
@@ -439,77 +439,73 @@ export const EmailDomainsPage: m.Component<EmailDomainsAttrs> = {
                 />
               </div>
               {canManage ? (
-                <div class="table-actions">
-                  <button class="button" type="button" onclick={() => this.openAdd()}>
+                <div class="toolbar-actions">
+                  <button class="button button-primary" type="button" onclick={() => this.openAdd()}>
                     Add email domain
                   </button>
                 </div>
               ) : null}
             </div>
 
-            <div class="data-table-wrap">
-              <table class="data-table data-table-static domain-table">
-                <thead>
+            <table class="table table-fixed">
+              <thead>
+                <tr>
+                  <th scope="col">Domain</th>
+                  <th scope="col" style="--col-w: 14rem">Status</th>
+                  {canManage ? <th scope="col" style="--col-w: 14rem">Actions</th> : null}
+                </tr>
+              </thead>
+              <tbody>
+                {visible.map((entry: AdminRealmEmailDomain) => (
                   <tr>
-                    <th class="data-table-primary domain-name-column" scope="col">Domain</th>
-                    <th class="domain-status-column" scope="col">Status</th>
-                    {canManage ? <th class="domain-action-column" scope="col">Actions</th> : null}
-                  </tr>
-                </thead>
-                <tbody>
-                  {visible.map((entry: AdminRealmEmailDomain) => (
-                    <tr>
-                      <td class="data-table-primary domain-name-column" data-label="Domain">
-                        <span class="domain-name">{entry.domain}</span>
-                      </td>
-                      <td class="domain-status-column" data-label="Status">
-                        <span
-                          class={
-                            entry.status === 'pending'
-                              ? 'domain-status is-pending'
-                              : 'domain-status'
-                          }
+                    <td data-label="Domain">
+                      <span class="table-mono">{entry.domain}</span>
+                    </td>
+                    <td data-label="Status">
+                      <span
+                        class={
+                          entry.status === 'pending'
+                            ? 'status status-warn'
+                            : 'status'
+                        }
+                      >
+                        <span class="status-dot" aria-hidden="true"></span>
+                        {statusLabel(entry.status)}
+                      </span>
+                    </td>
+                    {canManage ? (
+                      <td data-label="Actions">
+                        {entry.status === 'pending' ? (
+                          <button
+                            class="button-inline"
+                            type="button"
+                            onclick={() => this.openVerify(entry)}
+                          >
+                            Verify
+                          </button>
+                        ) : null}
+                        <button
+                          class="button-inline button-inline-danger"
+                          type="button"
+                          onclick={() => this.openRemove(entry.domain)}
                         >
-                          <span class="domain-status-dot" aria-hidden="true"></span>
-                          {statusLabel(entry.status)}
-                        </span>
+                          Remove
+                        </button>
                       </td>
-                      {canManage ? (
-                        <td class="domain-action-column" data-label="Actions">
-                          <div class="domain-row-action">
-                            {entry.status === 'pending' ? (
-                              <button
-                                class="action-button is-primary"
-                                type="button"
-                                onclick={() => this.openVerify(entry)}
-                              >
-                                Verify
-                              </button>
-                            ) : null}
-                            <button
-                              class="action-button is-danger"
-                              type="button"
-                              onclick={() => this.openRemove(entry.domain)}
-                            >
-                              Remove
-                            </button>
-                          </div>
-                        </td>
-                      ) : null}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              {domains.length > 0 && visible.length === 0 ? (
-                <div class="empty">
-                  <p>No email domains match this search.</p>
-                </div>
-              ) : domains.length === 0 ? (
-                <div class="empty">
-                  <p>No email domains are assigned to this realm.</p>
-                </div>
-              ) : null}
-            </div>
+                    ) : null}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {domains.length > 0 && visible.length === 0 ? (
+              <div class="empty">
+                <p>No email domains match this search.</p>
+              </div>
+            ) : domains.length === 0 ? (
+              <div class="empty">
+                <p>No email domains are assigned to this realm.</p>
+              </div>
+            ) : null}
           </section>
         )}
 
@@ -554,14 +550,14 @@ export const EmailDomainsPage: m.Component<EmailDomainsAttrs> = {
 
               <div class="modal-actions">
                 <button
-                  class="button-secondary"
+                  class="button button-secondary"
                   type="button"
                   disabled={this.creating}
                   onclick={() => this.resetAdd()}
                 >
                   Cancel
                 </button>
-                <button class="button" type="submit" disabled={this.creating}>
+                <button class="button button-primary" type="submit" disabled={this.creating}>
                   {this.creating ? 'Adding' : 'Add domain'}
                 </button>
               </div>
@@ -601,7 +597,7 @@ export const EmailDomainsPage: m.Component<EmailDomainsAttrs> = {
               />
               <div class="verify-copy-row">
                 <button
-                  class="button-secondary"
+                  class="button button-secondary"
                   type="button"
                   onclick={() => this.copyToken()}
                 >
@@ -617,7 +613,7 @@ export const EmailDomainsPage: m.Component<EmailDomainsAttrs> = {
 
             <div class="modal-actions">
               <button
-                class="button-secondary"
+                class="button button-secondary"
                 type="button"
                 disabled={this.verifying}
                 onclick={() => this.resetVerify()}
@@ -625,7 +621,7 @@ export const EmailDomainsPage: m.Component<EmailDomainsAttrs> = {
                 Close
               </button>
               <button
-                class="button"
+                class="button button-primary"
                 type="button"
                 disabled={this.verifying}
                 onclick={() => this.submitVerify()}
@@ -671,7 +667,7 @@ export const EmailDomainsPage: m.Component<EmailDomainsAttrs> = {
 
             <div class="modal-actions">
               <button
-                class="button-secondary"
+                class="button button-secondary"
                 type="button"
                 disabled={this.removing}
                 onclick={() => this.resetRemove()}
@@ -679,7 +675,7 @@ export const EmailDomainsPage: m.Component<EmailDomainsAttrs> = {
                 Cancel
               </button>
               <button
-                class="button-danger"
+                class="button button-danger"
                 type="button"
                 disabled={
                   this.removing ||

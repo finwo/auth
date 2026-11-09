@@ -1,0 +1,64 @@
+@layer mockups {
+  /* demo chrome: the floating theme/state bar every mockup page shares */
+  .mockup-controls {
+    position: fixed;
+    right: max(var(--space-4), env(safe-area-inset-right));
+    bottom: max(var(--space-4), env(safe-area-inset-bottom));
+    z-index: 100;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-1);
+    width: min(calc(100vw - var(--space-8)), fit-content);
+    padding: 0.375rem;
+    background: var(--sidebar);
+    color: var(--on-chrome);
+    box-shadow: var(--shadow);
+    font-size: var(--font-xs);
+  }
+
+  .mockup-label {
+    padding: 0 var(--space-2);
+    color: var(--chrome-label);
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .mockup-button {
+    padding: 0.375rem 0.625rem;
+    border: 0;
+    background: transparent;
+    color: var(--chrome-text);
+    font: inherit;
+    font-size: var(--font-xs);
+    cursor: pointer;
+  }
+
+  .mockup-button:hover {
+    background: var(--menu-hover);
+    color: var(--on-chrome);
+  }
+
+  .mockup-button.is-active {
+    background: var(--sidebar-active);
+    color: var(--on-chrome);
+  }
+
+  .mockup-separator {
+    width: 1pt;
+    height: var(--space-5);
+    margin: 0 var(--space-1);
+    background: var(--chrome-divider);
+  }
+
+  /* demo scaffolding: a section showing component states side by side */
+  .state-preview {
+    margin-block-start: var(--space-8);
+  }
+
+  .state-preview > h2 {
+    margin-block-end: var(--space-3);
+  }
+}

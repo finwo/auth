@@ -180,9 +180,9 @@ export const Account: m.Component = {
     }
     document.title =
       page === 'security'
-        ? 'Security · Account'
+        ? 'Security \u00B7 Account'
         : page === 'apps'
-          ? 'Apps · Account'
+          ? 'Apps \u00B7 Account'
           : 'Account';
   },
 

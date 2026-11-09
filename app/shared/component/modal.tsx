@@ -38,7 +38,7 @@ export const Modal: m.Component<ModalAttrs> = {
   view({ attrs, children }) {
     return (
       <div
-        class="modal-overlay"
+        class="overlay"
         onmousedown={(event: MouseEvent) => {
           if (event.target === event.currentTarget) attrs.onClose();
         }}

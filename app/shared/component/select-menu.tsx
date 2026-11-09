@@ -1,7 +1,7 @@
 import { Check, ChevronDown } from 'lucide';
 import m from 'mithril';
 import { Icon } from '@component/icon';
-import '@style/select-menu.css';
+import './select-menu.css';
 
 let nextSelectId = 0;
 
