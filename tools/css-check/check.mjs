@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Tier A static CSS verification for the shared framework and its consumers.
+// Static CSS verification for the shared framework and its consumers.
 // Dependency-free plain Node. Run from anywhere:
 //   node tools/css-check/check.mjs --scope repo
 //   node tools/css-check/check.mjs --scope app --app admin
@@ -26,8 +26,8 @@ const FRAMEWORK_CSS = 'app/shared/style/global.css';
 const COMPONENT_CSS_DIR = 'app/shared/component';
 const MOCKUP_DIR = 'mockup/plain';
 
-// files the framework contract governs: the shared framework, its consumer
-// stylesheets, the mockup pages, and this harness
+// source trees the framework governs: shared framework, consumers, mockups,
+// and this harness
 const MIGRATION_PREFIXES = ['app/', `${MOCKUP_DIR}/`, 'tools/'];
 // every source tree checked for plain-ASCII and code-comment hygiene
 const SCAN_ROOTS = ['app', 'mockup', 'tools'];
@@ -94,6 +94,45 @@ function allowed(r) {
 
 function stripComments(text) {
   return text.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/<!--[\s\S]*?-->/g, ' ');
+}
+
+// blanks comments preserving byte offsets and line numbers
+function blankCommentsKeepLines(text) {
+  return text.replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, ' '));
+}
+
+function lineAt(text, index) {
+  let line = 1;
+  for (let i = 0; i < index; i += 1) if (text.charCodeAt(i) === 10) line += 1;
+  return line;
+}
+
+// css files policed by the unit guards
+function unitGuardFiles() {
+  const files = new Set();
+  const dirs = new Set([COMPONENT_CSS_DIR]);
+  const appRoot = path.join(REPO, 'app');
+  if (fs.existsSync(appRoot)) {
+    for (const entry of fs.readdirSync(appRoot, { withFileTypes: true })) {
+      if (!entry.isDirectory()) continue;
+      for (const sub of ['src/style', 'src/assets', 'dist']) {
+        dirs.add(`app/${entry.name}/${sub}`);
+      }
+    }
+  }
+  for (const d of dirs) {
+    const full = path.join(REPO, d);
+    if (fs.existsSync(full) && fs.statSync(full).isDirectory()) {
+      for (const f of walk(full, [])) if (f.endsWith('.css')) files.add(f);
+    }
+  }
+  const fw = path.join(REPO, FRAMEWORK_CSS);
+  if (fs.existsSync(fw)) files.add(fw);
+  for (const f of TRANSITION_ALLOW) {
+    const full = path.join(REPO, f);
+    if (fs.existsSync(full)) files.add(full);
+  }
+  return [...files].sort();
 }
 
 // Minimal block parser: yields { selector, body, chain } for every style
@@ -235,21 +274,50 @@ function main() {
     const r = rel(file);
     const hard = !allowed(r);
     for (const rule of parseRules(fs.readFileSync(file, 'utf8'))) {
-      if (!hasCellCompound(rule.selector)) continue;
+      const sel = rule.selector.replace(/\s+/g, ' ');
       const mentionsTable = hasTableClass(rule.selector);
       for (const d of decls(rule.body)) {
         const prop = d.prop.toLowerCase();
         const value = d.value.toLowerCase();
         const badDisplay = prop === 'display' && /flex|grid|inline-flex|inline-grid/.test(value);
-        if (badDisplay || prop === 'min-height') {
-          if (mentionsTable) {
-            report(file, 'align', `cell rule "${rule.selector}" declares ${d.prop}: ${d.value}`, hard);
+        if ((badDisplay || prop === 'min-height') && mentionsTable) {
+          report(file, 'align', `cell rule "${sel}" declares ${d.prop}: ${d.value}`, hard);
+        }
+        if (prop === 'vertical-align') {
+          if (hasCellCompound(rule.selector)) {
+            report(file, 'align', `"${sel}" declares ${d.prop}: ${d.value}`, hard);
           }
         }
-        if (prop === 'vertical-align' && value.replace(/!important/, '').trim() !== 'middle') {
-          if (mentionsTable || /(^|[\s>+~])t[hd](?![\w-])/.test(rule.selector)) {
-            report(file, 'align', `table cell rule "${rule.selector}" sets vertical-align: ${d.value} (only middle allowed)`, hard);
-          }
+      }
+    }
+  }
+
+  // ---- guard 1b: hard px and pt unit guards --------------------------------
+  for (const file of unitGuardFiles()) {
+    const r = rel(file);
+    if (SCOPE !== 'repo') {
+      const prefix = `app/${APP_NAME}/`;
+      if (!r.startsWith(prefix) && !r.startsWith('app/shared/') && !allowed(r)) continue;
+    }
+    const hard = !allowed(r);
+    const text = fs.readFileSync(file, 'utf8');
+    const clean = blankCommentsKeepLines(text);
+    const pxRe = /(?:\d+(?:\.\d+)?|\.\d+)px(?![A-Za-z0-9_-])/g;
+    let pxm;
+    while ((pxm = pxRe.exec(clean))) {
+      report(file, 'unit', `px unit on line ${lineAt(clean, pxm.index)}: "${pxm[0]}"`, hard);
+    }
+    for (const rule of parseRules(text)) {
+      for (const d of decls(rule.body)) {
+        if (!/(?:\d+(?:\.\d+)?|\.\d+)pt/.test(d.value)) continue;
+        const prop = d.prop.toLowerCase();
+        const borderish = /^(?:border|outline)/.test(prop);
+        // 1pt hairline lengths on clip, separator, and shadow properties
+        const ptTokens = d.value.match(/-?(?:\d+(?:\.\d+)?|\.\d+)pt/g) || [];
+        const allHairline = ptTokens.every((t) => t === '1pt' || t === '-1pt');
+        const hairlineGeom = /^(?:width|height|margin|box-shadow)$/.test(prop) && allHairline;
+        if (!borderish && !hairlineGeom) {
+          report(file, 'unit', `pt unit on ${d.prop}: ${d.value} (${rule.selector.replace(/\s+/g, ' ')})`, hard);
         }
       }
     }

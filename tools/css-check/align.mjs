@@ -1,16 +1,12 @@
 #!/usr/bin/env node
-// Tier B table-alignment proof. Renders a page in system Google Chrome
-// (headless, driven over CDP with built-in fetch + WebSocket, no npm deps),
-// then measures the vertical center of each table cell's first inline content
-// per row. In real-table mode the spread of centers within a row must stay
-// under the threshold; in stacked mode every cell must be a single full-width
-// column, where centering is trivially correct.
+// Table alignment gate: zero-size inline-block baseline probes, zero spread.
 //
 //   node tools/css-check/align.mjs
+//   node tools/css-check/align.mjs --fixture tools/css-check/fixtures/negative-misaligned.html
 //   node tools/css-check/align.mjs --url http://127.0.0.1:8080/index.html
 //
-// Options: --url, --widths 390,1440, --themes auto,light,dark,
-//          --threshold 0.5, --chrome <binary>
+// Options: --url, --fixture <file> (repeatable), --widths 1440,390,
+//          --themes auto,light,dark, --chrome <binary>
 
 import { spawn } from 'node:child_process';
 import fs from 'node:fs';
@@ -18,24 +14,52 @@ import os from 'node:os';
 import path from 'node:path';
 import process from 'node:process';
 
-const REPO = path.resolve(import.meta.dirname, '..', '..');
+const FIXTURE_DIR = path.join(import.meta.dirname, 'fixtures');
 
 function flagValue(name, dflt) {
   const i = process.argv.indexOf(name);
   return i >= 0 && process.argv[i + 1] ? process.argv[i + 1] : dflt;
 }
 
+function flagAll(name) {
+  const out = [];
+  for (let i = 0; i < process.argv.length; i += 1) {
+    if (process.argv[i] === name && process.argv[i + 1]) out.push(process.argv[i + 1]);
+  }
+  return out;
+}
+
 const CHROME = flagValue(
   '--chrome',
   process.env.CHROME_PATH || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
 );
-const TARGET_URL = flagValue(
-  '--url',
-  new URL('./fixtures/email-domains.html', import.meta.url).href,
-);
-const WIDTHS = flagValue('--widths', '390,1440').split(',').map(Number);
+const WIDTHS = flagValue('--widths', '1440,390').split(',').map(Number);
 const THEMES = flagValue('--themes', 'auto,light,dark').split(',');
-const THRESHOLD = Number(flagValue('--threshold', '0.5'));
+
+function targetList() {
+  const url = flagValue('--url', null);
+  if (url) return [{ label: url, url, negative: false }];
+  const fixtures = flagAll('--fixture');
+  if (fixtures.length) {
+    return fixtures.map((f) => {
+      const full = path.resolve(f);
+      return {
+        label: path.basename(full),
+        url: new URL(`file://${full}`).href,
+        negative: path.basename(full).startsWith('negative-'),
+      };
+    });
+  }
+  return fs
+    .readdirSync(FIXTURE_DIR)
+    .filter((f) => f.endsWith('.html'))
+    .sort()
+    .map((f) => ({
+      label: f,
+      url: new URL(`file://${path.join(FIXTURE_DIR, f)}`).href,
+      negative: f.startsWith('negative-'),
+    }));
+}
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -106,112 +130,183 @@ function connectCdp(wsUrl) {
   });
 }
 
-// evaluated inside the page: applies the theme and measures every table.table
-const MEASURE = (theme) => `
+function measurementExpression(theme) {
+  return `
 (function () {
-  var theme = ${JSON.stringify(theme)};
-  if (theme === 'auto') {
+  if (${JSON.stringify(theme)} === 'auto') {
     document.documentElement.removeAttribute('data-theme');
   } else {
-    document.documentElement.setAttribute('data-theme', theme);
+    document.documentElement.setAttribute('data-theme', ${JSON.stringify(theme)});
+  }
+  var Q = 64; // browser layout precision: multiples of 1/64 of a CSS pixel
+  function q(v) { return Math.round(v * Q); }
+
+  var out = {
+    tables: 0, rows: 0, multiCells: 0, mode: 'none',
+    maxSpreadGrid: 0, captions: 0, fail: []
+  };
+
+  function hasBlockChild(cell) {
+    var kids = cell.children;
+    for (var i = 0; i < kids.length; i += 1) {
+      var d = window.getComputedStyle(kids[i]).display;
+      if (d !== 'inline' && d !== 'inline-block' && d !== 'none') return true;
+    }
+    return false;
   }
 
-  function baselineOf(cell) {
-    // a zero-size inline-block with vertical-align baseline places its border
-    // box top exactly on the line's baseline without affecting layout
-    var probe = document.createElement('span');
-    probe.style.display = 'inline-block';
-    probe.style.width = '0px';
-    probe.style.height = '0px';
-    probe.style.verticalAlign = 'baseline';
-    cell.appendChild(probe);
-    var y = probe.getBoundingClientRect().top;
-    cell.removeChild(probe);
-    return y;
-  }
-
-  function contentHeight(cell) {
+  function lineBands(cell) {
     var range = document.createRange();
     range.selectNodeContents(cell);
     var rects = range.getClientRects();
-    var top = Infinity;
-    var bottom = -Infinity;
-    for (var q = 0; q < rects.length; q += 1) {
-      if (rects[q].height === 0) continue;
-      if (rects[q].top < top) top = rects[q].top;
-      if (rects[q].bottom > bottom) bottom = rects[q].bottom;
+    var sorted = [];
+    for (var i = 0; i < rects.length; i += 1) {
+      if (rects[i].height > 0) sorted.push(rects[i]);
     }
-    return bottom === -Infinity ? 0 : bottom - top;
+    sorted.sort(function (a, b) { return a.top - b.top; });
+    var bands = 0;
+    var bottom = -Infinity;
+    for (var j = 0; j < sorted.length; j += 1) {
+      if (sorted[j].top > bottom) { bands += 1; bottom = sorted[j].bottom; }
+      else if (sorted[j].bottom > bottom) bottom = sorted[j].bottom;
+    }
+    return bands;
   }
 
-  var result = { tables: 0, mode: 'none', rows: 0, maxSpread: 0, stackedOk: true, wrapped: 0 };
-  var tables = document.querySelectorAll('table.table');
-  result.tables = tables.length;
-  // one-line invariant: a .status or .button-inline that wraps onto two line
-  // fragments splits into multiple client rects; centering math cannot see it,
-  // so flag every wrapped chip in table mode
-  var firstCell = document.querySelector('table.table td');
-  if (firstCell && window.getComputedStyle(firstCell).display === 'table-cell') {
-    var chips = document.querySelectorAll('table.table .status, table.table .button-inline');
-    for (var z = 0; z < chips.length; z += 1) {
-      var chipRects = chips[z].getClientRects();
-      var fragments = 0;
-      for (var y = 0; y < chipRects.length; y += 1) {
-        if (chipRects[y].height > 0) fragments += 1;
-      }
-      if (fragments > 1) result.wrapped += 1;
+  function probeBaseline(cell, where) {
+    var probe = document.createElement('span');
+    probe.style.cssText = 'display:inline-block;width:0;height:0;';
+    cell.appendChild(probe);
+    var rect = probe.getBoundingClientRect();
+    cell.removeChild(probe);
+    if (rect.width !== 0 || rect.height !== 0 || !isFinite(rect.bottom)) {
+      out.fail.push(where + ': probe is not a zero-size inline-block');
+      return null;
     }
+    return rect.bottom;
   }
+
+  var tables = document.querySelectorAll('table.table');
+  out.tables = tables.length;
+  if (!tables.length) {
+    out.fail.push('no table.table found on the page');
+    return JSON.stringify(out);
+  }
+  var tableMode = window.matchMedia('(min-width: 40em)').matches;
+  out.mode = tableMode ? 'table' : 'card';
+
   for (var t = 0; t < tables.length; t += 1) {
-    var rows = tables[t].querySelectorAll('tbody tr');
-    for (var r = 0; r < rows.length; r += 1) {
-      var cells = rows[r].querySelectorAll('td');
-      if (!cells.length) continue;
-      result.rows += 1;
-      var display = window.getComputedStyle(cells[0]).display;
-      if (display === 'table-cell') {
-        result.mode = 'table';
-        var centers = [];
+    var table = tables[t];
+    var at = 'table ' + (t + 1);
+    var rows = table.querySelectorAll('tbody tr');
+    if (!rows.length) {
+      out.fail.push(at + ': no tbody rows (degenerate table)');
+      continue;
+    }
+
+    if (tableMode) {
+      var thead = table.querySelector('thead');
+      if (!thead || window.getComputedStyle(thead).display === 'none') {
+        out.fail.push(at + ': thead is not rendered in table mode');
+      }
+      for (var r = 0; r < rows.length; r += 1) {
+        var cells = rows[r].querySelectorAll('td');
+        var baselines = [];
+        var where = at + ' row ' + (r + 1);
         for (var c = 0; c < cells.length; c += 1) {
-          if (!cells[c].getBoundingClientRect().height) continue;
-          var lh = parseFloat(window.getComputedStyle(cells[c]).lineHeight) || 0;
-          var h = contentHeight(cells[c]);
-          // single-line cells must share one baseline; multi-line cells center
-          // their content box on the row centerline instead
-          if (lh > 0 && h <= lh * 1.5) {
-            centers.push(baselineOf(cells[c]));
-          } else {
-            centers.push(cells[c].getBoundingClientRect().top + cells[c].getBoundingClientRect().height / 2);
+          var cell = cells[c];
+          var cs = window.getComputedStyle(cell);
+          if (cs.display === 'none') continue;
+          if (cs.display !== 'table-cell') {
+            out.fail.push(where + ' cell ' + (c + 1) + ': display is "' + cs.display + '", expected table-cell');
+          }
+          var caption = window.getComputedStyle(cell, '::before').content;
+          if (cell.hasAttribute('data-label') && caption && caption !== 'none' && caption !== 'normal') {
+            out.fail.push(where + ' cell ' + (c + 1) + ': data-label caption still renders in table mode');
+          }
+          if (hasBlockChild(cell) || lineBands(cell) > 1) {
+            out.multiCells += 1;
+            continue;
+          }
+          var base = probeBaseline(cell, where + ' cell ' + (c + 1));
+          if (base !== null) baselines.push(base);
+        }
+        out.rows += 1;
+        if (baselines.length < 2) {
+          out.fail.push(where + ': fewer than 2 measurable single-line cells (degenerate row)');
+          continue;
+        }
+        var lo = Math.min.apply(null, baselines);
+        var hi = Math.max.apply(null, baselines);
+        var glo = q(lo);
+        var ghi = q(hi);
+        if (ghi - glo !== 0) {
+          out.fail.push(where + ': baseline spread = ' + (ghi - glo) + '/64 across ' + baselines.length + ' single-line cells');
+        }
+        if (ghi - glo > out.maxSpreadGrid) {
+          out.maxSpreadGrid = ghi - glo;
+        }
+      }
+    } else {
+      var thead2 = table.querySelector('thead');
+      if (thead2 && window.getComputedStyle(thead2).display !== 'none') {
+        out.fail.push(at + ': thead is visible in card mode');
+      }
+      for (var r2 = 0; r2 < rows.length; r2 += 1) {
+        var cells2 = rows[r2].querySelectorAll('td');
+        if (!cells2.length) {
+          out.fail.push(at + ' row ' + (r2 + 1) + ': no cells to stack');
+          continue;
+        }
+        out.rows += 1;
+        var trDisplay = window.getComputedStyle(rows[r2]).display;
+        if (trDisplay !== 'block') {
+          out.fail.push(at + ' row ' + (r2 + 1) + ': tr display is "' + trDisplay + '", expected block');
+        }
+        var widths = [];
+        var lastTop = -Infinity;
+        for (var c2 = 0; c2 < cells2.length; c2 += 1) {
+          var cell2 = cells2[c2];
+          var cs2 = window.getComputedStyle(cell2);
+          if (cs2.display !== 'block') {
+            out.fail.push(at + ' row ' + (r2 + 1) + ' cell ' + (c2 + 1) + ': display is "' + cs2.display + '", expected block');
+          }
+          var rect2 = cell2.getBoundingClientRect();
+          widths.push(q(rect2.width));
+          if (rect2.top < lastTop) {
+            out.fail.push(at + ' row ' + (r2 + 1) + ' cell ' + (c2 + 1) + ': not stacked below its sibling');
+          }
+          lastTop = rect2.top;
+          var label = cell2.getAttribute('data-label');
+          if (label !== null) {
+            var before = window.getComputedStyle(cell2, '::before');
+            if (before.display === 'none' || before.content !== JSON.stringify(label)) {
+              out.fail.push(at + ' row ' + (r2 + 1) + ' cell ' + (c2 + 1) + ': data-label caption "' + label + '" does not render (content ' + before.content + ')');
+            } else {
+              out.captions += 1;
+            }
           }
         }
-        if (centers.length > 1) {
-          var spread = Math.max.apply(null, centers) - Math.min.apply(null, centers);
-          if (spread > result.maxSpread) result.maxSpread = spread;
-        }
-      } else {
-        if (result.mode !== 'table') result.mode = 'stacked';
-        var widest = 0;
-        for (var k = 0; k < cells.length; k += 1) {
-          var cs = window.getComputedStyle(cells[k]);
-          if (cs.display !== 'block') result.stackedOk = false;
-          var w = cells[k].getBoundingClientRect().width;
-          if (w > widest) widest = w;
-        }
-        for (var j = 0; j < cells.length; j += 1) {
-          if (cells[j].getBoundingClientRect().width < widest - 2) result.stackedOk = false;
+        for (var k = 1; k < widths.length; k += 1) {
+          if (widths[k] !== widths[0]) {
+            out.fail.push(at + ' row ' + (r2 + 1) + ': cells are not one full-width column');
+            break;
+          }
         }
       }
     }
   }
-  return JSON.stringify(result);
+  return JSON.stringify(out);
 })()
 `;
+}
 
 async function main() {
   if (!fs.existsSync(CHROME)) {
     console.error(`align: chrome binary not found: ${CHROME}`);
     process.exit(1);
   }
+  const targets = targetList();
   const userDir = fs.mkdtempSync(path.join(os.tmpdir(), 'css-check-chrome-'));
   const chrome = spawn(
     CHROME,
@@ -231,67 +326,75 @@ async function main() {
   let exitCode = 1;
   try {
     const port = await waitForPort(userDir);
-    const targets = await (
-      await fetch(`http://127.0.0.1:${port}/json/list`)
-    ).json();
-    const page = targets.find((t) => t.type === 'page');
+    const cdpTargets = await (await fetch(`http://127.0.0.1:${port}/json/list`)).json();
+    const page = cdpTargets.find((x) => x.type === 'page');
     if (!page) throw new Error('no page target');
     const cdp = await connectCdp(page.webSocketDebuggerUrl);
 
     await cdp.send('Page.enable');
     await cdp.send('Runtime.enable');
 
-    console.log(`align: target ${TARGET_URL}`);
-    console.log(`align: threshold ${THRESHOLD}px widths=${WIDTHS.join(',')} themes=${THEMES.join(',')}`);
+    console.log(`align: probe gate (zero-size inline-block baseline, zero spread) widths=${WIDTHS.join(',')} themes=${THEMES.join(',')}`);
 
     let failures = 0;
-    for (const width of WIDTHS) {
-      for (const theme of THEMES) {
-        const scheme = theme === 'dark' ? 'dark' : theme === 'light' ? 'light' : 'no-preference';
-        await cdp.send('Emulation.setDeviceMetricsOverride', {
-          width,
-          height: 900,
-          deviceScaleFactor: 1,
-          mobile: width < 500,
-        });
-        await cdp.send('Emulation.setEmulatedMedia', {
-          features: [{ name: 'prefers-color-scheme', value: scheme }],
-        });
-        const loaded = cdp.waitEvent('Page.loadEventFired');
-        await cdp.send('Page.navigate', { url: TARGET_URL });
-        await loaded;
-        await sleep(150);
-        const evaluated = await cdp.send('Runtime.evaluate', {
-          expression: MEASURE(theme),
-          returnByValue: true,
-        });
-        if (evaluated.exceptionDetails) {
-          throw new Error(`page evaluation failed at ${width}/${theme}`);
-        }
-        const m = JSON.parse(evaluated.result.value);
+    for (const target of targets) {
+      for (const width of WIDTHS) {
+        for (const theme of THEMES) {
+          const scheme = theme === 'dark' ? 'dark' : theme === 'light' ? 'light' : 'no-preference';
+          await cdp.send('Emulation.setDeviceMetricsOverride', {
+            width,
+            height: 900,
+            deviceScaleFactor: 1,
+            mobile: width < 500,
+          });
+          await cdp.send('Emulation.setEmulatedMedia', {
+            features: [{ name: 'prefers-color-scheme', value: scheme }],
+          });
+          const loaded = cdp.waitEvent('Page.loadEventFired');
+          await cdp.send('Page.navigate', { url: target.url });
+          await loaded;
+          await sleep(150);
+          const evaluated = await cdp.send('Runtime.evaluate', {
+            expression: measurementExpression(theme),
+            returnByValue: true,
+          });
+          if (evaluated.exceptionDetails) {
+            throw new Error(`page evaluation failed for ${target.label} at ${width}/${theme}`);
+          }
+          const m = JSON.parse(evaluated.result.value);
+          const gateRed = m.fail.length > 0 || m.tables === 0 || m.rows === 0;
 
-        let ok = m.tables > 0 && m.rows > 0;
-        let detail = '';
-        if (m.mode === 'table') {
-          ok = ok && m.maxSpread < THRESHOLD && m.wrapped === 0;
-          detail = `mode=table rows=${m.rows} max-center-spread=${m.maxSpread.toFixed(3)}px (limit ${THRESHOLD}px) wrapped-chips=${m.wrapped}`;
-        } else if (m.mode === 'stacked') {
-          ok = ok && m.stackedOk;
-          detail = `mode=stacked rows=${m.rows} single-column=${m.stackedOk ? 'yes' : 'NO'}`;
-        } else {
-          ok = false;
-          detail = 'no table.table rendered';
+          const head = `${target.label}  ${String(width).padStart(4)} ${theme.padEnd(4)}`;
+          const stats =
+            m.mode === 'table'
+              ? `mode=table tables=${m.tables} rows=${m.rows} multi-cells=${m.multiCells} max-baseline-spread=${m.maxSpreadGrid}/64`
+              : `mode=card tables=${m.tables} rows=${m.rows} captions=${m.captions}`;
+
+          if (target.negative && m.mode === 'table') {
+            if (gateRed) {
+              console.log(`  ${head}  RED-AS-EXPECTED  ${stats}`);
+              for (const f of m.fail.slice(0, 3)) console.log(`      gate caught: ${f}`);
+            } else {
+              failures += 1;
+              console.log(`  ${head}  FAIL  ${stats}`);
+              console.log('      negative-control PASSED: the baseline gate is not measuring probes');
+            }
+          } else if (gateRed) {
+            failures += 1;
+            console.log(`  ${head}  FAIL  ${stats}`);
+            for (const f of m.fail.slice(0, 5)) console.log(`      ${f}`);
+          } else {
+            console.log(`  ${head}  PASS  ${stats}`);
+          }
         }
-        if (!ok) failures += 1;
-        console.log(`  ${String(width).padStart(4)}px ${theme.padEnd(4)} ${ok ? 'PASS' : 'FAIL'}  ${detail}`);
       }
     }
 
     if (failures) {
-      console.log(`align: FAIL (${failures} combination(s) over threshold)`);
+      console.log(`align: FAIL (${failures} failing combination(s))`);
       exitCode = 1;
     } else {
-      console.log('align: PASS (all widths x themes)');
+      console.log('align: PASS (all fixtures x widths x themes)');
       exitCode = 0;
     }
     cdp.close();

@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>two-line primary rows fixture</title>
+    <link rel="stylesheet" href="../../../app/shared/style/global.css">
+  </head>
+  <body>
+    <main class="content">
+      <section class="card" aria-label="Clients">
+        <table class="table table-fixed">
+          <thead>
+            <tr>
+              <th scope="col">Client</th>
+              <th scope="col" style="--col-w: 16rem">Realm URL</th>
+              <th scope="col" style="--col-w: 14rem">Status</th>
+              <th scope="col" style="--col-w: 10rem">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td data-label="Client">
+                <span class="table-title">acme-web</span>
+                <span class="table-sub">urn:ietf:params:oauth:client-Id:acme-web</span>
+              </td>
+              <td data-label="Realm URL">
+                <span class="table-mono">https://acme.test/auth/realms/main</span>
+              </td>
+              <td data-label="Status">
+                <span class="status">
+                  <span class="status-dot" aria-hidden="true"></span>
+                  Enabled
+                </span>
+              </td>
+              <td data-label="Actions">
+                <button class="button-inline" type="button">Edit</button>
+                <button class="button-inline button-inline-danger" type="button">Delete</button>
+              </td>
+            </tr>
+            <tr>
+              <td data-label="Client">
+                <span class="table-title">widgets-portal</span>
+                <span class="table-sub">urn:ietf:params:oauth:client-Id:widgets-portal</span>
+              </td>
+              <td data-label="Realm URL">
+                <span class="table-mono">https://widgets.example.org/auth/realms/public</span>
+              </td>
+              <td data-label="Status">
+                <span class="status status-warn">
+                  <span class="status-dot" aria-hidden="true"></span>
+                  Disabled
+                </span>
+              </td>
+              <td data-label="Actions">
+                <button class="button-inline" type="button">Edit</button>
+              </td>
+            </tr>
+            <tr>
+              <td data-label="Client">plain single-line row control</td>
+              <td data-label="Realm URL">
+                <span class="table-mono">https://plain.test/auth</span>
+              </td>
+              <td data-label="Status">
+                <span class="status">Enabled</span>
+              </td>
+              <td data-label="Actions">
+                <button class="button-inline" type="button">Edit</button>
+              </td>
+            </tr>
+            <tr>
+              <td data-label="Client">
+                <span class="table-title">a-client-with-a-very-long-name-that-wraps</span>
+                <span class="table-sub">urn:ietf:params:oauth:client-Id:a-client-with-a-very-long-name-that-wraps</span>
+              </td>
+              <td data-label="Realm URL">
+                <span class="table-mono">https://long.test/auth/realms/deep</span>
+              </td>
+              <td data-label="Status">
+                <span class="status">
+                  <span class="status-dot" aria-hidden="true"></span>
+                  Enabled
+                </span>
+              </td>
+              <td data-label="Actions">
+                <button class="button-inline" type="button">Edit</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+    </main>
+  </body>
+</html>

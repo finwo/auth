@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>degenerate rows control fixture</title>
+    <link rel="stylesheet" href="../../../app/shared/style/global.css">
+  </head>
+  <body>
+    <!-- negative control: row 1 has a single cell, row 2's cells are two-line; no row has two measurable cells -->
+    <main class="content">
+      <section class="card" aria-label="Degenerate rows">
+        <table class="table">
+          <thead>
+            <tr>
+              <th scope="col">Name</th>
+              <th scope="col">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td data-label="Name">only-one-cell.test</td>
+            </tr>
+            <tr>
+              <td data-label="Name">
+                <span class="table-title">first-stack</span>
+                <span class="table-sub">two lines are not measurable</span>
+              </td>
+              <td data-label="Status">
+                <span class="table-title">second-stack</span>
+                <span class="table-sub">two lines are not measurable</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+    </main>
+  </body>
+</html>
