@@ -573,6 +573,7 @@
    primitives: small, composable, token-driven building blocks.
    ========================================================================== */
 @layer primitives {
+  /* structure: boxed, default filled */
   .button {
     display: inline-flex;
     align-items: center;
@@ -582,7 +583,6 @@
     padding: var(--space-2) var(--space-4);
     border: 0;
     border-radius: var(--radius-0);
-    color: var(--on-accent);
     font: inherit;
     font-size: var(--font-base);
     font-weight: 500;
@@ -591,31 +591,21 @@
     text-align: center;
     cursor: pointer;
     transition: background var(--dur-1) var(--ease), color var(--dur-1) var(--ease);
+    background: var(--btn-fill, var(--accent));
+    color: var(--btn-on, var(--on-accent));
   }
   .button:disabled { opacity: .55; cursor: default; }
+  .button:hover:not(:disabled) { background: var(--btn-fill-hover, var(--accent-hover)); }
+  .button:active:not(:disabled) { background: var(--btn-fill-active, var(--accent-active)); }
 
-  /* filled: primary form/modal action */
-  .button-primary { background: var(--accent); }
-  .button-primary:hover:not(:disabled) { background: var(--accent-hover); }
-  .button-primary:active:not(:disabled) { background: var(--accent-active); }
-
-  /* outline: secondary form/modal action */
-  .button-secondary { background: transparent; color: var(--accent-text);
-    box-shadow: inset 0 0 0 1pt var(--accent); }
-  .button-secondary:hover:not(:disabled) { background: var(--accent-tint); }
-
-  /* filled danger */
-  .button-danger { background: var(--danger); }
-  .button-danger:hover:not(:disabled) { filter: brightness(1.08); }
-
-  /* plain-text: IN-ROW table actions ONLY. No box, baseline-aligned. */
+  /* structure: text, default text theming */
   .button-inline {
     display: inline-block;
     min-height: 0;
     padding: 0;
     border: 0;
     background: none;
-    color: var(--accent-text);
+    color: var(--btn-text, var(--accent-text));
     text-transform: none;
     letter-spacing: normal;
     line-height: var(--lh-body);
@@ -623,9 +613,63 @@
     cursor: pointer;
   }
   .button-inline:disabled { cursor: default; }
-  .button-inline:hover { color: var(--accent-text-hover); text-decoration: underline; }
-  .button-inline-danger { color: var(--danger-text); }
-  .button-inline-danger:hover { color: var(--danger-text); }
+  .button-inline:hover { color: var(--btn-text-hover, var(--accent-text-hover));
+    text-decoration: underline; }
+
+  /* pattern theming */
+  .button-filled { background: var(--btn-fill, var(--accent));
+    color: var(--btn-on, var(--on-accent)); }
+  .button-filled:hover:not(:disabled) { background: var(--btn-fill-hover, var(--accent-hover)); }
+  .button-filled:active:not(:disabled) { background: var(--btn-fill-active, var(--accent-active)); }
+  .button-text { background: none; color: var(--btn-text, var(--accent-text)); }
+  .button-text:hover:not(:disabled) { background: none; color: var(--btn-text-hover, var(--accent-text-hover)); }
+  .button-outline { background: transparent; color: var(--btn-text, var(--accent-text));
+    box-shadow: inset 0 0 0 1pt var(--btn-line, var(--accent)); }
+  .button-outline:hover:not(:disabled) { background: var(--btn-tint, var(--accent-tint)); }
+
+  /* color theming */
+  .button-primary {
+    --btn-fill: var(--accent);
+    --btn-fill-hover: var(--accent-hover);
+    --btn-fill-active: var(--accent-active);
+    --btn-on: var(--on-accent);
+    --btn-text: var(--accent-text);
+    --btn-text-hover: var(--accent-text-hover);
+    --btn-line: var(--accent);
+    --btn-tint: var(--accent-tint);
+  }
+  .button-secondary {
+    --btn-fill: var(--accent-tint);
+    --btn-fill-hover: var(--accent-tint);
+    --btn-fill-active: var(--accent-tint);
+    --btn-on: var(--accent-text);
+    --btn-text: var(--accent-text);
+    --btn-text-hover: var(--accent-text-hover);
+    --btn-line: var(--accent);
+    --btn-tint: var(--accent-tint);
+  }
+  .button-danger {
+    --btn-fill: var(--danger);
+    --btn-fill-hover: var(--danger);
+    --btn-fill-active: var(--danger);
+    --btn-on: var(--on-accent);
+    --btn-text: var(--danger-text);
+    --btn-text-hover: var(--danger-text);
+    --btn-line: var(--danger);
+    --btn-tint: var(--danger-tint);
+  }
+
+  /* theming-only compounds carry pattern-specific deltas */
+  .button-filled.button-danger:hover:not(:disabled) { filter: brightness(1.08); }
+  .button-filled.button-danger:active:not(:disabled) { filter: brightness(.94); }
+
+  /* coarse pointer: taller hit area, layout unchanged */
+  @media (pointer: coarse) {
+    .button-inline {
+      padding-block: var(--space-3);
+      margin-block: calc(var(--space-3) * -1);
+    }
+  }
 
   .button-inline + .button-inline { margin-inline-start: var(--space-4); }
 
@@ -761,7 +805,6 @@
 
     /* Opt-in fixed columns -- ONLY when a screen needs stable gutters. */
     .table-fixed { table-layout: fixed; }
-    .table-fixed th { width: var(--col-w, auto); }
   }
 
   /* toolbar: column by default, row at 40em+ */
