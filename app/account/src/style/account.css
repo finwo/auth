@@ -1,0 +1,124 @@
+@layer apps {
+  /* overview panel pair: one column, two-up at desktop */
+  .grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-4);
+  }
+
+  /* manage rows: framework .card supplies surface, padding, shadow */
+  .summary-row {
+    display: grid;
+    grid-template-columns: var(--space-6) minmax(0, 1fr);
+    align-items: center;
+    gap: var(--space-4);
+    color: inherit;
+    text-decoration: none;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .summary-row:hover,
+  .summary-row:active {
+    background: var(--line-strong);
+  }
+
+  .summary-row svg {
+    width: var(--space-5);
+    height: var(--space-5);
+  }
+
+  .summary-body {
+    display: grid;
+    gap: var(--space-1);
+    min-width: 0;
+  }
+
+  .summary-title {
+    font-size: var(--font-md);
+    font-weight: 500;
+    line-height: var(--lh-snug);
+  }
+
+  .summary-meta {
+    color: var(--muted);
+    font-size: var(--font-sm);
+    line-height: var(--lh-snug);
+  }
+
+  .summary-arrow {
+    display: none;
+    color: var(--muted);
+    font-size: var(--font-xl);
+    line-height: 1;
+  }
+
+  .panel-heading {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    margin-block-end: var(--space-4);
+  }
+
+  .panel-heading svg {
+    flex: none;
+    width: var(--space-5);
+    height: var(--space-5);
+  }
+
+  .panel-heading h2 {
+    margin: 0;
+  }
+
+  /* device surface rows inside panels */
+  .surface-row {
+    display: grid;
+    grid-template-columns: var(--space-6) minmax(0, 1fr);
+    align-items: center;
+    gap: var(--space-4);
+    padding: var(--space-4) var(--space-3);
+    background: var(--line);
+  }
+
+  .surface-row svg {
+    width: var(--space-5);
+    height: var(--space-5);
+  }
+
+  .surface-title {
+    display: block;
+    font-size: var(--font-md);
+    font-weight: 500;
+    line-height: var(--lh-snug);
+  }
+
+  .surface-meta {
+    display: block;
+    color: var(--muted);
+    font-size: var(--font-sm);
+    line-height: var(--lh-snug);
+  }
+
+  .surface-state {
+    grid-column: 2;
+  }
+
+  @media (min-width: 40em) {
+    .grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .summary-row,
+    .surface-row {
+      grid-template-columns: var(--space-6) minmax(0, 1fr) auto;
+    }
+
+    .summary-arrow {
+      display: inline;
+    }
+
+    .surface-state {
+      grid-column: 3;
+    }
+  }
+}

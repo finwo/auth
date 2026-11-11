@@ -21,7 +21,7 @@ export const SecurityPage: m.Component = {
           subtitle="Manage how you sign in and where this account is active."
         />
 
-        <div class="security-stack">
+        <div class="stack">
           <section class="panel">
             {PanelHeading(KeyRound, 'Password')}
             <p class="note">Password management arrives in a later slice.</p>
@@ -47,10 +47,12 @@ export const SecurityPage: m.Component = {
             <div class="surface-row">
               {Icon(Monitor)}
               <span>
-                <strong>Current session</strong>
-                <span>account {'\u00B7'} This device {'\u00B7'} Active</span>
+                <strong class="surface-title">Current session</strong>
+                <span class="surface-meta">
+                  account {'\u00B7'} This device {'\u00B7'} Active
+                </span>
               </span>
-              <span class="status">Read-only</span>
+              <span class="status surface-state">Read-only</span>
             </div>
             <p class="note">Session revocation arrives in a later slice.</p>
           </section>

@@ -3,7 +3,7 @@ import { Account, AccountCallback } from './screen/account';
 import { getBasePath } from './util/api';
 
 import '@style/global.css';
-import './assets/account.css';
+import './style/account.css';
 
 const routes: m.RouteDefs = {
   '/': {

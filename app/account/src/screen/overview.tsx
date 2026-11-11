@@ -79,50 +79,46 @@ export const OverviewPage: m.Component<OverviewAttrs> = {
 
         <section class="panel panel-wide">
           <h2>Manage</h2>
-          <ul class="summary-list">
-            <li>
-              <a
-                class="summary-row"
-                href="#"
-                onclick={(event: Event) => {
-                  event.preventDefault();
-                  m.route.set('/security');
-                }}
-              >
-                {Icon(ShieldCheck)}
-                <span class="summary-body">
-                  <span class="summary-title">Security</span>
-                  <span class="summary-meta">
-                    Password, multi-factor authentication and sessions.
-                  </span>
+          <div class="stack">
+            <a
+              class="card summary-row"
+              href="#"
+              onclick={(event: Event) => {
+                event.preventDefault();
+                m.route.set('/security');
+              }}
+            >
+              {Icon(ShieldCheck)}
+              <span class="summary-body">
+                <span class="summary-title">Security</span>
+                <span class="summary-meta">
+                  Password, multi-factor authentication and sessions.
                 </span>
-                <span class="summary-arrow" aria-hidden="true">
-                  {'\u203A'}
+              </span>
+              <span class="summary-arrow" aria-hidden="true">
+                {'\u203A'}
+              </span>
+            </a>
+            <a
+              class="card summary-row"
+              href="#"
+              onclick={(event: Event) => {
+                event.preventDefault();
+                m.route.set('/apps');
+              }}
+            >
+              {Icon(AppWindow)}
+              <span class="summary-body">
+                <span class="summary-title">Apps</span>
+                <span class="summary-meta">
+                  Applications with access to this account.
                 </span>
-              </a>
-            </li>
-            <li>
-              <a
-                class="summary-row"
-                href="#"
-                onclick={(event: Event) => {
-                  event.preventDefault();
-                  m.route.set('/apps');
-                }}
-              >
-                {Icon(AppWindow)}
-                <span class="summary-body">
-                  <span class="summary-title">Apps</span>
-                  <span class="summary-meta">
-                    Applications with access to this account.
-                  </span>
-                </span>
-                <span class="summary-arrow" aria-hidden="true">
-                  {'\u203A'}
-                </span>
-              </a>
-            </li>
-          </ul>
+              </span>
+              <span class="summary-arrow" aria-hidden="true">
+                {'\u203A'}
+              </span>
+            </a>
+          </div>
         </section>
       </div>
     );
@@ -184,47 +180,47 @@ export const ClientOverviewPage: m.Component<ClientOverviewAttrs> = {
 
         <section class="panel panel-wide">
           <h2>Access</h2>
-          <dl class="details">
-            <div>
-              <dt>Consent</dt>
-              <dd>{consent?.active ? 'Granted' : 'Not granted'}</dd>
-            </div>
-            <div>
-              <dt>Session</dt>
-              <dd>Active</dd>
-            </div>
-          </dl>
-          <p class="note">
-            {consent?.active
-              ? `Revoking access removes ${clientName}'s consent. The app must ask again the next time it signs you in.`
-              : `${clientName} no longer has access to this account.`}
-          </p>
-          {consent?.active ? (
+          <div class="stack">
+            <dl class="details">
+              <div>
+                <dt>Consent</dt>
+                <dd>{consent?.active ? 'Granted' : 'Not granted'}</dd>
+              </div>
+              <div>
+                <dt>Session</dt>
+                <dd>Active</dd>
+              </div>
+            </dl>
             <p class="note">
+              {consent?.active
+                ? `Revoking access removes ${clientName}'s consent. The app must ask again the next time it signs you in.`
+                : `${clientName} no longer has access to this account.`}
+            </p>
+            {consent?.active ? (
               <button
-                class="danger-link"
+                class="button-inline button-inline-danger"
                 type="button"
                 disabled={revokePending}
                 onclick={onRevoke}
               >
                 {revokePending ? 'Revoking' : 'Revoke access'}
               </button>
-            </p>
-          ) : null}
+            ) : null}
+          </div>
         </section>
 
         <section class="panel panel-wide">
           <h2>Full account management</h2>
-          <p class="note">
-            Manage your identity, security and app permissions on the account host.
-          </p>
-          {fullAccountUrl ? (
+          <div class="stack">
             <p class="note">
-              <a class="button" href={fullAccountUrl}>
+              Manage your identity, security and app permissions on the account host.
+            </p>
+            {fullAccountUrl ? (
+              <a class="button button-primary" href={fullAccountUrl}>
                 Open full account
               </a>
-            </p>
-          ) : null}
+            ) : null}
+          </div>
         </section>
       </div>
     );
