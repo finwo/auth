@@ -6,6 +6,13 @@
     gap: var(--space-4);
   }
 
+  /* stacked pages: capped reading column, full width on small screens */
+  .reading-column {
+    width: 100%;
+    max-width: 56rem;
+    margin-inline: auto;
+  }
+
   /* manage rows: framework .card supplies surface, padding, shadow */
   .summary-row {
     display: grid;

@@ -21,7 +21,7 @@ export const SecurityPage: m.Component = {
           subtitle="Manage how you sign in and where this account is active."
         />
 
-        <div class="stack">
+        <div class="stack reading-column">
           <section class="panel">
             {PanelHeading(KeyRound, 'Password')}
             <p class="note">Password management arrives in a later slice.</p>

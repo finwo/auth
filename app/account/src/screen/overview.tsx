@@ -198,7 +198,7 @@ export const ClientOverviewPage: m.Component<ClientOverviewAttrs> = {
             </p>
             {consent?.active ? (
               <button
-                class="button-inline button-inline-danger"
+                class="button-inline button-danger"
                 type="button"
                 disabled={revokePending}
                 onclick={onRevoke}
