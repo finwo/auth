@@ -2,6 +2,7 @@ import { CircleUserRound, LogOut, Settings, Sun } from 'lucide';
 import m from 'mithril';
 import { themeLabel, type Theme } from '@util/theme';
 import { Icon } from '@component/icon';
+import './user-menu.css';
 
 export interface AccountActionsAttrs {
   accountHref?: string;
@@ -18,25 +19,25 @@ export interface UserMenuAttrs extends AccountActionsAttrs {
 export const AccountActions: m.Component<AccountActionsAttrs> = {
   view({ attrs }) {
     return (
-      <div class="user-menu-list">
+      <div class="menu-list">
         {attrs.accountHref ? (
-          <a class="user-menu-item" href={attrs.accountHref}>
+          <a class="menu-item" href={attrs.accountHref}>
             {Icon(Settings)}
             <span>Account settings</span>
           </a>
         ) : null}
         <button
-          class="user-menu-item"
+          class="menu-item"
           type="button"
           aria-label={`Theme: ${themeLabel(attrs.theme)}`}
           onclick={attrs.onCycleTheme}
         >
           {Icon(Sun)}
           <span>Theme</span>
-          <span class="user-menu-value">{themeLabel(attrs.theme)}</span>
+          <span class="menu-value">{themeLabel(attrs.theme)}</span>
         </button>
         <a
-          class="user-menu-item"
+          class="menu-item"
           href="#"
           onclick={(event: Event) => {
             event.preventDefault();
@@ -55,7 +56,7 @@ export const UserMenu: m.Component<UserMenuAttrs> = {
   view({ attrs }) {
     return (
       <details
-        class="user-menu"
+        class="menu user-menu"
         oncreate={({ dom }: any) => {
           const close = (event: Event) => {
             if (dom.open && !dom.contains(event.target as Node)) dom.open = false;
@@ -67,11 +68,11 @@ export const UserMenu: m.Component<UserMenuAttrs> = {
           document.removeEventListener('click', dom.closeOnOutsideClick);
         }}
       >
-        <summary aria-label="Account menu">{Icon(CircleUserRound)}</summary>
-        <div class="user-panel">
-          <div class="user-summary">
-            <span class="user-name">{attrs.name}</span>
-            <span class="user-meta">{attrs.meta}</span>
+        <summary class="menu-trigger" aria-label="Account menu">{Icon(CircleUserRound)}</summary>
+        <div class="menu-panel">
+          <div class="menu-heading">
+            <span class="menu-heading-title">{attrs.name}</span>
+            <span class="menu-heading-meta">{attrs.meta}</span>
           </div>
           <AccountActions
             accountHref={attrs.accountHref}
