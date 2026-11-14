@@ -721,6 +721,7 @@
   .button-filled:active:not(:disabled) { background: var(--btn-fill-active, var(--accent-active)); }
   .button-text { background: none; color: var(--btn-text, var(--accent-text)); }
   .button-text:hover:not(:disabled) { background: none; color: var(--btn-text-hover, var(--accent-text-hover)); }
+  .button-text:active:not(:disabled) { background: none; }
   .button-outline { background: transparent; color: var(--btn-text, var(--accent-text));
     box-shadow: inset 0 0 0 1pt var(--btn-line, var(--accent)); }
   .button-outline:hover:not(:disabled) { background: var(--btn-tint, var(--accent-tint)); }
