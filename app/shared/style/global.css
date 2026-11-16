@@ -725,6 +725,7 @@
   .button-outline { background: transparent; color: var(--btn-text, var(--accent-text));
     box-shadow: inset 0 0 0 1pt var(--btn-line, var(--accent)); }
   .button-outline:hover:not(:disabled) { background: var(--btn-tint, var(--accent-tint)); }
+  .button-outline:active:not(:disabled) { background: var(--btn-tint, var(--accent-tint)); }
 
   /* color theming */
   .button-primary {
