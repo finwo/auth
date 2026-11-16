@@ -2,7 +2,7 @@ import m from 'mithril';
 import { Login } from './screen/login';
 
 import '@style/global.css';
-import './assets/login.css';
+import './style/login.css';
 
 const routes: m.RouteDefs = {
   '/oidc/:clientId/login': {
