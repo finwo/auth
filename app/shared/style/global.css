@@ -687,6 +687,7 @@
     text-transform: uppercase;
     letter-spacing: .02em;
     text-align: center;
+    text-decoration: none;
     cursor: pointer;
     transition: background var(--dur-1) var(--ease), color var(--dur-1) var(--ease);
     background: var(--btn-fill, var(--accent));
@@ -708,6 +709,7 @@
     letter-spacing: normal;
     line-height: var(--lh-body);
     white-space: nowrap;
+    text-decoration: none;
     cursor: pointer;
   }
   .button-inline:disabled { cursor: default; }
