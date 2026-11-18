@@ -61,4 +61,316 @@
   .state-preview > h2 {
     margin-block-end: var(--space-3);
   }
+
+  /* demo chrome: the topbar account menu */
+  .user-menu {
+    position: relative;
+    display: none;
+  }
+
+  @media (min-width: 60em) {
+    .user-menu {
+      display: block;
+    }
+  }
+
+  .user-menu summary {
+    display: grid;
+    place-items: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    color: var(--chrome-toggle);
+    list-style: none;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .user-menu summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .user-menu summary::marker {
+    content: '';
+  }
+
+  .user-menu summary:hover,
+  .user-menu[open] summary {
+    color: var(--on-chrome);
+  }
+
+  .user-menu svg {
+    width: 1.5rem;
+    height: 1.5rem;
+  }
+
+  .user-panel {
+    position: absolute;
+    top: 2.75rem;
+    right: 0;
+    z-index: 10;
+    width: min(15rem, calc(100vw - 2rem));
+    background: var(--sidebar);
+    color: var(--on-chrome);
+    box-shadow: var(--shadow);
+  }
+
+  .user-summary {
+    display: grid;
+    gap: 0.125rem;
+    padding: 0.875rem 1rem;
+  }
+
+  .user-name {
+    font-size: var(--font-base);
+    font-weight: 500;
+    line-height: var(--lh-snug);
+  }
+
+  .user-meta {
+    color: var(--chrome-label);
+    font-size: var(--font-xs);
+    line-height: var(--lh-snug);
+  }
+
+  .user-menu-list {
+    display: flex;
+    flex-direction: column;
+    padding: 0.5rem 0;
+  }
+
+  .user-menu-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    width: 100%;
+    padding: 0.625rem 1rem;
+    border: 0;
+    background: transparent;
+    color: var(--chrome-item);
+    font: inherit;
+    font-size: var(--font-base);
+    line-height: var(--lh-snug);
+    text-align: left;
+    text-decoration: none;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .user-menu-value {
+    margin-inline-start: auto;
+    color: var(--chrome-label);
+    font-size: var(--font-xs);
+  }
+
+  .user-menu-item svg {
+    flex: none;
+    width: var(--font-xl);
+    height: var(--font-xl);
+  }
+
+  .user-menu-item:hover {
+    background: var(--menu-hover);
+    color: var(--on-chrome);
+  }
+
+  .mobile-nav-account {
+    margin: 0 var(--space-6) calc(var(--space-4) + env(safe-area-inset-bottom));
+  }
+
+  .mobile-nav-account .user-summary {
+    padding-inline: 0;
+  }
+
+  .mobile-nav-account .user-menu-list {
+    padding: 0;
+  }
+
+  /* demo layout: multi-column panels, fields, and tiles */
+  .grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-4);
+    margin-block-start: var(--space-4);
+  }
+
+  @media (min-width: 40em) {
+    .grid {
+      grid-template-columns: repeat(var(--grid-cols, 2), minmax(0, 1fr));
+    }
+  }
+
+  .grid > * {
+    margin-block-end: 0;
+  }
+
+  .stats {
+    --grid-cols: 4;
+  }
+
+  .stat-value {
+    display: block;
+    margin-block-start: var(--space-2);
+    font-size: var(--font-2xl);
+    font-weight: 300;
+    line-height: var(--lh-tight);
+  }
+
+  .action-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+    margin-block-start: var(--space-4);
+  }
+
+  /* demo tiles and swatches shown in tables and branding previews */
+  .table-icon {
+    display: grid;
+    place-items: center;
+    width: var(--space-8);
+    height: var(--space-8);
+    overflow: hidden;
+    background: var(--line);
+    color: var(--muted);
+  }
+
+  .table-icon img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+
+  .table-icon svg {
+    width: var(--font-xl);
+    height: var(--font-xl);
+  }
+
+  .branding-preview {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-3);
+    margin-block-start: var(--space-4);
+  }
+
+  .branding-logo-preview,
+  .branding-color-preview {
+    width: var(--space-8);
+    height: var(--space-8);
+    overflow: hidden;
+    background: var(--line);
+  }
+
+  .branding-logo-preview {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--muted);
+  }
+
+  .branding-logo-preview svg {
+    width: var(--space-5);
+    height: var(--space-5);
+  }
+
+  .branding-logo-preview img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+
+  .branding-color-preview {
+    border-radius: var(--radius-sm);
+    background: var(--accent);
+  }
+
+  .branding-logo-preview.is-empty,
+  .branding-color-preview.is-empty {
+    border-bottom: 1pt solid var(--field-line);
+  }
+
+  .branding-color-preview.is-empty {
+    background: var(--line);
+  }
+
+  .branding-logo-preview .is-broken {
+    visibility: hidden;
+  }
+
+  /* small meta line under two-line table titles; inline children so the
+     cell keeps to platform layout */
+  .realm-meta {
+    display: block;
+    color: var(--muted);
+    font-size: var(--font-sm);
+    line-height: var(--lh-snug);
+  }
+
+  .realm-meta > * + * {
+    margin-inline-start: var(--space-3);
+  }
+
+  .realm-meta a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  .realm-meta a:hover {
+    color: var(--accent-text);
+    text-decoration: underline;
+  }
+
+  /* count inside a realm access link button */
+  .realm-access-count {
+    margin-inline-start: var(--space-2);
+    opacity: 0.7;
+  }
+
+  /* copy button on the read-only verification record fields */
+  .verify-record-copy {
+    justify-self: end;
+  }
+
+  .danger-zone h2 {
+    color: var(--danger-text);
+  }
+
+  /* settings forms: one column of fields that own their spacing */
+  .settings-form {
+    display: grid;
+    gap: var(--space-4);
+    margin-block-start: var(--space-4);
+    min-width: 0;
+  }
+
+  .settings-form > * {
+    margin-block-start: 0;
+    margin-block-end: 0;
+  }
+
+  /* role checklist inside a fieldset */
+  .role-field {
+    margin: 0;
+    padding: 0;
+    border: 0;
+  }
+
+  .role-field legend {
+    margin-block-end: var(--space-2);
+    padding: 0;
+  }
+
+  @media (pointer: coarse) {
+    .user-menu summary {
+      min-width: var(--control-h);
+      width: var(--control-h);
+      height: var(--control-h);
+      touch-action: manipulation;
+    }
+
+    .user-menu-item {
+      min-height: var(--control-h);
+      touch-action: manipulation;
+    }
+  }
 }

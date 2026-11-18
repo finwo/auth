@@ -4,223 +4,8 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>Admin realms mockup</title>
-    <link rel="stylesheet" href="./global.css" />
-    <style>
-      .realm-meta {
-        display: block;
-        color: var(--muted);
-        font-size: 0.8125rem;
-        line-height: 1.4;
-      }
-
-      .realm-meta > span,
-      .realm-meta > a {
-        display: inline;
-        margin-right: 0.75rem;
-      }
-
-      .realm-meta > span:last-child,
-      .realm-meta > a:last-child {
-        margin-right: 0;
-      }
-
-      .realm-count-link {
-        color: var(--muted);
-        text-decoration: none;
-      }
-
-      .realm-count-link:hover {
-        color: var(--accent-text);
-        text-decoration: underline;
-      }
-
-      .realm-slug,
-      .realm-owner-meta {
-        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-      }
-
-      .realm-owner-name {
-        display: block;
-        font-weight: 500;
-        line-height: 1.4;
-      }
-
-      .realm-owner-meta {
-        display: block;
-        margin-top: 0.125rem;
-        color: var(--muted);
-        font-size: 0.8125rem;
-        line-height: 1.4;
-        overflow-wrap: normal;
-      }
-
-      .realm-table td.realm-action-column {
-        padding-bottom: 0.75rem;
-      }
-
-      .realm-row-action {
-        display: flex;
-        align-items: center;
-      }
-
-      .action-button {
-        display: inline-flex;
-        align-items: center;
-        min-height: 2rem;
-        padding: 0.25rem 0.625rem;
-        border: 0;
-        border-radius: 0.25rem;
-        background: transparent;
-        color: var(--muted);
-        font: inherit;
-        font-size: 0.8125rem;
-        font-weight: 500;
-        line-height: 1.4;
-        white-space: nowrap;
-        cursor: pointer;
-      }
-
-      .action-button:hover {
-        background: var(--row-hover);
-        color: var(--text);
-      }
-
-      .action-button:first-child {
-        margin-left: -0.625rem;
-      }
-
-      .action-button.is-danger {
-        color: var(--danger-text);
-      }
-
-      .action-button.is-danger:hover {
-        background: color-mix(in oklch, var(--danger) 12%, transparent);
-        color: var(--danger-text);
-      }
-
-      .field-grid {
-        display: grid;
-        grid-template-columns: minmax(0, 1fr);
-        gap: 1rem;
-        margin-bottom: 1rem;
-      }
-
-      .branding-preview {
-        display: flex;
-        flex-wrap: wrap;
-        align-items: center;
-        gap: 0.75rem;
-        margin-top: 0.25rem;
-      }
-
-      .branding-logo-preview,
-      .branding-color-preview {
-        width: 2rem;
-        height: 2rem;
-        overflow: hidden;
-        background: var(--row);
-      }
-
-      .branding-logo-preview {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        color: var(--muted);
-      }
-
-      .branding-logo-preview img {
-        width: 100%;
-        height: 100%;
-        object-fit: contain;
-      }
-
-      .branding-color-preview {
-        border-radius: 0.25rem;
-        background: var(--field-line);
-      }
-
-      .branding-logo-preview.is-empty,
-      .branding-color-preview.is-empty {
-        border-bottom: 1pt solid var(--field-line);
-      }
-
-      .state-preview {
-        margin-top: 2rem;
-      }
-
-      .state-preview > h2 {
-        margin-bottom: 0.75rem;
-      }
-
-      .empty {
-        padding: 2rem;
-        color: var(--muted);
-        font-size: 0.875rem;
-      }
-
-      .empty p {
-        margin: 0;
-      }
-
-      @media (max-width: 39.999em) {
-        .mockup-controls {
-          flex-direction: column;
-          align-items: flex-start;
-          width: min(18rem, calc(100vw - 2rem));
-        }
-
-        .mockup-separator {
-          display: none;
-        }
-
-        .table-actions {
-          width: 100%;
-          flex-direction: column;
-          align-items: stretch;
-        }
-
-        .table-actions .button {
-          width: 100%;
-        }
-      }
-
-      @media (min-width: 40em) {
-        .field-grid {
-          grid-template-columns: repeat(2, minmax(0, 1fr));
-        }
-
-        .realm-meta {
-          display: flex;
-          flex-wrap: wrap;
-          gap: 0.25rem 0.75rem;
-        }
-
-        .realm-meta > span,
-        .realm-meta > a {
-          margin-right: 0;
-        }
-
-        .realm-table {
-          table-layout: fixed;
-        }
-
-        .realm-table .table-icon-column {
-          width: 4rem;
-        }
-
-        .realm-table .realm-owner-column {
-          width: 13rem;
-        }
-
-        .realm-table .realm-action-column {
-          width: 12rem;
-        }
-
-        .realm-row-action {
-          justify-content: flex-start;
-        }
-      }
-    </style>
+    <link rel="stylesheet" href="../../app/shared/style/global.css" />
+    <link rel="stylesheet" href="./mockups.css" />
   </head>
   <body>
     <header class="topbar">
@@ -439,7 +224,7 @@
       <div class="main">
         <main class="content">
           <div class="page-header">
-            <div class="client-breadcrumb">
+            <div class="breadcrumb">
               <span id="realm-breadcrumb-root" aria-current="page">Realms</span>
             </div>
             <h1 id="realm-page-title">Realms</h1>
@@ -448,28 +233,27 @@
 
           <div id="realm-notice" class="notice" role="status" hidden></div>
 
-          <section class="table-panel" aria-labelledby="realm-table-title">
+          <section class="card" aria-labelledby="realm-table-title">
             <h2 id="realm-table-title" class="sr-only">Realm registry</h2>
-            <div class="table-toolbar">
-              <div class="table-search">
+            <div class="toolbar toolbar-panel">
+              <div class="toolbar-search">
                 <input id="realm-search" type="search" aria-label="Search realms" placeholder="Search realms" />
               </div>
-              <div class="table-actions">
-                <button id="realm-register-button" class="button" type="button">Register realm</button>
+              <div class="toolbar-actions">
+                <button id="realm-register-button" class="button button-primary" type="button">Register realm</button>
               </div>
             </div>
 
-            <div class="data-table-wrap">
-              <table class="data-table realm-table">
-                <thead>
-                  <tr>
-                    <th class="table-icon-column" scope="col"><span class="sr-only">Realm</span></th>
-                    <th class="data-table-primary realm-name-column" scope="col">Realm</th>
-                    <th class="realm-owner-column" scope="col">Owner</th>
-                    <th class="realm-action-column" scope="col">Actions</th>
-                  </tr>
-                </thead>
-                <tbody id="realm-rows">
+            <table class="table table-linkable">
+              <thead>
+                <tr>
+                  <th scope="col"><span class="sr-only">Realm</span></th>
+                  <th scope="col">Realm</th>
+                  <th scope="col">Owner</th>
+                  <th scope="col">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="realm-rows">
                   <tr
                     class="realm-row"
                     tabindex="0"
@@ -478,7 +262,7 @@
                     data-delete-roles="system owner"
                     data-owners='{"system":{"name":"Acme IT","meta":"it@acme.test"},"owner":{"name":"Realm Owner","meta":"owner@acme.test"},"admin":{"name":"Acme IT","meta":"it@acme.test"}}'
                   >
-                    <td class="table-icon-column">
+                    <td>
                       <span class="table-icon" aria-hidden="true">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                           <path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z" />
@@ -491,24 +275,22 @@
                         </svg>
                       </span>
                     </td>
-                    <td class="data-table-primary realm-name-column">
-                      <a class="realm-display" href="./admin-settings.html">Acme</a>
+                    <td>
+                      <span class="table-title"><a class="link realm-display" href="./admin-settings.html">Acme</a></span>
                       <span class="realm-meta">
-                        <span class="realm-slug">acme</span>
+                        <span class="realm-slug table-mono">acme</span>
                         <span class="realm-count">6 members</span>
                         <a class="realm-count realm-count-link" data-count-kind="hosts" href="./admin-realm-hosts.html?realm=acme">2 hosts</a>
                         <a class="realm-count realm-count-link" data-count-kind="domains" href="./admin-realm-email-domains.html?realm=acme">3 domains</a>
                         <span class="realm-count">4 clients</span>
                       </span>
                     </td>
-                    <td class="realm-owner-column" data-label="Owner">
-                      <span class="realm-owner-name">Acme IT</span>
-                      <span class="realm-owner-meta">it@acme.test</span>
+                    <td data-label="Owner">
+                      <span class="realm-owner-name table-title">Acme IT</span>
+                      <span class="realm-owner-meta table-sub">it@acme.test</span>
                     </td>
-                    <td class="realm-action-column" data-label="Actions">
-                      <div class="realm-row-action">
-                        <button class="action-button is-danger" type="button" data-delete-realm>Delete realm</button>
-                      </div>
+                    <td data-label="Actions">
+                      <button class="button-inline button-danger" type="button" data-delete-realm>Delete realm</button>
                     </td>
                   </tr>
                   <tr
@@ -519,7 +301,7 @@
                     data-delete-roles="system"
                     data-owners='{"system":{"name":"Globex IT","meta":"it@globex.test"},"admin":{"name":"Globex IT","meta":"it@globex.test"}}'
                   >
-                    <td class="table-icon-column">
+                    <td>
                       <span class="table-icon" aria-hidden="true">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                           <path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z" />
@@ -532,24 +314,22 @@
                         </svg>
                       </span>
                     </td>
-                    <td class="data-table-primary realm-name-column">
-                      <a class="realm-display" href="./admin-settings.html">Globex</a>
+                    <td>
+                      <span class="table-title"><a class="link realm-display" href="./admin-settings.html">Globex</a></span>
                       <span class="realm-meta">
-                        <span class="realm-slug">globex</span>
+                        <span class="realm-slug table-mono">globex</span>
                         <span class="realm-count">5 members</span>
                         <a class="realm-count realm-count-link" data-count-kind="hosts" href="./admin-realm-hosts.html?realm=globex">1 host</a>
                         <a class="realm-count realm-count-link" data-count-kind="domains" href="./admin-realm-email-domains.html?realm=globex">1 domain</a>
                         <span class="realm-count">2 clients</span>
                       </span>
                     </td>
-                    <td class="realm-owner-column" data-label="Owner">
-                      <span class="realm-owner-name">Globex IT</span>
-                      <span class="realm-owner-meta">it@globex.test</span>
+                    <td data-label="Owner">
+                      <span class="realm-owner-name table-title">Globex IT</span>
+                      <span class="realm-owner-meta table-sub">it@globex.test</span>
                     </td>
-                    <td class="realm-action-column" data-label="Actions">
-                      <div class="realm-row-action">
-                        <button class="action-button is-danger" type="button" data-delete-realm>Delete realm</button>
-                      </div>
+                    <td data-label="Actions">
+                      <button class="button-inline button-danger" type="button" data-delete-realm>Delete realm</button>
                     </td>
                   </tr>
                   <tr
@@ -560,7 +340,7 @@
                     data-delete-roles="system"
                     data-owners='{"system":{"name":"Unassigned","meta":"No owner assigned"}}'
                   >
-                    <td class="table-icon-column">
+                    <td>
                       <span class="table-icon" aria-hidden="true">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                           <path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z" />
@@ -573,24 +353,22 @@
                         </svg>
                       </span>
                     </td>
-                    <td class="data-table-primary realm-name-column">
-                      <a class="realm-display" href="./admin-settings.html">Northwind</a>
+                    <td>
+                      <span class="table-title"><a class="link realm-display" href="./admin-settings.html">Northwind</a></span>
                       <span class="realm-meta">
-                        <span class="realm-slug">northwind</span>
+                        <span class="realm-slug table-mono">northwind</span>
                         <span class="realm-count">0 members</span>
                         <a class="realm-count realm-count-link" data-count-kind="hosts" href="./admin-realm-hosts.html?realm=northwind">0 hosts</a>
                         <a class="realm-count realm-count-link" data-count-kind="domains" href="./admin-realm-email-domains.html?realm=northwind">0 domains</a>
                         <span class="realm-count">0 clients</span>
                       </span>
                     </td>
-                    <td class="realm-owner-column" data-label="Owner">
-                      <span class="realm-owner-name">Unassigned</span>
-                      <span class="realm-owner-meta">No owner assigned</span>
+                    <td data-label="Owner">
+                      <span class="realm-owner-name table-title">Unassigned</span>
+                      <span class="realm-owner-meta table-sub">No owner assigned</span>
                     </td>
-                    <td class="realm-action-column" data-label="Actions">
-                      <div class="realm-row-action">
-                        <button class="action-button is-danger" type="button" data-delete-realm>Delete realm</button>
-                      </div>
+                    <td data-label="Actions">
+                      <button class="button-inline button-danger" type="button" data-delete-realm>Delete realm</button>
                     </td>
                   </tr>
                 </tbody>
@@ -617,25 +395,23 @@
 
           <section class="state-preview">
             <h2>Empty state</h2>
-            <div class="table-panel">
-              <div class="table-toolbar">
-                <div class="table-search">
+            <div class="card">
+              <div class="toolbar toolbar-panel">
+                <div class="toolbar-search">
                   <input type="search" aria-label="Search realms" placeholder="Search realms" disabled />
                 </div>
-                <div class="table-actions">
-                  <button class="button" type="button">Register realm</button>
+                <div class="toolbar-actions">
+                  <button class="button button-primary" type="button">Register realm</button>
                 </div>
               </div>
-              <div class="empty">
-                <p>No realms are available for this account.</p>
-              </div>
+              <p class="empty">No realms are available for this account.</p>
             </div>
           </section>
         </main>
       </div>
     </div>
 
-    <div id="realm-create-dialog" class="modal-overlay" hidden>
+    <div id="realm-create-dialog" class="overlay" hidden>
       <form id="realm-create-form" class="modal" role="dialog" aria-modal="true" aria-labelledby="realm-create-title" novalidate>
         <div class="modal-header">
           <h2 id="realm-create-title">Register a realm</h2>
@@ -649,24 +425,24 @@
         <div class="modal-body">
           <div id="realm-create-alert" class="alert" role="alert" hidden></div>
 
-          <label class="form-field" for="realm-display-name">
+          <label class="field" for="realm-display-name">
             <span class="field-label">Display name</span>
             <input id="realm-display-name" class="field-control" type="text" maxlength="100" placeholder="Acme Inc" />
           </label>
 
-          <label class="form-field" for="realm-slug-input">
+          <label class="field" for="realm-slug-input">
             <span class="field-label">Realm ID</span>
             <input id="realm-slug-input" class="field-control" type="text" maxlength="63" placeholder="acme" spellcheck="false" />
           </label>
           <p class="modal-note">Lowercase letters, numbers and hyphens. admin, account and global are reserved.</p>
 
-          <div class="field-grid">
-            <label class="form-field" for="realm-logo-url">
+          <div class="grid">
+            <label class="field" for="realm-logo-url">
               <span class="field-label">Logo URL</span>
               <input id="realm-logo-url" class="field-control" type="text" placeholder="https://app.example.test/logo.svg" maxlength="2048" />
             </label>
 
-            <label class="form-field" for="realm-primary-color">
+            <label class="field" for="realm-primary-color">
               <span class="field-label">Primary color</span>
               <input id="realm-primary-color" class="field-control" type="text" placeholder="#25a" maxlength="7" spellcheck="false" />
             </label>
@@ -678,14 +454,14 @@
           </div>
 
           <div class="modal-actions">
-            <button class="button-secondary" type="button" data-dialog-close>Cancel</button>
-            <button class="button" type="submit">Create realm</button>
+            <button class="button button-secondary" type="button" data-dialog-close>Cancel</button>
+            <button class="button button-primary" type="submit">Create realm</button>
           </div>
         </div>
       </form>
     </div>
 
-    <div id="realm-delete-dialog" class="modal-overlay" hidden>
+    <div id="realm-delete-dialog" class="overlay" hidden>
       <div class="modal" role="dialog" aria-modal="true" aria-labelledby="realm-delete-title">
         <div class="modal-header">
           <h2 id="realm-delete-title">Delete realm</h2>
@@ -698,14 +474,14 @@
         </div>
         <div class="modal-body">
           <p id="realm-delete-message" class="modal-note"></p>
-          <label class="form-field" for="realm-delete-confirm">
+          <label class="field" for="realm-delete-confirm">
             <span class="field-label">Confirm realm ID</span>
             <input id="realm-delete-confirm" class="field-control" type="text" maxlength="63" autocomplete="off" spellcheck="false" />
           </label>
           <p class="modal-note">Type the realm ID exactly to confirm.</p>
           <div class="modal-actions">
-            <button class="button-secondary" type="button" data-dialog-close>Cancel</button>
-            <button id="realm-delete-confirm-button" class="button-danger" type="button" disabled>Delete realm</button>
+            <button class="button button-secondary" type="button" data-dialog-close>Cancel</button>
+            <button id="realm-delete-confirm-button" class="button button-danger" type="button" disabled>Delete realm</button>
           </div>
         </div>
       </div>
@@ -768,11 +544,11 @@
 
       document.querySelectorAll('[data-dialog-close]').forEach((button) => {
         button.addEventListener('click', () => {
-          button.closest('.modal-overlay').hidden = true;
+          button.closest('.overlay').hidden = true;
         });
       });
 
-      document.querySelectorAll('.modal-overlay').forEach((overlay) => {
+      document.querySelectorAll('.overlay').forEach((overlay) => {
         overlay.addEventListener('mousedown', (event) => {
           if (event.target === overlay) overlay.hidden = true;
         });
@@ -780,7 +556,7 @@
 
       document.addEventListener('keydown', (event) => {
         if (event.key === 'Escape') {
-          document.querySelectorAll('.modal-overlay:not([hidden])').forEach((dialog) => {
+          document.querySelectorAll('.overlay:not([hidden])').forEach((dialog) => {
             dialog.hidden = true;
           });
         }
@@ -1120,7 +896,7 @@
           [currentRole.value]: { name: identity.name, meta: identity.email },
         });
         row.innerHTML = `
-          <td class="table-icon-column">
+          <td>
             <span class="table-icon" aria-hidden="true">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z" />
@@ -1133,24 +909,22 @@
               </svg>
             </span>
           </td>
-          <td class="data-table-primary realm-name-column">
-            <a class="realm-display" href="./admin-settings.html">${escapeHtml(displayName)}</a>
+          <td>
+            <span class="table-title"><a class="link realm-display" href="./admin-settings.html">${escapeHtml(displayName)}</a></span>
             <span class="realm-meta">
-              <span class="realm-slug">${escapeHtml(slug)}</span>
+              <span class="realm-slug table-mono">${escapeHtml(slug)}</span>
               <span class="realm-count">0 members</span>
               <a class="realm-count realm-count-link" data-count-kind="hosts" href="./admin-realm-hosts.html?realm=${escapeHtml(slug)}">0 hosts</a>
               <a class="realm-count realm-count-link" data-count-kind="domains" href="./admin-realm-email-domains.html?realm=${escapeHtml(slug)}">0 domains</a>
               <span class="realm-count">0 clients</span>
             </span>
           </td>
-          <td class="realm-owner-column" data-label="Owner">
-            <span class="realm-owner-name">${escapeHtml(identity.name)}</span>
-            <span class="realm-owner-meta">${escapeHtml(identity.email)}</span>
+          <td data-label="Owner">
+            <span class="realm-owner-name table-title">${escapeHtml(identity.name)}</span>
+            <span class="realm-owner-meta table-sub">${escapeHtml(identity.email)}</span>
           </td>
-          <td class="realm-action-column" data-label="Actions">
-            <div class="realm-row-action">
-              <button class="action-button is-danger" type="button" data-delete-realm>Delete realm</button>
-            </div>
+          <td data-label="Actions">
+            <button class="button-inline button-danger" type="button" data-delete-realm>Delete realm</button>
           </td>`;
         realmRows.prepend(row);
       }

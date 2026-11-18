@@ -4,42 +4,8 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>Admin dashboard mockup</title>
-    <link rel="stylesheet" href="./global.css" />
-    <style>
-      .stats {
-        display: grid;
-        grid-template-columns: minmax(0, 1fr);
-        gap: 1rem;
-        margin-bottom: 1rem;
-      }
-
-      .stat {
-        padding: 1.25rem 1.5rem;
-        background: var(--surface);
-        box-shadow: var(--shadow);
-      }
-
-      .stat-label {
-        display: block;
-        color: var(--muted);
-        font-size: 0.8125rem;
-        line-height: 1.4;
-      }
-
-      .stat-value {
-        display: block;
-        margin-top: 0.5rem;
-        font-size: 1.75rem;
-        font-weight: 300;
-        line-height: 1.2;
-      }
-
-      @media (min-width: 60em) {
-        .stats {
-          grid-template-columns: repeat(4, minmax(0, 1fr));
-        }
-      }
-    </style>
+    <link rel="stylesheet" href="../../app/shared/style/global.css" />
+    <link rel="stylesheet" href="./mockups.css" />
   </head>
   <body>
     <header class="topbar">
@@ -258,28 +224,28 @@
       <div class="main">
         <main class="content">
           <div class="page-header">
-            <div class="client-breadcrumb">
+            <div class="breadcrumb">
               <span aria-current="page">Overview</span>
             </div>
             <h1>Overview</h1>
             <p>Provider summary and administration.</p>
           </div>
 
-          <section class="stats" aria-label="Provider summary">
-            <article class="stat">
-              <span class="stat-label">Realms</span>
+          <section class="grid stats" aria-label="Provider summary">
+            <article class="card">
+              <span class="field-label">Realms</span>
               <strong class="stat-value">2</strong>
             </article>
-            <article class="stat">
-              <span class="stat-label">Users</span>
+            <article class="card">
+              <span class="field-label">Users</span>
               <strong class="stat-value">6</strong>
             </article>
-            <article class="stat">
-              <span class="stat-label">OIDC clients</span>
+            <article class="card">
+              <span class="field-label">OIDC clients</span>
               <strong class="stat-value">6</strong>
             </article>
-            <article class="stat">
-              <span class="stat-label">Active sessions</span>
+            <article class="card">
+              <span class="field-label">Active sessions</span>
               <strong class="stat-value">3</strong>
             </article>
           </section>
