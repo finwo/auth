@@ -451,8 +451,8 @@ export const EmailDomainsPage: m.Component<EmailDomainsAttrs> = {
               <thead>
                 <tr>
                   <th scope="col">Domain</th>
-                  <th scope="col" style="--col-w: 14rem">Status</th>
-                  {canManage ? <th scope="col" style="--col-w: 14rem">Actions</th> : null}
+                  <th scope="col">Status</th>
+                  {canManage ? <th scope="col">Actions</th> : null}
                 </tr>
               </thead>
               <tbody>
