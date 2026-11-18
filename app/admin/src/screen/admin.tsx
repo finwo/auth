@@ -552,7 +552,7 @@ export const Admin: m.Component = {
         ) : null}
 
         {!user || routeGuardActive || this.accountRedirecting ? (
-          <div class="loading">Loading session</div>
+          <p class="note">Loading session</p>
         ) : realmsPath ? (
           <RealmsPage
             realms={this.realms}

@@ -265,7 +265,7 @@ export const ClientEditPage: m.Component<ClientEditAttrs> = {
           <div class="alert" role="alert">
             <p>{this.error.message}</p>
             <button
-              class="button-secondary"
+              class="button button-secondary"
               type="button"
               onclick={() => {
                 if (this.attrs.realmSlug && clientId) {
@@ -285,14 +285,14 @@ export const ClientEditPage: m.Component<ClientEditAttrs> = {
         ) : null}
 
         {this.secret ? (
-          <div class="panel secret-panel">
-            <div class="secret-header">
+          <div class="panel stack-tight">
+            <div class="section-header">
               <div>
                 <h2>Client secret</h2>
                 <p class="note">{this.secret.clientId}</p>
               </div>
               <button
-                class="button-secondary"
+                class="button button-secondary"
                 type="button"
                 onclick={() => {
                   this.secret = null;
@@ -307,7 +307,7 @@ export const ClientEditPage: m.Component<ClientEditAttrs> = {
         ) : null}
 
         {!realms ? (
-          <div class="loading">Loading realms</div>
+          <p class="note">Loading realms</p>
         ) : this.loading || this.redirecting ? (
           <div class="panel" aria-busy="true">
             <div class="skeleton skeleton-title"></div>
@@ -315,7 +315,7 @@ export const ClientEditPage: m.Component<ClientEditAttrs> = {
             <div class="skeleton skeleton-short"></div>
           </div>
         ) : client ? (
-          <div class="client-stack">
+          <div class="stack">
             <section class="panel">
               <h2>Settings</h2>
               <ClientForm
@@ -335,7 +335,7 @@ export const ClientEditPage: m.Component<ClientEditAttrs> = {
               />
             </section>
 
-            <section class="panel">
+            <section class="panel stack-tight">
               <h2>Secret</h2>
               <p class="note">
                 {client.has_secret
@@ -343,9 +343,9 @@ export const ClientEditPage: m.Component<ClientEditAttrs> = {
                   : 'No client secret is configured. Creating one switches this client to confidential authentication.'}
               </p>
               {this.rotateConfirm ? (
-                <div class="client-actions">
+                <div class="action-row">
                   <button
-                    class="button-danger"
+                    class="button button-danger"
                     type="button"
                     disabled={this.rotating}
                     onclick={() => this.rotate()}
@@ -353,7 +353,7 @@ export const ClientEditPage: m.Component<ClientEditAttrs> = {
                     {this.rotating ? 'Rotating' : 'Confirm'}
                   </button>
                   <button
-                    class="button-secondary"
+                    class="button button-secondary"
                     type="button"
                     disabled={this.rotating}
                     onclick={() => {
@@ -365,9 +365,9 @@ export const ClientEditPage: m.Component<ClientEditAttrs> = {
                   </button>
                 </div>
               ) : (
-                <div class="client-actions">
+                <div class="action-row">
                   <button
-                    class="button"
+                    class="button button-primary"
                     type="button"
                     disabled={this.rotating}
                     onclick={() => {
@@ -389,14 +389,14 @@ export const ClientEditPage: m.Component<ClientEditAttrs> = {
               onAuthExpired={this.attrs.onAuthExpired}
             />
 
-            <section class="panel danger-zone">
+            <section class="panel danger-zone stack-tight">
               <h2>Danger zone</h2>
               <p class="note">
                 Deleting removes the client registration and related authorization state.
               </p>
-              <div class="client-actions">
+              <div class="action-row">
                 <button
-                  class="button-danger"
+                  class="button button-danger"
                   type="button"
                   onclick={() => this.openDelete()}
                 >
@@ -419,7 +419,7 @@ export const ClientEditPage: m.Component<ClientEditAttrs> = {
             </p>
             <div class="modal-actions">
               <button
-                class="button-secondary"
+                class="button button-secondary"
                 type="button"
                 disabled={this.deleting}
                 onclick={() => this.cancelDelete()}
@@ -427,7 +427,7 @@ export const ClientEditPage: m.Component<ClientEditAttrs> = {
                 Cancel
               </button>
               <button
-                class="button-danger"
+                class="button button-danger"
                 type="button"
                 disabled={this.deleting}
                 onclick={() => this.deleteClient()}

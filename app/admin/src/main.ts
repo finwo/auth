@@ -1,5 +1,5 @@
 import '@style/global.css';
-import './assets/admin.css';
+import './style/admin.css';
 
 import m from 'mithril';
 import { applyTheme, getTheme } from '@util/theme';

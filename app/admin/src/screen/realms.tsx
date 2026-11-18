@@ -1,6 +1,4 @@
-import { LibraryBig } from 'lucide';
 import m from 'mithril';
-import { Icon } from '@component/icon';
 import { Modal } from '@component/modal';
 import { PageHeader } from '@component/page-header';
 import {
@@ -288,7 +286,7 @@ export const RealmsPage: m.Component<RealmsAttrs> = {
           <div class="alert" role="alert">
             <p>{realmsError.message}</p>
             <button
-              class="button-secondary"
+              class="button button-secondary"
               type="button"
               onclick={() => this.attrs.onRealmsChanged()}
             >
@@ -312,10 +310,9 @@ export const RealmsPage: m.Component<RealmsAttrs> = {
             <div class="skeleton skeleton-short"></div>
           </div>
         ) : (
-          <section class="table-panel realm-table-panel">
-            <h2 class="sr-only">Realm registry</h2>
-            <div class="table-toolbar">
-              <div class="table-search">
+          <section class="card" aria-label="Realm registry">
+            <div class="toolbar toolbar-panel">
+              <div class="toolbar-search">
                 <input
                   type="search"
                   value={this.search}
@@ -326,138 +323,130 @@ export const RealmsPage: m.Component<RealmsAttrs> = {
                   }}
                 />
               </div>
-              <div class="table-actions">
+              <div class="toolbar-actions">
                 {canCreateRealm ? (
-                  <button class="button" type="button" onclick={() => this.openCreate()}>
+                  <button class="button button-primary" type="button" onclick={() => this.openCreate()}>
                     Register realm
                   </button>
                 ) : null}
               </div>
             </div>
 
-            <div class="data-table-wrap">
-              <table class="data-table realm-table">
-                <thead>
-                  <tr>
-                    <th class="table-icon-column" scope="col">
-                      <span class="sr-only">Realm</span>
-                    </th>
-                    <th class="data-table-primary realm-name-column" scope="col">Realm</th>
-                    <th class="realm-owner-column" scope="col">Owner</th>
-                    <th class="realm-action-column" scope="col">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {visibleRealms.map((realm: AdminRealm) => {
-                    const href = settingsPath(realm);
-                    return (
-                      <tr
-                        tabindex="0"
-                        onclick={() => m.route.set(href)}
-                        onkeydown={(event: KeyboardEvent) => {
-                          if (event.target !== event.currentTarget) return;
-                          if (event.key !== 'Enter' && event.key !== ' ') return;
-                          event.preventDefault();
-                          m.route.set(href);
-                        }}
-                      >
-                        <td class="table-icon-column">
-                          <span class="table-icon" aria-hidden="true">
-                            {Icon(LibraryBig)}
-                          </span>
-                        </td>
-                        <td class="data-table-primary realm-name-column">
+            <table class="table table-linkable">
+              <thead>
+                <tr>
+                  <th scope="col">Realm</th>
+                  <th scope="col">Owner</th>
+                  <th scope="col">Members</th>
+                  <th scope="col">Hosts</th>
+                  <th scope="col">Domains</th>
+                  <th scope="col">Clients</th>
+                  <th scope="col">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {visibleRealms.map((realm: AdminRealm) => {
+                  const href = settingsPath(realm);
+                  return (
+                    <tr
+                      tabindex="0"
+                      role="link"
+                      onclick={() => m.route.set(href)}
+                      onkeydown={(event: KeyboardEvent) => {
+                        if (event.target !== event.currentTarget) return;
+                        if (event.key !== 'Enter' && event.key !== ' ') return;
+                        event.preventDefault();
+                        m.route.set(href);
+                      }}
+                    >
+                      <td data-label="Realm">
+                        <a
+                          class="table-title link"
+                          href={appUrl(href)}
+                          onclick={(event: MouseEvent) => {
+                            event.preventDefault();
+                            event.stopPropagation();
+                            m.route.set(href);
+                          }}
+                        >
+                          {realm.display_name}
+                        </a>
+                        <span class="table-sub">{realm.slug}</span>
+                      </td>
+                      <td data-label="Owner">
+                        <span class="table-title">{ownerName(realm)}</span>
+                        <span class="table-sub">{ownerMeta(realm)}</span>
+                      </td>
+                      <td data-label="Members" class="u-nowrap">{realm.member_count}</td>
+                      <td data-label="Hosts" class="u-nowrap">
+                        {realm.can_edit ? (
                           <a
-                            class="realm-display"
-                            href={appUrl(href)}
+                            class="link"
+                            href={appUrl(hostsPath(realm))}
                             onclick={(event: MouseEvent) => {
                               event.preventDefault();
                               event.stopPropagation();
-                              m.route.set(href);
+                              m.route.set(hostsPath(realm));
                             }}
                           >
-                            {realm.display_name}
+                            {realm.host_count}
                           </a>
-                          <span class="realm-meta">
-                            <span class="realm-slug">{realm.slug}</span>
-                            <span class="realm-count">{pluralCount(realm.member_count, 'member')}</span>
-                            {realm.can_edit ? (
-                              <a
-                                class="realm-count realm-count-link"
-                                href={appUrl(hostsPath(realm))}
-                                onclick={(event: MouseEvent) => {
-                                  event.preventDefault();
-                                  event.stopPropagation();
-                                  m.route.set(hostsPath(realm));
-                                }}
-                              >
-                                {pluralCount(realm.host_count, 'host')}
-                              </a>
-                            ) : (
-                              <span class="realm-count">{pluralCount(realm.host_count, 'host')}</span>
-                            )}
-                            {realm.can_edit ? (
-                              <a
-                                class="realm-count realm-count-link"
-                                href={appUrl(domainsPath(realm))}
-                                onclick={(event: MouseEvent) => {
-                                  event.preventDefault();
-                                  event.stopPropagation();
-                                  m.route.set(domainsPath(realm));
-                                }}
-                              >
-                                {pluralCount(realm.email_domain_count, 'domain')}
-                              </a>
-                            ) : (
-                              <span class="realm-count">
-                                {pluralCount(realm.email_domain_count, 'domain')}
-                              </span>
-                            )}
-                            <span class="realm-count">{pluralCount(realm.client_count, 'client')}</span>
-                          </span>
-                        </td>
-                        <td class="realm-owner-column" data-label="Owner">
-                          <span class="realm-owner-name">{ownerName(realm)}</span>
-                          <span class="realm-owner-meta">{ownerMeta(realm)}</span>
-                        </td>
-                          <td class="realm-action-column">
-                            {realm.can_delete ? (
-                              <div class="realm-row-action">
-                                <button
-                                  class="action-button is-danger"
-                                  type="button"
-                                  onclick={(event: MouseEvent) => {
-                                    event.stopPropagation();
-                                    this.openDelete(realm);
-                                  }}
-                                >
-                                  Delete realm
-                                </button>
-                              </div>
-                            ) : null}
-                          </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-              {realms.length > 0 && visibleRealms.length === 0 ? (
-                <div class="empty">
-                  <p>No realms match this search.</p>
-                </div>
-              ) : realms.length === 0 ? (
-                <div class="empty">
-                  <p>No realms are available for this account.</p>
-                </div>
-              ) : null}
-            </div>
+                        ) : (
+                          realm.host_count
+                        )}
+                      </td>
+                      <td data-label="Domains" class="u-nowrap">
+                        {realm.can_edit ? (
+                          <a
+                            class="link"
+                            href={appUrl(domainsPath(realm))}
+                            onclick={(event: MouseEvent) => {
+                              event.preventDefault();
+                              event.stopPropagation();
+                              m.route.set(domainsPath(realm));
+                            }}
+                          >
+                            {realm.email_domain_count}
+                          </a>
+                        ) : (
+                          realm.email_domain_count
+                        )}
+                      </td>
+                      <td data-label="Clients" class="u-nowrap">{realm.client_count}</td>
+                      <td data-label="Actions">
+                        {realm.can_delete ? (
+                          <button
+                            class="button-inline button-danger"
+                            type="button"
+                            onclick={(event: MouseEvent) => {
+                              event.stopPropagation();
+                              this.openDelete(realm);
+                            }}
+                          >
+                            Delete realm
+                          </button>
+                        ) : null}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+            {realms.length > 0 && visibleRealms.length === 0 ? (
+              <div class="empty">
+                <p>No realms match this search.</p>
+              </div>
+            ) : realms.length === 0 ? (
+              <div class="empty">
+                <p>No realms are available for this account.</p>
+              </div>
+            ) : null}
           </section>
         )}
 
         {this.createOpen ? (
           <Modal title="Register a realm" onClose={() => this.resetCreate()}>
             <form
-              class="realm-create-form"
               onsubmit={(event: Event) => {
                 event.preventDefault();
                 this.submitCreate();
@@ -471,7 +460,7 @@ export const RealmsPage: m.Component<RealmsAttrs> = {
                 </div>
               ) : null}
 
-              <div class="form-field">
+              <div class="field">
                 <span class="field-label">Display name</span>
                 <input
                   class="field-control"
@@ -493,7 +482,7 @@ export const RealmsPage: m.Component<RealmsAttrs> = {
                 />
               </div>
 
-              <div class="form-field">
+              <div class="field">
                 <span class="field-label">Realm ID</span>
                 <input
                   class="field-control"
@@ -516,7 +505,7 @@ export const RealmsPage: m.Component<RealmsAttrs> = {
               </p>
 
               <div class="field-grid">
-                <div class="form-field">
+                <div class="field">
                   <span class="field-label">Logo URL</span>
                   <input
                     class="field-control"
@@ -534,7 +523,7 @@ export const RealmsPage: m.Component<RealmsAttrs> = {
                   />
                 </div>
 
-                <div class="form-field">
+                <div class="field">
                   <span class="field-label">Primary color</span>
                   <input
                     class="field-control"
@@ -573,14 +562,14 @@ export const RealmsPage: m.Component<RealmsAttrs> = {
 
               <div class="modal-actions">
                 <button
-                  class="button-secondary"
+                  class="button button-secondary"
                   type="button"
                   disabled={this.creating}
                   onclick={() => this.resetCreate()}
                 >
                   Cancel
                 </button>
-                <button class="button" type="submit" disabled={this.creating}>
+                <button class="button button-primary" type="submit" disabled={this.creating}>
                   {this.creating ? 'Creating' : 'Create realm'}
                 </button>
               </div>
@@ -602,7 +591,7 @@ export const RealmsPage: m.Component<RealmsAttrs> = {
               </div>
             ) : null}
 
-            <div class="form-field">
+            <div class="field">
               <span class="field-label">Confirm realm ID</span>
               <input
                 class="field-control"
@@ -623,7 +612,7 @@ export const RealmsPage: m.Component<RealmsAttrs> = {
 
             <div class="modal-actions">
               <button
-                class="button-secondary"
+                class="button button-secondary"
                 type="button"
                 disabled={this.deleting}
                 onclick={() => this.resetDelete()}
@@ -631,7 +620,7 @@ export const RealmsPage: m.Component<RealmsAttrs> = {
                 Cancel
               </button>
               <button
-                class="button-danger"
+                class="button button-danger"
                 type="button"
                 disabled={!deleteConfirmationMatches || this.deleting}
                 onclick={() => this.submitDelete()}

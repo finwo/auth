@@ -110,7 +110,7 @@ export const ClientForm: m.Component<ClientFormAttrs> = {
 
     return (
       <form
-        class="client-form"
+        class="stack-tight"
         onsubmit={(event: Event) => {
           event.preventDefault();
           attrs.onsubmit();
@@ -123,7 +123,7 @@ export const ClientForm: m.Component<ClientFormAttrs> = {
         ) : null}
 
         <div class="field-grid">
-          <div class="form-field">
+          <div class="field">
             <span class="field-label">Client ID</span>
             <input
               class="field-control"
@@ -136,7 +136,7 @@ export const ClientForm: m.Component<ClientFormAttrs> = {
             />
           </div>
 
-          <div class="form-field">
+          <div class="field">
             <span class="field-label">Name</span>
             <input
               class="field-control"
@@ -147,7 +147,7 @@ export const ClientForm: m.Component<ClientFormAttrs> = {
             />
           </div>
 
-          <div class="form-field">
+          <div class="field">
             <span class="field-label" id="client-access-mode-label">Access mode</span>
             <SelectMenu
               labelledBy="client-access-mode-label"
@@ -164,7 +164,7 @@ export const ClientForm: m.Component<ClientFormAttrs> = {
             />
           </div>
 
-          <div class="form-field">
+          <div class="field">
             <span class="field-label" id="client-consent-mode-label">Consent</span>
             <SelectMenu
               labelledBy="client-consent-mode-label"
@@ -180,7 +180,7 @@ export const ClientForm: m.Component<ClientFormAttrs> = {
             />
           </div>
 
-          <div class="form-field">
+          <div class="field">
             <span class="field-label" id="client-token-auth-label">Token authentication</span>
             <SelectMenu
               labelledBy="client-token-auth-label"
@@ -198,7 +198,7 @@ export const ClientForm: m.Component<ClientFormAttrs> = {
             />
           </div>
 
-          <label class="checkbox-row">
+          <label class="checkbox">
             <input
               type="checkbox"
               checked={value.enabled}
@@ -209,7 +209,7 @@ export const ClientForm: m.Component<ClientFormAttrs> = {
             <span>Enabled</span>
           </label>
 
-          <label class="checkbox-row">
+          <label class="checkbox">
             <input
               type="checkbox"
               checked={requirePkce}
@@ -222,7 +222,7 @@ export const ClientForm: m.Component<ClientFormAttrs> = {
           </label>
         </div>
 
-        <div class="form-field">
+        <div class="field">
           <span class="field-label">Scopes</span>
           <input
             class="field-control"
@@ -233,10 +233,10 @@ export const ClientForm: m.Component<ClientFormAttrs> = {
           />
         </div>
 
-        <div class="form-field">
+        <div class="field">
           <span class="field-label">Redirect URIs</span>
           <textarea
-            class="field-control field-textarea"
+            class="field-textarea"
             value={value.redirect_uris}
             placeholder="https://app.example.test/callback"
             oninput={(event: Event) => {
@@ -245,10 +245,10 @@ export const ClientForm: m.Component<ClientFormAttrs> = {
           />
         </div>
 
-        <div class="form-field">
+        <div class="field">
           <span class="field-label">Post-logout redirect URIs</span>
           <textarea
-            class="field-control field-textarea"
+            class="field-textarea"
             value={value.post_logout_redirect_uris}
             placeholder="https://app.example.test/"
             oninput={(event: Event) => {
@@ -257,11 +257,11 @@ export const ClientForm: m.Component<ClientFormAttrs> = {
           />
         </div>
 
-        <fieldset class="branding-field">
-          <legend>Branding</legend>
+        <fieldset class="fieldset stack-tight">
+          <legend class="field-label">Branding</legend>
           <p class="note">Optional client overrides. Empty values use this realm's branding.</p>
           <div class="field-grid">
-            <div class="form-field">
+            <div class="field">
               <span class="field-label">Logo URL</span>
               <input
                 class="field-control"
@@ -278,7 +278,7 @@ export const ClientForm: m.Component<ClientFormAttrs> = {
               />
             </div>
 
-            <div class="form-field">
+            <div class="field">
               <span class="field-label">Primary color</span>
               <input
                 class="field-control"
@@ -315,16 +315,16 @@ export const ClientForm: m.Component<ClientFormAttrs> = {
           </div>
         </fieldset>
 
-        <fieldset class="role-field">
-          <legend>Required roles</legend>
+        <fieldset class="fieldset stack-tight">
+          <legend class="field-label">Required roles</legend>
           {attrs.roles.length === 0 ? (
             <p class="note">No realm roles are available.</p>
           ) : (
-            <div class="checkbox-list">
+            <div class="stack-tight">
               {attrs.roles.map((role) => {
                 const checked = value.required_roles.includes(role.slug);
                 return (
-                  <label class="checkbox-row">
+                  <label class="checkbox">
                     <input
                       type="checkbox"
                       checked={checked}
@@ -347,13 +347,13 @@ export const ClientForm: m.Component<ClientFormAttrs> = {
           )}
         </fieldset>
 
-        <div class="client-actions">
-          <button class="button" type="submit" disabled={attrs.pending}>
+        <div class="action-row">
+          <button class="button button-primary" type="submit" disabled={attrs.pending}>
             {attrs.pending ? 'Saving' : attrs.submitLabel}
           </button>
           {attrs.oncancel ? (
             <button
-              class="button-secondary"
+              class="button button-secondary"
               type="button"
               disabled={attrs.pending}
               onclick={attrs.oncancel}
