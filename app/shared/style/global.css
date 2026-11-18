@@ -785,6 +785,7 @@
     font-size: var(--font-base); line-height: var(--lh-base);
   }
   .field-control:focus, .field-textarea:focus { border-bottom-color: var(--accent); outline: none; }
+  .field-textarea { min-height: 6rem; resize: vertical; }
   .field-hint { color: var(--muted); font-size: var(--font-sm); line-height: var(--lh-base); margin: var(--space-1) 0 0; }
 
   .checkbox { display: flex; align-items: center; gap: var(--space-2);
