@@ -30,7 +30,7 @@
         return;
       }
 
-      if (!target.closest('.user-menu-item, button, a')) setOpen(false);
+      if (!target.closest('.menu-item, button, a')) setOpen(false);
     });
 
     document.addEventListener('keydown', (event) => {

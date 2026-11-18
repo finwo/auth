@@ -1,16 +1,4 @@
 @layer apps {
-  .grid {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr);
-    gap: var(--space-4);
-  }
-
-  .field-grid {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr);
-    gap: var(--space-4);
-  }
-
   /* block stack where the grid gap owns all rhythm: form columns,
      panel interiors, and runs of members that carry their own margins */
   .stack-tight {
@@ -19,17 +7,9 @@
     min-width: 0;
   }
 
-  .field-grid > *,
   .stack-tight > * {
     margin-block-start: 0;
     margin-block-end: 0;
-  }
-
-  @media (min-width: 40em) {
-    .grid,
-    .field-grid {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
   }
 
   /* borderless grouping fieldset: the legend is a .field-label */

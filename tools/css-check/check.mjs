@@ -17,10 +17,7 @@ const REPO = path.resolve(import.meta.dirname, '..', '..');
 // While any of these exist, the no-copy guard runs warn-only, and token
 // violations inside them are warnings. Empty the list to make both hard.
 // ---------------------------------------------------------------------------
-const TRANSITION_ALLOW = [
-  'mockup/plain/global.css',
-  'mockup/plain/select-menu.css',
-];
+const TRANSITION_ALLOW = [];
 
 const FRAMEWORK_CSS = 'app/shared/style/global.css';
 const COMPONENT_CSS_DIR = 'app/shared/component';

@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>Account mockup</title>
     <link rel="stylesheet" href="../../app/shared/style/global.css" />
+    <link rel="stylesheet" href="../../app/shared/component/user-menu.css" />
     <link rel="stylesheet" href="./mockups.css" />
   </head>
   <body>
@@ -32,21 +33,21 @@
         <button class="mobile-nav-toggle" type="button" id="mobile-nav-toggle" aria-controls="mobile-navigation" aria-expanded="false" aria-label="Open navigation">
           <span class="mobile-nav-toggle-bars" aria-hidden="true"></span>
         </button>
-        <details class="user-menu" open>
-          <summary aria-label="Account menu">
+        <details class="menu user-menu" open>
+          <summary class="menu-trigger" aria-label="Account menu">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <circle cx="12" cy="12" r="10" />
               <circle cx="12" cy="10" r="3" />
               <path d="M7 20.662V19a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v1.662" />
             </svg>
           </summary>
-          <div class="user-panel">
-            <div class="user-summary">
-              <span class="user-name">Demo User</span>
-              <span class="user-meta">demo@example.com</span>
+          <div class="menu-panel">
+            <div class="menu-heading">
+              <span class="menu-heading-title">Demo User</span>
+              <span class="menu-heading-meta">demo@example.com</span>
             </div>
-            <div class="user-menu-list">
-              <button class="user-menu-item" type="button" data-user-theme>
+            <div class="menu-list">
+              <button class="menu-item" type="button" data-user-theme>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                   <circle cx="12" cy="12" r="4" />
                   <path d="M12 2v2" />
@@ -59,9 +60,9 @@
                   <path d="m19.07 4.93-1.41 1.41" />
                 </svg>
                 <span>Theme</span>
-                <span class="user-menu-value" data-user-theme-value>Auto</span>
+                <span class="menu-value" data-user-theme-value>Auto</span>
               </button>
-              <a class="user-menu-item" href="#">
+              <a class="menu-item" href="#">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                   <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
                   <path d="m16 17 5-5-5-5" />
@@ -106,12 +107,12 @@
       </nav>
       <div class="mobile-nav-divider" aria-hidden="true"></div>
       <section class="mobile-nav-account" aria-label="Account">
-        <div class="user-summary">
-          <span class="user-name">Demo User</span>
-          <span class="user-meta">demo@example.com</span>
+        <div class="menu-heading">
+          <span class="menu-heading-title">Demo User</span>
+          <span class="menu-heading-meta">demo@example.com</span>
         </div>
-        <div class="user-menu-list">
-          <button class="user-menu-item" type="button" data-user-theme>
+        <div class="menu-list">
+          <button class="menu-item" type="button" data-user-theme>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <circle cx="12" cy="12" r="4" />
               <path d="M12 2v2" />
@@ -124,9 +125,9 @@
               <path d="m19.07 4.93-1.41 1.41" />
             </svg>
             <span>Theme</span>
-            <span class="user-menu-value" data-user-theme-value>Auto</span>
+            <span class="menu-value" data-user-theme-value>Auto</span>
           </button>
-          <a class="user-menu-item" href="#">
+          <a class="menu-item" href="#">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
               <path d="m16 17 5-5-5-5" />

@@ -944,6 +944,68 @@
               font-weight: 500; line-height: var(--lh-snug); }
   .card { padding: var(--space-6); background: var(--surface); box-shadow: var(--shadow); }
 
+  /* status page: full-height centered scaffold for auth and error views */
+  .status-page {
+    display: grid;
+    place-items: center;
+    min-height: 100vh;
+    min-height: 100svh;
+    padding: env(safe-area-inset-top) env(safe-area-inset-right)
+             calc(var(--space-4) + env(safe-area-inset-bottom)) env(safe-area-inset-left);
+    background: var(--canvas);
+    color: var(--text);
+  }
+
+  .status-panel {
+    width: min(calc(100% - var(--space-8)), 28rem);
+    padding: var(--space-8);
+    background: var(--surface);
+    box-shadow: var(--shadow);
+  }
+
+  .status-icon {
+    width: var(--space-8);
+    height: var(--space-8);
+    margin-block-end: var(--space-4);
+  }
+
+  .status-actions {
+    display: grid;
+    gap: var(--space-4);
+    margin-block-start: var(--space-6);
+  }
+
+  @media (min-width: 35em) {
+    .status-actions {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+    }
+  }
+
+  .status-danger { color: var(--danger-text); }
+
+  /* grids: one column, --grid-cols columns once there is room */
+  .grid,
+  .field-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-4);
+  }
+
+  .grid > *,
+  .field-grid > * {
+    margin-block-start: 0;
+    margin-block-end: 0;
+  }
+
+  @media (min-width: 40em) {
+    .grid,
+    .field-grid {
+      grid-template-columns: repeat(var(--grid-cols, 2), minmax(0, 1fr));
+    }
+  }
+
   /* modal: bottom sheet by default, centered dialog at 40em+ */
   .overlay {
     position: fixed;

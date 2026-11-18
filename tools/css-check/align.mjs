@@ -142,7 +142,7 @@ function measurementExpression(theme) {
   function q(v) { return Math.round(v * Q); }
 
   var out = {
-    tables: 0, rows: 0, multiCells: 0, mode: 'none',
+    tables: 0, rows: 0, multiCells: 0, allTallRows: 0, mode: 'none',
     maxSpreadGrid: 0, captions: 0, fail: []
   };
 
@@ -212,6 +212,8 @@ function measurementExpression(theme) {
       for (var r = 0; r < rows.length; r += 1) {
         var cells = rows[r].querySelectorAll('td');
         var baselines = [];
+        var filledCells = 0;
+        var tallCells = 0;
         var where = at + ' row ' + (r + 1);
         for (var c = 0; c < cells.length; c += 1) {
           var cell = cells[c];
@@ -224,16 +226,27 @@ function measurementExpression(theme) {
           if (cell.hasAttribute('data-label') && caption && caption !== 'none' && caption !== 'normal') {
             out.fail.push(where + ' cell ' + (c + 1) + ': data-label caption still renders in table mode');
           }
+          if (cell.textContent.trim() === '' && !cell.children.length) continue;
+          filledCells += 1;
           if (hasBlockChild(cell) || lineBands(cell) > 1) {
             out.multiCells += 1;
+            tallCells += 1;
             continue;
           }
           var base = probeBaseline(cell, where + ' cell ' + (c + 1));
           if (base !== null) baselines.push(base);
         }
         out.rows += 1;
+        // A row needs two single-line cells to disagree. With fewer than two
+        // non-empty cells, or no measurable content at all, it is degenerate.
+        if (filledCells < 2 || baselines.length + tallCells === 0) {
+          out.fail.push(where + ': degenerate row (' + filledCells + ' non-empty cell(s), ' + (baselines.length + tallCells) + ' measured)');
+          continue;
+        }
+        // A well-formed all-tall row centers by the UA default and has no
+        // pair of single-line cells to compare; it is exempt, not vacuous.
         if (baselines.length < 2) {
-          out.fail.push(where + ': fewer than 2 measurable single-line cells (degenerate row)');
+          out.allTallRows += 1;
           continue;
         }
         var lo = Math.min.apply(null, baselines);
@@ -367,7 +380,7 @@ async function main() {
           const head = `${target.label}  ${String(width).padStart(4)} ${theme.padEnd(4)}`;
           const stats =
             m.mode === 'table'
-              ? `mode=table tables=${m.tables} rows=${m.rows} multi-cells=${m.multiCells} max-baseline-spread=${m.maxSpreadGrid}/64`
+              ? `mode=table tables=${m.tables} rows=${m.rows} multi-cells=${m.multiCells} all-tall-rows=${m.allTallRows} max-baseline-spread=${m.maxSpreadGrid}/64`
               : `mode=card tables=${m.tables} rows=${m.rows} captions=${m.captions}`;
 
           if (target.negative && m.mode === 'table') {
