@@ -485,7 +485,7 @@ export const EmailDomainsPage: m.Component<EmailDomainsAttrs> = {
                           </button>
                         ) : null}
                         <button
-                          class="button-inline button-inline-danger"
+                          class="button-inline button-danger"
                           type="button"
                           onclick={() => this.openRemove(entry.domain)}
                         >
