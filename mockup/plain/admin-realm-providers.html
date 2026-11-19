@@ -1,0 +1,827 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Admin realm providers mockup</title>
+    <link rel="stylesheet" href="../../app/shared/style/global.css" />
+    <link rel="stylesheet" href="../../app/shared/component/select-menu.css" />
+    <link rel="stylesheet" href="../../app/shared/component/user-menu.css" />
+    <link rel="stylesheet" href="./mockups.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="./admin-dashboard.html">
+        <svg class="brand-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+        </svg>
+        <span class="brand-name">Auth</span>
+      </a>
+      <div class="topbar-actions">
+        <button class="mobile-nav-toggle" type="button" id="mobile-nav-toggle" aria-controls="mobile-navigation" aria-expanded="false" aria-label="Open navigation">
+          <span class="mobile-nav-toggle-bars" aria-hidden="true"></span>
+        </button>
+        <details class="menu user-menu">
+          <summary class="menu-trigger" aria-label="Account menu">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="10" />
+              <circle cx="12" cy="10" r="3" />
+              <path d="M7 20.662V19a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v1.662" />
+            </svg>
+          </summary>
+          <div class="menu-panel">
+            <div class="menu-heading">
+              <span class="menu-heading-title">System Admin</span>
+              <span class="menu-heading-meta">admin@system.test</span>
+            </div>
+            <div class="menu-list">
+              <a class="menu-item" href="#">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1-1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
+                  <circle cx="12" cy="12" r="3" />
+                </svg>
+                <span>Account settings</span>
+              </a>
+              <button class="menu-item" type="button" data-user-theme>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <circle cx="12" cy="12" r="4" />
+                  <path d="M12 2v2" />
+                  <path d="M12 20v2" />
+                  <path d="m4.93 4.93 1.41 1.41" />
+                  <path d="m17.66 17.66 1.41 1.41" />
+                  <path d="M2 12h2" />
+                  <path d="M20 12h2" />
+                  <path d="m6.34 17.66-1.41 1.41" />
+                  <path d="m19.07 4.93-1.41 1.41" />
+                </svg>
+                <span>Theme</span>
+                <span class="menu-value" data-user-theme-value>Auto</span>
+              </button>
+              <a class="menu-item" href="#">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                  <path d="m16 17 5-5-5-5" />
+                  <path d="M21 12H9" />
+                </svg>
+                <span>Sign out</span>
+              </a>
+            </div>
+          </div>
+        </details>
+      </div>
+    </header>
+
+    <div class="mobile-nav" id="mobile-navigation" aria-hidden="true">
+      <nav class="nav" aria-label="Administration">
+        <p class="nav-label">Administration</p>
+        <a class="nav-item" href="./admin-dashboard.html">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="3" y="3" width="7" height="7" />
+            <rect x="14" y="3" width="7" height="7" />
+            <rect x="3" y="14" width="7" height="7" />
+            <rect x="14" y="14" width="7" height="7" />
+          </svg>
+          <span>Overview</span>
+        </a>
+        <a class="nav-item is-active" data-realm-nav href="./admin-realms.html">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z" />
+            <path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2" />
+            <path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2" />
+            <path d="M10 6h4" />
+            <path d="M10 10h4" />
+            <path d="M10 14h4" />
+            <path d="M10 18h4" />
+          </svg>
+          <span data-realm-nav-label>Realms</span>
+        </a>
+        <a class="nav-item" href="./admin-clients.html">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="2" y="4" width="20" height="16" rx="2" />
+            <path d="M10 4v4" />
+            <path d="M2 8h20" />
+            <path d="M6 4v4" />
+          </svg>
+          <span>Clients</span>
+        </a>
+        <a class="nav-item" href="#">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M22 12h-4l-3 8-6-16-3 8H2" />
+          </svg>
+          <span>Sessions</span>
+        </a>
+        <a class="nav-item" href="./admin-users.html">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+            <circle cx="12" cy="7" r="4" />
+          </svg>
+          <span>Users</span>
+        </a>
+        <a class="nav-item" data-settings-nav href="./admin-system-settings.html">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1-1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
+            <circle cx="12" cy="12" r="3" />
+          </svg>
+          <span>Settings</span>
+        </a>
+      </nav>
+      <div class="mobile-nav-divider" aria-hidden="true"></div>
+      <section class="mobile-nav-account" aria-label="Account">
+        <div class="menu-heading">
+          <span class="menu-heading-title">System Admin</span>
+          <span class="menu-heading-meta">admin@system.test</span>
+        </div>
+        <div class="menu-list">
+          <a class="menu-item" href="#">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1-1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
+              <circle cx="12" cy="12" r="3" />
+            </svg>
+            <span>Account settings</span>
+          </a>
+          <button class="menu-item" type="button" data-user-theme>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="4" />
+              <path d="M12 2v2" />
+              <path d="M12 20v2" />
+              <path d="m4.93 4.93 1.41 1.41" />
+              <path d="m17.66 17.66 1.41 1.41" />
+              <path d="M2 12h2" />
+              <path d="M20 12h2" />
+              <path d="m6.34 17.66-1.41 1.41" />
+              <path d="m19.07 4.93-1.41 1.41" />
+            </svg>
+            <span>Theme</span>
+            <span class="menu-value" data-user-theme-value>Auto</span>
+          </button>
+          <a class="menu-item" href="#">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+              <path d="m16 17 5-5-5-5" />
+              <path d="M21 12H9" />
+            </svg>
+            <span>Sign out</span>
+          </a>
+        </div>
+      </section>
+    </div>
+
+    <div class="app">
+      <aside class="sidebar">
+        <nav class="nav" aria-label="Administration">
+          <p class="nav-label">Administration</p>
+          <a class="nav-item" href="./admin-dashboard.html">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="3" y="3" width="7" height="7" />
+              <rect x="14" y="3" width="7" height="7" />
+              <rect x="3" y="14" width="7" height="7" />
+              <rect x="14" y="14" width="7" height="7" />
+            </svg>
+            <span>Overview</span>
+          </a>
+          <a class="nav-item is-active" data-realm-nav href="./admin-realms.html">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z" />
+              <path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2" />
+              <path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2" />
+              <path d="M10 6h4" />
+              <path d="M10 10h4" />
+              <path d="M10 14h4" />
+              <path d="M10 18h4" />
+            </svg>
+            <span data-realm-nav-label>Realms</span>
+          </a>
+          <a class="nav-item" href="./admin-clients.html">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="2" y="4" width="20" height="16" rx="2" />
+              <path d="M10 4v4" />
+              <path d="M2 8h20" />
+              <path d="M6 4v4" />
+            </svg>
+            <span>Clients</span>
+          </a>
+          <a class="nav-item" href="#">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M22 12h-4l-3 8-6-16-3 8H2" />
+            </svg>
+            <span>Sessions</span>
+          </a>
+          <a class="nav-item" href="./admin-users.html">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+              <circle cx="12" cy="7" r="4" />
+            </svg>
+            <span>Users</span>
+          </a>
+          <a class="nav-item" data-settings-nav href="./admin-system-settings.html">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1-1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
+              <circle cx="12" cy="12" r="3" />
+            </svg>
+            <span>Settings</span>
+          </a>
+        </nav>
+      </aside>
+
+      <div class="main">
+        <main class="content">
+          <div class="page-header page-header-row">
+            <div>
+              <div class="breadcrumb">
+                <a id="providers-breadcrumb-root" href="./admin-realms.html"><span data-realm-breadcrumb-root>Realms</span></a>
+                <span>/</span>
+                <a id="providers-breadcrumb-realm" href="./admin-settings.html?realm=acme">Acme</a>
+                <span>/</span>
+                <span aria-current="page">Identity providers</span>
+              </div>
+              <h1>Identity providers</h1>
+              <p>External sign-in providers that accounts in this realm can use.</p>
+            </div>
+            <div class="field">
+              <span class="field-label" id="providers-realm-label">Realm</span>
+              <div class="select" id="providers-realm-select" data-select data-value="acme">
+                <button
+                  class="select-trigger"
+                  type="button"
+                  id="providers-realm-trigger"
+                  role="combobox"
+                  aria-haspopup="listbox"
+                  aria-expanded="false"
+                  aria-controls="providers-realm-listbox"
+                  aria-labelledby="providers-realm-label"
+                >
+                  <span class="select-value">Acme</span>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="m6 9 6 6 6-6" />
+                  </svg>
+                </button>
+                <div class="select-list" id="providers-realm-listbox" role="listbox" aria-labelledby="providers-realm-label" hidden>
+                  <div class="select-option is-selected" id="providers-realm-acme" role="option" aria-selected="true" data-value="acme" data-label="Acme">
+                    <span class="select-option-mark" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20 6 9 17l-5-5" />
+                      </svg>
+                    </span>
+                    <span class="select-option-label">Acme</span>
+                  </div>
+                  <div class="select-option" id="providers-realm-globex" role="option" aria-selected="false" data-value="globex" data-label="Globex">
+                    <span class="select-option-mark" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20 6 9 17l-5-5" />
+                      </svg>
+                    </span>
+                    <span class="select-option-label">Globex</span>
+                  </div>
+                  <div class="select-option" id="providers-realm-northwind" role="option" aria-selected="false" data-value="northwind" data-label="Northwind">
+                    <span class="select-option-mark" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20 6 9 17l-5-5" />
+                      </svg>
+                    </span>
+                    <span class="select-option-label">Northwind</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div id="providers-notice" class="notice" role="status" hidden></div>
+
+          <section class="card" aria-labelledby="providers-table-title">
+            <h2 id="providers-table-title" class="sr-only">Realm identity providers</h2>
+            <div class="toolbar toolbar-panel">
+              <div class="toolbar-search">
+                <input id="providers-search" type="search" aria-label="Search providers" placeholder="Search providers" />
+              </div>
+              <div class="toolbar-actions">
+                <button id="providers-add-button" class="button button-primary" type="button">Add provider</button>
+              </div>
+            </div>
+
+            <table class="table">
+              <thead>
+                <tr>
+                  <th scope="col">Provider</th>
+                  <th scope="col">Issuer</th>
+                  <th scope="col">Status</th>
+                  <th scope="col">Domains</th>
+                  <th scope="col">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="providers-rows"></tbody>
+            </table>
+            <p id="providers-search-empty" class="empty" hidden>No providers match this search.</p>
+            <p id="providers-realm-empty" class="empty" hidden>No identity providers are configured for this realm.</p>
+          </section>
+
+          <section class="state-preview">
+            <h2>Loading state</h2>
+            <div class="panel" aria-busy="true">
+              <div class="skeleton skeleton-title"></div>
+              <div class="skeleton"></div>
+              <div class="skeleton skeleton-short"></div>
+            </div>
+          </section>
+        </main>
+      </div>
+    </div>
+
+    <div id="providers-toggle-dialog" class="overlay" hidden>
+      <div class="modal" role="dialog" aria-modal="true" aria-labelledby="providers-toggle-title">
+        <div class="modal-header">
+          <h2 id="providers-toggle-title">Disable provider</h2>
+          <button class="modal-close" type="button" aria-label="Close dialog" data-dialog-close>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M18 6 6 18" />
+              <path d="m6 6 12 12" />
+            </svg>
+          </button>
+        </div>
+        <div class="modal-body">
+          <p id="providers-toggle-message" class="modal-note"></p>
+          <div class="modal-actions">
+            <button class="button button-secondary" type="button" data-dialog-close>Cancel</button>
+            <button id="providers-toggle-confirm-button" class="button button-primary" type="button">Disable provider</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="providers-delete-dialog" class="overlay" hidden>
+      <div class="modal" role="dialog" aria-modal="true" aria-labelledby="providers-delete-title">
+        <div class="modal-header">
+          <h2 id="providers-delete-title">Delete provider</h2>
+          <button class="modal-close" type="button" aria-label="Close dialog" data-dialog-close>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M18 6 6 18" />
+              <path d="m6 6 12 12" />
+            </svg>
+          </button>
+        </div>
+        <div class="modal-body">
+          <p id="providers-delete-message" class="modal-note"></p>
+          <label class="field" for="providers-delete-confirm">
+            <span class="field-label">Confirm slug</span>
+            <input id="providers-delete-confirm" class="field-control" type="text" maxlength="64" autocomplete="off" spellcheck="false" />
+          </label>
+          <p class="modal-note">Type the provider slug exactly to confirm.</p>
+          <div class="modal-actions">
+            <button class="button button-secondary" type="button" data-dialog-close>Cancel</button>
+            <button id="providers-delete-confirm-button" class="button button-danger" type="button" disabled>Delete provider</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="mockup-controls" aria-label="Mockup controls">
+      <span class="mockup-label">Mockup</span>
+      <button class="mockup-button is-active" type="button" data-theme-target="auto">Auto</button>
+      <button class="mockup-button" type="button" data-theme-target="light">Light</button>
+      <button class="mockup-button" type="button" data-theme-target="dark">Dark</button>
+      <span class="mockup-separator" aria-hidden="true"></span>
+      <span class="mockup-label">View as</span>
+      <button class="mockup-button is-active" type="button" data-role-target="system" aria-pressed="true">System admin</button>
+      <button class="mockup-button" type="button" data-role-target="owner" aria-pressed="false">Realm owner</button>
+      <button class="mockup-button" type="button" data-role-target="admin" aria-pressed="false">Realm admin</button>
+    </div>
+
+    <script>
+      const root = document.documentElement;
+      const themeButtons = document.querySelectorAll('[data-theme-target]');
+      const userThemeButtons = document.querySelectorAll('[data-user-theme]');
+      const userThemeValues = document.querySelectorAll('[data-user-theme-value]');
+      let currentTheme = 'auto';
+
+      function setTheme(value) {
+        currentTheme = value;
+        if (value === 'auto') {
+          root.removeAttribute('data-theme');
+        } else {
+          root.setAttribute('data-theme', value);
+        }
+
+        themeButtons.forEach((button) => {
+          button.classList.toggle('is-active', button.dataset.themeTarget === value);
+        });
+        userThemeValues.forEach((element) => {
+          element.textContent = value.charAt(0).toUpperCase() + value.slice(1);
+        });
+
+        if (typeof syncUrl === 'function') syncUrl();
+        if (typeof syncRealmLinks === 'function') syncRealmLinks();
+      }
+
+      themeButtons.forEach((button) => {
+        button.addEventListener('click', () => setTheme(button.dataset.themeTarget));
+      });
+
+      userThemeButtons.forEach((button) => {
+        button.addEventListener('click', () => {
+          const themes = ['auto', 'light', 'dark'];
+          setTheme(themes[(themes.indexOf(currentTheme) + 1) % themes.length]);
+        });
+      });
+
+      const userMenu = document.querySelector('.user-menu');
+      document.addEventListener('click', (event) => {
+        if (userMenu && userMenu.open && !userMenu.contains(event.target)) {
+          userMenu.open = false;
+        }
+      });
+
+      document.querySelectorAll('[data-dialog-close]').forEach((button) => {
+        button.addEventListener('click', () => {
+          button.closest('.overlay').hidden = true;
+        });
+      });
+
+      document.querySelectorAll('.overlay').forEach((overlay) => {
+        overlay.addEventListener('mousedown', (event) => {
+          if (event.target === overlay) overlay.hidden = true;
+        });
+      });
+
+      document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') {
+          document.querySelectorAll('.overlay:not([hidden])').forEach((dialog) => {
+            dialog.hidden = true;
+          });
+        }
+      });
+
+      const identities = {
+        system: { name: 'System Admin', email: 'admin@system.test' },
+        owner: { name: 'Realm Owner', email: 'owner@acme.test' },
+        admin: { name: 'Realm Admin', email: 'realm-admin@managed.test' },
+      };
+
+      const realmInfo = {
+        acme: { label: 'Acme', roles: ['system', 'owner'] },
+        globex: { label: 'Globex', roles: ['system', 'admin'] },
+        northwind: { label: 'Northwind', roles: ['system'] },
+      };
+      const realmOrder = ['acme', 'globex', 'northwind'];
+
+      const providers = {
+        acme: [
+          {
+            slug: 'example-sso',
+            name: 'Example SSO',
+            issuer: 'https://idp.example.com',
+            clientId: 'auth-example',
+            hasSecret: true,
+            enabled: true,
+            domains: ['sso.acme.test'],
+          },
+          {
+            slug: 'legacy-sso',
+            name: 'Legacy SSO',
+            issuer: 'https://old-idp.example.net',
+            clientId: 'legacy-app',
+            hasSecret: false,
+            enabled: false,
+            domains: [],
+          },
+        ],
+        globex: [
+          {
+            slug: 'globex-id',
+            name: 'Globex Identity',
+            issuer: 'https://login.globex.test',
+            clientId: 'gx-auth',
+            hasSecret: true,
+            enabled: true,
+            domains: ['globex.test'],
+          },
+        ],
+        northwind: [],
+      };
+
+      const currentRole = { value: 'system' };
+      let currentRealm = 'acme';
+
+      const roleButtons = document.querySelectorAll('[data-role-target]');
+      const realmNavLinks = document.querySelectorAll('[data-realm-nav]');
+      const realmNavLabels = document.querySelectorAll('[data-realm-nav-label]');
+      const settingsNavLinks = document.querySelectorAll('[data-settings-nav]');
+      const breadcrumbRootLink = document.getElementById('providers-breadcrumb-root');
+      const breadcrumbRealmLink = document.getElementById('providers-breadcrumb-realm');
+      const breadcrumbRootLabels = document.querySelectorAll('[data-realm-breadcrumb-root]');
+
+      const realmSelect = document.getElementById('providers-realm-select');
+      const realmSelectValue = realmSelect.querySelector('.select-value');
+      const realmSelectOptions = [...realmSelect.querySelectorAll('.select-option')];
+
+      const notice = document.getElementById('providers-notice');
+      const searchInput = document.getElementById('providers-search');
+      const searchEmpty = document.getElementById('providers-search-empty');
+      const realmEmpty = document.getElementById('providers-realm-empty');
+      const providerRows = document.getElementById('providers-rows');
+      const addButton = document.getElementById('providers-add-button');
+
+      function accessibleRealms() {
+        return realmOrder.filter((slug) => realmInfo[slug].roles.includes(currentRole.value));
+      }
+
+      function providerRowList() {
+        return [...providerRows.querySelectorAll('.provider-row')];
+      }
+
+      function showNotice(message) {
+        notice.textContent = message;
+        notice.hidden = false;
+      }
+
+      function escapeHtml(value) {
+        return String(value).replace(/[&<>"']/g, (character) => {
+          const entities = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+          return entities[character];
+        });
+      }
+
+      function findProvider(slug) {
+        return (providers[currentRealm] || []).find((entry) => entry.slug === slug);
+      }
+
+      function providerRowElement(entry) {
+        const row = document.createElement('tr');
+        row.className = 'provider-row';
+        row.dataset.search = `${entry.name} ${entry.slug} ${entry.issuer}`.toLowerCase();
+        row.dataset.slug = entry.slug;
+
+        row.innerHTML = `
+          <td data-label="Provider">${escapeHtml(entry.name)}</td>
+          <td data-label="Issuer"><span class="table-mono">${escapeHtml(entry.issuer)}</span></td>
+          <td data-label="Status"><span class="status"><span class="status-dot" aria-hidden="true"></span>${entry.enabled ? 'Enabled' : 'Disabled'}</span></td>
+          <td data-label="Domains">${entry.domains.length}</td>
+          <td data-label="Actions">
+            <a class="button-inline" href="#" data-edit-provider="${escapeHtml(entry.slug)}">Edit</a>
+            <button class="button-inline" type="button" data-toggle-provider="${escapeHtml(entry.slug)}">${entry.enabled ? 'Disable' : 'Enable'}</button>
+            <button class="button-inline button-danger" type="button" data-delete-provider="${escapeHtml(entry.slug)}">Delete</button>
+          </td>`;
+        return row;
+      }
+
+      function renderProviders() {
+        const list = providers[currentRealm] || [];
+        providerRows.replaceChildren(...list.map(providerRowElement));
+        applySearch();
+      }
+
+      function applySearch() {
+        const term = searchInput.value.trim().toLowerCase();
+        const total = (providers[currentRealm] || []).length;
+        let visible = 0;
+
+        providerRowList().forEach((row) => {
+          const match = !term || (row.dataset.search || '').includes(term);
+          row.hidden = !match;
+          if (match) visible += 1;
+        });
+
+        searchEmpty.hidden = total === 0 || visible !== 0;
+        realmEmpty.hidden = total !== 0;
+      }
+
+      function syncSelector() {
+        realmSelectOptions.forEach((option) => {
+          const slug = option.dataset.value;
+          const accessible = realmInfo[slug].roles.includes(currentRole.value);
+          option.hidden = !accessible;
+          const selected = slug === currentRealm;
+          option.classList.toggle('is-selected', selected);
+          option.setAttribute('aria-selected', String(selected));
+        });
+        realmSelectValue.textContent = realmInfo[currentRealm].label;
+        realmSelect.dataset.value = currentRealm;
+      }
+
+      function editParams() {
+        const params = new URLSearchParams();
+        params.set('realm', currentRealm);
+        params.set('role', currentRole.value);
+        if (currentTheme !== 'auto') params.set('theme', currentTheme);
+        return params.toString();
+      }
+
+      function subpageUrl(path, extraParams) {
+        const params = new URLSearchParams(editParams());
+        if (extraParams) {
+          new URLSearchParams(extraParams).forEach((value, key) => params.set(key, value));
+        }
+        return `./${path}?${params.toString()}`;
+      }
+
+      function realmListParams() {
+        const params = new URLSearchParams();
+        params.set('role', currentRole.value);
+        if (currentTheme !== 'auto') params.set('theme', currentTheme);
+        return params.toString();
+      }
+
+      function realmNavHref() {
+        return accessibleRealms().length === 1
+          ? subpageUrl('admin-settings.html')
+          : `./admin-realms.html?${realmListParams()}`;
+      }
+
+      function syncRealmLinks() {
+        const count = accessibleRealms().length;
+        const label = count === 1 ? 'Realm' : 'Realms';
+        const href = realmNavHref();
+
+        realmNavLabels.forEach((element) => {
+          element.textContent = label;
+        });
+        realmNavLinks.forEach((link) => {
+          link.href = href;
+          link.classList.add('is-active');
+          link.removeAttribute('aria-current');
+        });
+        breadcrumbRootLabels.forEach((element) => {
+          element.textContent = label;
+        });
+        breadcrumbRootLink.href = href;
+        breadcrumbRealmLink.textContent = realmInfo[currentRealm].label;
+        breadcrumbRealmLink.href = subpageUrl('admin-settings.html');
+      }
+
+      function syncUrl() {
+        const params = new URLSearchParams();
+        params.set('realm', currentRealm);
+        params.set('role', currentRole.value);
+        if (currentTheme !== 'auto') params.set('theme', currentTheme);
+        try {
+          window.history.replaceState({}, '', `${window.location.pathname}?${params.toString()}`);
+        } catch (e) {
+          /* ignore history updates when opened from file:// */
+        }
+      }
+
+      function setRole(role) {
+        currentRole.value = role;
+        const identity = identities[role];
+
+        document.querySelectorAll('.menu-heading-title').forEach((element) => {
+          element.textContent = identity.name;
+        });
+        document.querySelectorAll('.menu-heading-meta').forEach((element) => {
+          element.textContent = identity.email;
+        });
+
+        roleButtons.forEach((button) => {
+          const active = button.dataset.roleTarget === role;
+          button.classList.toggle('is-active', active);
+          button.setAttribute('aria-pressed', String(active));
+        });
+
+        settingsNavLinks.forEach((link) => {
+          link.hidden = role !== 'system';
+        });
+
+        if (!accessibleRealms().includes(currentRealm)) {
+          currentRealm = accessibleRealms()[0] || 'acme';
+        }
+
+        syncSelector();
+        renderProviders();
+        syncRealmLinks();
+        syncUrl();
+      }
+
+      roleButtons.forEach((button) => {
+        button.addEventListener('click', () => setRole(button.dataset.roleTarget));
+      });
+
+      const selectObserver = new MutationObserver(() => {
+        const value = realmSelect.dataset.value;
+        if (value && value !== currentRealm) {
+          currentRealm = value;
+          renderProviders();
+          syncSelector();
+          syncRealmLinks();
+          syncUrl();
+        }
+      });
+      selectObserver.observe(realmSelect, { attributes: true, attributeFilter: ['data-value'] });
+
+      addButton.addEventListener('click', () => {
+        window.location.href = subpageUrl('admin-realm-provider-edit.html', 'mode=create');
+      });
+
+      searchInput.addEventListener('input', applySearch);
+
+      const toggleDialog = document.getElementById('providers-toggle-dialog');
+      const toggleMessage = document.getElementById('providers-toggle-message');
+      const toggleConfirmButton = document.getElementById('providers-toggle-confirm-button');
+      let pendingToggleSlug = '';
+
+      function toggleProvider(slug, enabled) {
+        const entry = findProvider(slug);
+        if (!entry) return;
+        entry.enabled = enabled;
+        renderProviders();
+        showNotice(`Provider ${entry.name} ${enabled ? 'enabled' : 'disabled'}.`);
+      }
+
+      function openToggleDialog(slug) {
+        const entry = findProvider(slug);
+        if (!entry) return;
+        pendingToggleSlug = slug;
+        if (entry.domains.length) {
+          toggleMessage.textContent = `While ${entry.name} is disabled, sign-in for ${entry.domains.join(', ')} falls back to password. Existing sessions are not affected.`;
+          toggleDialog.hidden = false;
+          requestAnimationFrame(() => toggleConfirmButton.focus());
+          return;
+        }
+        toggleProvider(slug, !entry.enabled);
+      }
+
+      toggleConfirmButton.addEventListener('click', () => {
+        if (!pendingToggleSlug) return;
+        const entry = findProvider(pendingToggleSlug);
+        if (entry) toggleProvider(pendingToggleSlug, !entry.enabled);
+        pendingToggleSlug = '';
+        toggleDialog.hidden = true;
+      });
+
+      const deleteDialog = document.getElementById('providers-delete-dialog');
+      const deleteMessage = document.getElementById('providers-delete-message');
+      const deleteInput = document.getElementById('providers-delete-confirm');
+      const confirmDeleteButton = document.getElementById('providers-delete-confirm-button');
+      let pendingDeleteSlug = '';
+
+      function openDeleteDialog(slug) {
+        const entry = findProvider(slug);
+        if (!entry) return;
+        pendingDeleteSlug = slug;
+        const domainNote = entry.domains.length
+          ? ` Connected domains ${entry.domains.join(', ')} will be unlinked and fall back to password sign-in.`
+          : ' No email domains are connected to this provider.';
+        deleteMessage.textContent = `Delete ${entry.name}? This cannot be undone.${domainNote}`;
+        deleteInput.value = '';
+        deleteInput.placeholder = slug;
+        confirmDeleteButton.disabled = true;
+        deleteDialog.hidden = false;
+        requestAnimationFrame(() => deleteInput.focus());
+      }
+
+      deleteInput.addEventListener('input', () => {
+        confirmDeleteButton.disabled = deleteInput.value.trim().toLowerCase() !== pendingDeleteSlug;
+      });
+
+      confirmDeleteButton.addEventListener('click', () => {
+        if (!pendingDeleteSlug || confirmDeleteButton.disabled) return;
+        providers[currentRealm] = (providers[currentRealm] || []).filter((entry) => entry.slug !== pendingDeleteSlug);
+        const deleted = pendingDeleteSlug;
+        pendingDeleteSlug = '';
+        deleteDialog.hidden = true;
+        renderProviders();
+        showNotice(`Provider ${deleted} deleted.`);
+      });
+
+      providerRows.addEventListener('click', (event) => {
+        const editLink = event.target.closest('[data-edit-provider]');
+        if (editLink) {
+          event.preventDefault();
+          event.stopPropagation();
+          window.location.href = subpageUrl('admin-realm-provider-edit.html', `provider=${encodeURIComponent(editLink.dataset.editProvider)}`);
+          return;
+        }
+
+        const toggleButton = event.target.closest('[data-toggle-provider]');
+        if (toggleButton) {
+          event.stopPropagation();
+          openToggleDialog(toggleButton.dataset.toggleProvider);
+          return;
+        }
+
+        const deleteButton = event.target.closest('[data-delete-provider]');
+        if (deleteButton) {
+          event.stopPropagation();
+          openDeleteDialog(deleteButton.dataset.deleteProvider);
+        }
+      });
+
+      const initialParams = new URLSearchParams(window.location.search);
+      const initialTheme = initialParams.get('theme');
+      if (initialTheme === 'light' || initialTheme === 'dark') setTheme(initialTheme);
+
+      const initialRole = initialParams.get('role');
+      if (identities[initialRole]) currentRole.value = initialRole;
+
+      const initialRealm = initialParams.get('realm');
+      if (realmInfo[initialRealm] && realmInfo[initialRealm].roles.includes(currentRole.value)) {
+        currentRealm = initialRealm;
+      } else {
+        currentRealm = accessibleRealms()[0] || 'acme';
+      }
+
+      setRole(currentRole.value);
+
+      const returnedFrom = initialParams.get('saved');
+      if (returnedFrom) showNotice(`Provider ${returnedFrom} saved.`);
+    </script>
+    <script src="./shell.js"></script>
+  </body>
+</html>

@@ -1,0 +1,879 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Admin realm provider edit mockup</title>
+    <link rel="stylesheet" href="../../app/shared/style/global.css" />
+    <link rel="stylesheet" href="../../app/shared/component/select-menu.css" />
+    <link rel="stylesheet" href="../../app/shared/component/user-menu.css" />
+    <link rel="stylesheet" href="./mockups.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="./admin-dashboard.html">
+        <svg class="brand-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+        </svg>
+        <span class="brand-name">Auth</span>
+      </a>
+      <div class="topbar-actions">
+        <button class="mobile-nav-toggle" type="button" id="mobile-nav-toggle" aria-controls="mobile-navigation" aria-expanded="false" aria-label="Open navigation">
+          <span class="mobile-nav-toggle-bars" aria-hidden="true"></span>
+        </button>
+        <details class="menu user-menu">
+          <summary class="menu-trigger" aria-label="Account menu">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="10" />
+              <circle cx="12" cy="10" r="3" />
+              <path d="M7 20.662V19a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v1.662" />
+            </svg>
+          </summary>
+          <div class="menu-panel">
+            <div class="menu-heading">
+              <span class="menu-heading-title">System Admin</span>
+              <span class="menu-heading-meta">admin@system.test</span>
+            </div>
+            <div class="menu-list">
+              <a class="menu-item" href="#">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1-1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
+                  <circle cx="12" cy="12" r="3" />
+                </svg>
+                <span>Account settings</span>
+              </a>
+              <button class="menu-item" type="button" data-user-theme>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <circle cx="12" cy="12" r="4" />
+                  <path d="M12 2v2" />
+                  <path d="M12 20v2" />
+                  <path d="m4.93 4.93 1.41 1.41" />
+                  <path d="m17.66 17.66 1.41 1.41" />
+                  <path d="M2 12h2" />
+                  <path d="M20 12h2" />
+                  <path d="m6.34 17.66-1.41 1.41" />
+                  <path d="m19.07 4.93-1.41 1.41" />
+                </svg>
+                <span>Theme</span>
+                <span class="menu-value" data-user-theme-value>Auto</span>
+              </button>
+              <a class="menu-item" href="#">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                  <path d="m16 17 5-5-5-5" />
+                  <path d="M21 12H9" />
+                </svg>
+                <span>Sign out</span>
+              </a>
+            </div>
+          </div>
+        </details>
+      </div>
+    </header>
+
+    <div class="mobile-nav" id="mobile-navigation" aria-hidden="true">
+      <nav class="nav" aria-label="Administration">
+        <p class="nav-label">Administration</p>
+        <a class="nav-item" href="./admin-dashboard.html">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="3" y="3" width="7" height="7" />
+            <rect x="14" y="3" width="7" height="7" />
+            <rect x="3" y="14" width="7" height="7" />
+            <rect x="14" y="14" width="7" height="7" />
+          </svg>
+          <span>Overview</span>
+        </a>
+        <a class="nav-item is-active" data-realm-nav href="./admin-realms.html">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z" />
+            <path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2" />
+            <path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2" />
+            <path d="M10 6h4" />
+            <path d="M10 10h4" />
+            <path d="M10 14h4" />
+            <path d="M10 18h4" />
+          </svg>
+          <span data-realm-nav-label>Realms</span>
+        </a>
+        <a class="nav-item" href="./admin-clients.html">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="2" y="4" width="20" height="16" rx="2" />
+            <path d="M10 4v4" />
+            <path d="M2 8h20" />
+            <path d="M6 4v4" />
+          </svg>
+          <span>Clients</span>
+        </a>
+        <a class="nav-item" href="#">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M22 12h-4l-3 8-6-16-3 8H2" />
+          </svg>
+          <span>Sessions</span>
+        </a>
+        <a class="nav-item" href="./admin-users.html">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+            <circle cx="12" cy="7" r="4" />
+          </svg>
+          <span>Users</span>
+        </a>
+        <a class="nav-item" data-settings-nav href="./admin-system-settings.html">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1-1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
+            <circle cx="12" cy="12" r="3" />
+          </svg>
+          <span>Settings</span>
+        </a>
+      </nav>
+      <div class="mobile-nav-divider" aria-hidden="true"></div>
+      <section class="mobile-nav-account" aria-label="Account">
+        <div class="menu-heading">
+          <span class="menu-heading-title">System Admin</span>
+          <span class="menu-heading-meta">admin@system.test</span>
+        </div>
+        <div class="menu-list">
+          <a class="menu-item" href="#">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1-1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
+              <circle cx="12" cy="12" r="3" />
+            </svg>
+            <span>Account settings</span>
+          </a>
+          <button class="menu-item" type="button" data-user-theme>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="4" />
+              <path d="M12 2v2" />
+              <path d="M12 20v2" />
+              <path d="m4.93 4.93 1.41 1.41" />
+              <path d="m17.66 17.66 1.41 1.41" />
+              <path d="M2 12h2" />
+              <path d="M20 12h2" />
+              <path d="m6.34 17.66-1.41 1.41" />
+              <path d="m19.07 4.93-1.41 1.41" />
+            </svg>
+            <span>Theme</span>
+            <span class="menu-value" data-user-theme-value>Auto</span>
+          </button>
+          <a class="menu-item" href="#">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+              <path d="m16 17 5-5-5-5" />
+              <path d="M21 12H9" />
+            </svg>
+            <span>Sign out</span>
+          </a>
+        </div>
+      </section>
+    </div>
+
+    <div class="app">
+      <aside class="sidebar">
+        <nav class="nav" aria-label="Administration">
+          <p class="nav-label">Administration</p>
+          <a class="nav-item" href="./admin-dashboard.html">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="3" y="3" width="7" height="7" />
+              <rect x="14" y="3" width="7" height="7" />
+              <rect x="3" y="14" width="7" height="7" />
+              <rect x="14" y="14" width="7" height="7" />
+            </svg>
+            <span>Overview</span>
+          </a>
+          <a class="nav-item is-active" data-realm-nav href="./admin-realms.html">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z" />
+              <path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2" />
+              <path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2" />
+              <path d="M10 6h4" />
+              <path d="M10 10h4" />
+              <path d="M10 14h4" />
+              <path d="M10 18h4" />
+            </svg>
+            <span data-realm-nav-label>Realms</span>
+          </a>
+          <a class="nav-item" href="./admin-clients.html">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="2" y="4" width="20" height="16" rx="2" />
+              <path d="M10 4v4" />
+              <path d="M2 8h20" />
+              <path d="M6 4v4" />
+            </svg>
+            <span>Clients</span>
+          </a>
+          <a class="nav-item" href="#">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M22 12h-4l-3 8-6-16-3 8H2" />
+            </svg>
+            <span>Sessions</span>
+          </a>
+          <a class="nav-item" href="./admin-users.html">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+              <circle cx="12" cy="7" r="4" />
+            </svg>
+            <span>Users</span>
+          </a>
+          <a class="nav-item" data-settings-nav href="./admin-system-settings.html">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1-1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
+              <circle cx="12" cy="12" r="3" />
+            </svg>
+            <span>Settings</span>
+          </a>
+        </nav>
+      </aside>
+
+      <div class="main">
+        <main class="content">
+          <div class="page-header">
+            <div class="breadcrumb">
+              <a id="provider-breadcrumb-root" href="./admin-realms.html"><span data-realm-breadcrumb-root>Realms</span></a>
+              <span>/</span>
+              <a id="provider-breadcrumb-realm" href="./admin-settings.html?realm=acme">Acme</a>
+              <span>/</span>
+              <a id="provider-breadcrumb-providers" href="./admin-realm-providers.html?realm=acme">Identity providers</a>
+              <span>/</span>
+              <span aria-current="page" id="provider-breadcrumb-current">Add provider</span>
+            </div>
+            <h1 id="provider-page-title">Add provider</h1>
+            <p id="provider-page-subtitle">Register an external sign-in provider for this realm.</p>
+          </div>
+
+          <div id="provider-notice" class="notice" role="status" hidden></div>
+
+          <div class="stack">
+            <form id="provider-form" class="stack" novalidate>
+              <section class="panel" aria-labelledby="provider-identity-title">
+                <h2 id="provider-identity-title">Provider</h2>
+                <div id="provider-alert" class="alert" role="alert" hidden></div>
+
+                <label class="field" for="provider-slug-input">
+                  <span class="field-label">Slug</span>
+                  <input id="provider-slug-input" class="field-control u-mono" type="text" maxlength="64" placeholder="example-sso" autocomplete="off" spellcheck="false" />
+                  <span class="field-hint" id="provider-slug-help">Lowercase letters, numbers and hyphens. Used in provider URLs and audit logs.</span>
+                </label>
+
+                <label class="field" for="provider-name-input">
+                  <span class="field-label">Display name</span>
+                  <input id="provider-name-input" class="field-control" type="text" maxlength="120" placeholder="Example SSO" autocomplete="off" />
+                  <span class="field-hint">Shown to users when this provider is offered at sign-in.</span>
+                </label>
+
+                <label class="field" for="provider-issuer-input">
+                  <span class="field-label">Issuer</span>
+                  <input id="provider-issuer-input" class="field-control u-mono" type="text" maxlength="253" placeholder="https://idp.example.com" autocomplete="off" spellcheck="false" />
+                  <span class="field-hint">The OIDC issuer URL. Must be https and must not end with a slash.</span>
+                </label>
+
+                <label class="field" for="provider-client-id-input">
+                  <span class="field-label">Client id</span>
+                  <input id="provider-client-id-input" class="field-control u-mono" type="text" maxlength="255" placeholder="auth-example" autocomplete="off" spellcheck="false" />
+                </label>
+
+                <div class="field">
+                  <span class="field-label" id="provider-secret-label">Client secret</span>
+                  <input id="provider-secret-input" class="field-control u-mono" type="password" maxlength="255" autocomplete="new-password" spellcheck="false" aria-labelledby="provider-secret-label" />
+                  <span class="field-hint" id="provider-secret-help">Leave blank for public or native apps that do not use a secret.</span>
+                  <div class="u-cluster">
+                    <button id="provider-secret-remove" class="button button-secondary" type="button" hidden>Remove secret</button>
+                  </div>
+                </div>
+
+                <label class="field" for="provider-scopes-input">
+                  <span class="field-label">Scopes</span>
+                  <input id="provider-scopes-input" class="field-control u-mono" type="text" maxlength="255" value="openid email profile" autocomplete="off" spellcheck="false" />
+                  <span class="field-hint">Space-separated OIDC scopes requested from the provider.</span>
+                </label>
+
+                <div class="action-row">
+                  <a id="provider-cancel-link" class="button button-secondary" href="./admin-realm-providers.html?realm=acme">Cancel</a>
+                  <button id="provider-save-button" class="button button-primary" type="submit">Create provider</button>
+                </div>
+              </section>
+
+              <section class="panel" aria-labelledby="provider-status-title">
+                <h2 id="provider-status-title">Status</h2>
+                <label class="checkbox">
+                  <input id="provider-enabled-input" type="checkbox" checked />
+                  <span>Enabled</span>
+                </label>
+                <p class="note">Disabled providers stay configured but new sign-ins use password instead.</p>
+                <p id="provider-fallback-note" class="note" hidden></p>
+              </section>
+            </form>
+
+            <section class="panel" id="provider-domains-panel" aria-labelledby="provider-domains-title">
+              <h2 id="provider-domains-title">Connected domains</h2>
+              <p class="note">Verified email domains that route sign-in through this provider.</p>
+
+              <div class="toolbar toolbar-panel">
+                <div class="field">
+                  <span class="field-label" id="provider-domain-select-label">Email domain</span>
+                  <div class="select" id="provider-domain-select" data-select data-value="">
+                    <button
+                      class="select-trigger"
+                      type="button"
+                      id="provider-domain-trigger"
+                      role="combobox"
+                      aria-haspopup="listbox"
+                      aria-expanded="false"
+                      aria-controls="provider-domain-listbox"
+                      aria-labelledby="provider-domain-select-label"
+                    >
+                      <span class="select-value">Select a domain</span>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="m6 9 6 6 6-6" />
+                      </svg>
+                    </button>
+                    <div class="select-list" id="provider-domain-listbox" role="listbox" aria-labelledby="provider-domain-select-label" hidden>
+                      <div class="select-option is-selected" role="option" aria-selected="true" data-value="" data-label="Select a domain">
+                        <span class="select-option-mark" aria-hidden="true"></span>
+                        <span class="select-option-label">Select a domain</span>
+                      </div>
+                      <div class="select-option" role="option" aria-selected="false" data-value="acme.test" data-domain-realm="acme" data-label="acme.test">
+                        <span class="select-option-mark" aria-hidden="true">
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M20 6 9 17l-5-5" />
+                          </svg>
+                        </span>
+                        <span class="select-option-label">acme.test</span>
+                      </div>
+                      <div class="select-option" role="option" aria-selected="false" data-value="sso.acme.test" data-domain-realm="acme" data-label="sso.acme.test">
+                        <span class="select-option-mark" aria-hidden="true">
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M20 6 9 17l-5-5" />
+                          </svg>
+                        </span>
+                        <span class="select-option-label">sso.acme.test</span>
+                      </div>
+                      <div class="select-option" role="option" aria-selected="false" data-value="employees.acme.test" data-domain-realm="acme" data-label="employees.acme.test">
+                        <span class="select-option-mark" aria-hidden="true">
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M20 6 9 17l-5-5" />
+                          </svg>
+                        </span>
+                        <span class="select-option-label">employees.acme.test</span>
+                      </div>
+                      <div class="select-option" role="option" aria-selected="false" data-value="globex.test" data-domain-realm="globex" data-label="globex.test">
+                        <span class="select-option-mark" aria-hidden="true">
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M20 6 9 17l-5-5" />
+                          </svg>
+                        </span>
+                        <span class="select-option-label">globex.test</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="toolbar-actions">
+                  <button id="provider-domain-connect" class="button button-primary" type="button">Connect</button>
+                </div>
+              </div>
+
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th scope="col">Domain</th>
+                    <th scope="col">Added</th>
+                    <th scope="col">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="provider-domain-rows"></tbody>
+              </table>
+              <p id="provider-domains-empty" class="empty" hidden>No email domains are connected to this provider.</p>
+            </section>
+
+            <section class="panel" id="provider-domains-create-note">
+              <h2>Connected domains</h2>
+              <p class="note">Save the provider first to connect verified email domains to it.</p>
+            </section>
+
+            <section class="state-preview">
+              <h2>Loading state</h2>
+              <div class="panel" aria-busy="true">
+                <div class="skeleton skeleton-title"></div>
+                <div class="skeleton"></div>
+                <div class="skeleton skeleton-short"></div>
+              </div>
+            </section>
+          </div>
+        </main>
+      </div>
+    </div>
+
+    <div class="mockup-controls" aria-label="Mockup controls">
+      <span class="mockup-label">Mockup</span>
+      <button class="mockup-button is-active" type="button" data-theme-target="auto">Auto</button>
+      <button class="mockup-button" type="button" data-theme-target="light">Light</button>
+      <button class="mockup-button" type="button" data-theme-target="dark">Dark</button>
+      <span class="mockup-separator" aria-hidden="true"></span>
+      <span class="mockup-label">View as</span>
+      <button class="mockup-button is-active" type="button" data-role-target="system" aria-pressed="true">System admin</button>
+      <button class="mockup-button" type="button" data-role-target="owner" aria-pressed="false">Realm owner</button>
+      <button class="mockup-button" type="button" data-role-target="admin" aria-pressed="false">Realm admin</button>
+    </div>
+
+    <script>
+      const root = document.documentElement;
+      const themeButtons = document.querySelectorAll('[data-theme-target]');
+      const userThemeButtons = document.querySelectorAll('[data-user-theme]');
+      const userThemeValues = document.querySelectorAll('[data-user-theme-value]');
+      let currentTheme = 'auto';
+
+      function setTheme(value) {
+        currentTheme = value;
+        if (value === 'auto') {
+          root.removeAttribute('data-theme');
+        } else {
+          root.setAttribute('data-theme', value);
+        }
+
+        themeButtons.forEach((button) => {
+          button.classList.toggle('is-active', button.dataset.themeTarget === value);
+        });
+        userThemeValues.forEach((element) => {
+          element.textContent = value.charAt(0).toUpperCase() + value.slice(1);
+        });
+
+        if (typeof syncUrl === 'function') syncUrl();
+      }
+
+      themeButtons.forEach((button) => {
+        button.addEventListener('click', () => setTheme(button.dataset.themeTarget));
+      });
+
+      userThemeButtons.forEach((button) => {
+        button.addEventListener('click', () => {
+          const themes = ['auto', 'light', 'dark'];
+          setTheme(themes[(themes.indexOf(currentTheme) + 1) % themes.length]);
+        });
+      });
+
+      const userMenu = document.querySelector('.user-menu');
+      document.addEventListener('click', (event) => {
+        if (userMenu && userMenu.open && !userMenu.contains(event.target)) {
+          userMenu.open = false;
+        }
+      });
+
+      const identities = {
+        system: { name: 'System Admin', email: 'admin@system.test' },
+        owner: { name: 'Realm Owner', email: 'owner@acme.test' },
+        admin: { name: 'Realm Admin', email: 'realm-admin@managed.test' },
+      };
+
+      const realmInfo = {
+        acme: { label: 'Acme', roles: ['system', 'owner'] },
+        globex: { label: 'Globex', roles: ['system', 'admin'] },
+        northwind: { label: 'Northwind', roles: ['system'] },
+      };
+
+      const realmEmailDomains = {
+        acme: ['acme.test', 'sso.acme.test'],
+        globex: ['globex.test'],
+        northwind: [],
+      };
+
+      const providers = {
+        acme: [
+          {
+            slug: 'example-sso',
+            name: 'Example SSO',
+            issuer: 'https://idp.example.com',
+            clientId: 'auth-example',
+            hasSecret: true,
+            enabled: true,
+            domains: ['sso.acme.test'],
+          },
+          {
+            slug: 'legacy-sso',
+            name: 'Legacy SSO',
+            issuer: 'https://old-idp.example.net',
+            clientId: 'legacy-app',
+            hasSecret: false,
+            enabled: false,
+            domains: [],
+          },
+        ],
+        globex: [
+          {
+            slug: 'globex-id',
+            name: 'Globex Identity',
+            issuer: 'https://login.globex.test',
+            clientId: 'gx-auth',
+            hasSecret: true,
+            enabled: true,
+            domains: ['globex.test'],
+          },
+        ],
+        northwind: [],
+      };
+
+      const initialParams = new URLSearchParams(window.location.search);
+      let currentThemeInit = initialParams.get('theme');
+      if (currentThemeInit === 'light' || currentThemeInit === 'dark') setTheme(currentThemeInit);
+
+      let currentRole = initialParams.get('role');
+      if (!identities[currentRole]) currentRole = 'system';
+
+      let currentRealm = initialParams.get('realm');
+      if (!realmInfo[currentRealm] || !realmInfo[currentRealm].roles.includes(currentRole)) {
+        currentRealm = 'acme';
+      }
+
+      const providerSlug = initialParams.get('provider');
+      const provider = providerSlug ? (providers[currentRealm] || []).find((entry) => entry.slug === providerSlug) : null;
+      const isEdit = Boolean(provider);
+
+      const notice = document.getElementById('provider-notice');
+      const alert = document.getElementById('provider-alert');
+      const slugInput = document.getElementById('provider-slug-input');
+      const slugHelp = document.getElementById('provider-slug-help');
+      const nameInput = document.getElementById('provider-name-input');
+      const issuerInput = document.getElementById('provider-issuer-input');
+      const clientIdInput = document.getElementById('provider-client-id-input');
+      const secretInput = document.getElementById('provider-secret-input');
+      const secretHelp = document.getElementById('provider-secret-help');
+      const secretRemove = document.getElementById('provider-secret-remove');
+      const scopesInput = document.getElementById('provider-scopes-input');
+      const enabledInput = document.getElementById('provider-enabled-input');
+      const fallbackNote = document.getElementById('provider-fallback-note');
+      const saveButton = document.getElementById('provider-save-button');
+      const form = document.getElementById('provider-form');
+
+      const domainPanel = document.getElementById('provider-domains-panel');
+      const domainCreateNote = document.getElementById('provider-domains-create-note');
+      const domainRows = document.getElementById('provider-domain-rows');
+      const domainsEmpty = document.getElementById('provider-domains-empty');
+      const domainSelect = document.getElementById('provider-domain-select');
+      const domainSelectValue = domainSelect.querySelector('.select-value');
+      const domainOptions = [...domainSelect.querySelectorAll('.select-option')];
+      const connectButton = document.getElementById('provider-domain-connect');
+
+      const breadcrumbRootLink = document.getElementById('provider-breadcrumb-root');
+      const breadcrumbRealmLink = document.getElementById('provider-breadcrumb-realm');
+      const breadcrumbProvidersLink = document.getElementById('provider-breadcrumb-providers');
+      const breadcrumbCurrent = document.getElementById('provider-breadcrumb-current');
+      const cancelLink = document.getElementById('provider-cancel-link');
+      const realmNavLinks = document.querySelectorAll('[data-realm-nav]');
+      const realmNavLabels = document.querySelectorAll('[data-realm-nav-label]');
+      const settingsNavLinks = document.querySelectorAll('[data-settings-nav]');
+      const breadcrumbRootLabels = document.querySelectorAll('[data-realm-breadcrumb-root]');
+
+      const secretPlaceholderUnset = 'No secret configured. Enter one to make this a confidential client.';
+      const secretPlaceholderSet = 'Configured. Leave blank to keep the current secret.';
+      const secretPlaceholderRemoved = 'The stored secret will be removed on save.';
+      const secretCreatePlaceholder = 'Optional. Leave blank for public or native apps.';
+      let secretCleared = false;
+
+      function listUrl(extraParams) {
+        const params = new URLSearchParams();
+        params.set('realm', currentRealm);
+        params.set('role', currentRole);
+        if (currentTheme !== 'auto') params.set('theme', currentTheme);
+        if (extraParams) {
+          new URLSearchParams(extraParams).forEach((value, key) => params.set(key, value));
+        }
+        return `./admin-realm-providers.html?${params.toString()}`;
+      }
+
+      function showNotice(message) {
+        notice.textContent = message;
+        notice.hidden = false;
+      }
+
+      function showAlert(message) {
+        alert.textContent = message;
+        alert.hidden = false;
+      }
+
+      function clearAlert() {
+        alert.hidden = true;
+        alert.textContent = '';
+      }
+
+      function escapeHtml(value) {
+        return String(value).replace(/[&<>"']/g, (character) => {
+          const entities = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+          return entities[character];
+        });
+      }
+
+      function slugify(value) {
+        return value
+          .toLowerCase()
+          .replace(/[^a-z0-9-]+/g, '-')
+          .replace(/^-+|-+$/g, '')
+          .slice(0, 64);
+      }
+
+      function setRole(role) {
+        currentRole = role;
+        const identity = identities[role];
+
+        document.querySelectorAll('.menu-heading-title').forEach((element) => {
+          element.textContent = identity.name;
+        });
+        document.querySelectorAll('.menu-heading-meta').forEach((element) => {
+          element.textContent = identity.email;
+        });
+
+        document.querySelectorAll('[data-role-target]').forEach((button) => {
+          const active = button.dataset.roleTarget === role;
+          button.classList.toggle('is-active', active);
+          button.setAttribute('aria-pressed', String(active));
+        });
+
+        settingsNavLinks.forEach((link) => {
+          link.hidden = role !== 'system';
+        });
+
+        const accessibleCount = Object.keys(realmInfo).filter((slug) => realmInfo[slug].roles.includes(role)).length;
+        const label = accessibleCount === 1 ? 'Realm' : 'Realms';
+        realmNavLabels.forEach((element) => {
+          element.textContent = label;
+        });
+        breadcrumbRootLabels.forEach((element) => {
+          element.textContent = label;
+        });
+        const realmHref = accessibleCount === 1 ? `./admin-settings.html?realm=${currentRealm}` : './admin-realms.html';
+        realmNavLinks.forEach((link) => {
+          link.href = realmHref;
+          link.classList.add('is-active');
+        });
+        breadcrumbRootLink.href = realmHref;
+
+        syncUrl();
+      }
+
+      function syncUrl() {
+        const params = new URLSearchParams();
+        params.set('realm', currentRealm);
+        params.set('role', currentRole);
+        if (currentTheme !== 'auto') params.set('theme', currentTheme);
+        if (isEdit) params.set('provider', provider.slug);
+        try {
+          window.history.replaceState({}, '', `${window.location.pathname}?${params.toString()}`);
+        } catch (e) {
+          /* ignore history updates when opened from file:// */
+        }
+      }
+
+      document.querySelectorAll('[data-role-target]').forEach((button) => {
+        button.addEventListener('click', () => setRole(button.dataset.roleTarget));
+      });
+
+      function applyChrome() {
+        document.title = isEdit ? `Edit ${provider.name} mockup` : 'Add provider mockup';
+        document.getElementById('provider-page-title').textContent = isEdit ? `Edit ${provider.name}` : 'Add provider';
+        document.getElementById('provider-page-subtitle').textContent = isEdit
+          ? 'Update provider configuration and the email domains routed to it.'
+          : 'Register an external sign-in provider for this realm.';
+        breadcrumbCurrent.textContent = isEdit ? provider.name : 'Add provider';
+        breadcrumbRealmLink.textContent = realmInfo[currentRealm].label;
+        breadcrumbRealmLink.href = `./admin-settings.html?realm=${encodeURIComponent(currentRealm)}`;
+        breadcrumbProvidersLink.href = listUrl();
+        cancelLink.href = listUrl();
+        saveButton.textContent = isEdit ? 'Save changes' : 'Create provider';
+        domainPanel.hidden = !isEdit;
+        domainCreateNote.hidden = isEdit;
+
+        if (isEdit) {
+          slugInput.value = provider.slug;
+          slugInput.readOnly = true;
+          slugHelp.textContent = 'The slug cannot be changed after the provider is created.';
+          nameInput.value = provider.name;
+          issuerInput.value = provider.issuer;
+          clientIdInput.value = provider.clientId;
+          scopesInput.value = provider.scopes || 'openid email profile';
+          enabledInput.checked = provider.enabled;
+          secretInput.placeholder = secretPlaceholderSet;
+          secretRemove.hidden = !provider.hasSecret;
+          if (!provider.hasSecret) {
+            secretInput.placeholder = secretPlaceholderUnset;
+            secretHelp.textContent = 'This provider has no secret. Entering one switches it to confidential authentication.';
+          } else {
+            secretHelp.textContent = 'The current secret is never displayed. Enter a new value to replace it.';
+          }
+        } else {
+          secretInput.placeholder = secretCreatePlaceholder;
+        }
+
+        updateFallbackNote();
+        renderDomains();
+      }
+
+      function connectedDomains() {
+        return isEdit ? provider.domains : [];
+      }
+
+      function mappedByOther(domain) {
+        return (providers[currentRealm] || []).some(
+          (entry) => entry.slug !== (isEdit ? provider.slug : '') && entry.domains.includes(domain)
+        );
+      }
+
+      function availableDomains() {
+        return realmEmailDomains[currentRealm].filter((domain) => !mappedByOther(domain));
+      }
+
+      function renderDomains() {
+        if (!isEdit) return;
+        const rows = connectedDomains().map((domain) => {
+          const row = document.createElement('tr');
+          row.innerHTML =
+            '<td data-label="Domain"><span class="table-mono">' +
+            escapeHtml(domain) +
+            '</span></td>' +
+            '<td data-label="Added"><span class="table-meta">12 Mar 2026</span></td>' +
+            '<td data-label="Actions"><button class="button-inline button-danger" type="button" data-disconnect-domain="' +
+            escapeHtml(domain) +
+            '">Disconnect</button></td>';
+          return row;
+        });
+        domainRows.replaceChildren(...rows);
+        domainsEmpty.hidden = rows.length !== 0;
+      }
+
+      function syncDomainOptions() {
+        const available = isEdit ? availableDomains() : [];
+        domainOptions.forEach((option) => {
+          if (!option.dataset.value) return;
+          option.hidden = !available.includes(option.dataset.value);
+        });
+        const selected = domainSelect.dataset.value;
+        if (selected && !available.includes(selected)) resetDomainSelect();
+        connectButton.disabled = !available.length;
+      }
+
+      function resetDomainSelect() {
+        domainSelect.dataset.value = '';
+        domainSelectValue.textContent = 'Select a domain';
+        domainOptions.forEach((option, index) => {
+          const selected = index === 0;
+          option.classList.toggle('is-selected', selected);
+          option.setAttribute('aria-selected', String(selected));
+        });
+      }
+
+      function updateFallbackNote() {
+        if (enabledInput.checked || !isEdit || !provider.domains.length) {
+          fallbackNote.hidden = true;
+          return;
+        }
+        fallbackNote.textContent = `While this provider is disabled, sign-in for ${provider.domains.join(', ')} falls back to password.`;
+        fallbackNote.hidden = false;
+      }
+
+      enabledInput.addEventListener('change', updateFallbackNote);
+
+      let slugTouched = false;
+      slugInput.addEventListener('input', () => {
+        slugTouched = true;
+        clearAlert();
+      });
+      [nameInput, issuerInput, clientIdInput, scopesInput].forEach((input) => {
+        input.addEventListener('input', clearAlert);
+      });
+      nameInput.addEventListener('input', () => {
+        if (!isEdit && !slugTouched) slugInput.value = slugify(nameInput.value);
+      });
+
+      secretInput.addEventListener('input', () => {
+        if (!isEdit || !secretInput.value) return;
+        if (secretCleared) {
+          secretCleared = false;
+          secretInput.placeholder = secretPlaceholderSet;
+          secretRemove.hidden = !provider.hasSecret;
+        }
+        secretHelp.textContent = 'The current secret is never displayed. Enter a new value to replace it.';
+      });
+
+      secretRemove.addEventListener('click', () => {
+        secretCleared = true;
+        secretInput.value = '';
+        secretInput.placeholder = secretPlaceholderRemoved;
+        secretRemove.hidden = true;
+        secretHelp.textContent = 'This provider will stop using a client secret after saving.';
+      });
+
+      connectButton.addEventListener('click', () => {
+        const domain = domainSelect.dataset.value;
+        if (!domain || !isEdit) return;
+        provider.domains.push(domain);
+        resetDomainSelect();
+        renderDomains();
+        syncDomainOptions();
+        updateFallbackNote();
+        showNotice(`Email domain ${domain} connected to ${provider.name}.`);
+      });
+
+      domainRows.addEventListener('click', (event) => {
+        const button = event.target.closest('[data-disconnect-domain]');
+        if (!button || !isEdit) return;
+        const domain = button.dataset.disconnectDomain;
+        provider.domains = provider.domains.filter((entry) => entry !== domain);
+        renderDomains();
+        syncDomainOptions();
+        updateFallbackNote();
+        showNotice(`Email domain ${domain} disconnected from ${provider.name}.`);
+      });
+
+      form.addEventListener('submit', (event) => {
+        event.preventDefault();
+        clearAlert();
+
+        const slug = slugInput.value.trim().toLowerCase();
+        const name = nameInput.value.trim();
+        const issuer = issuerInput.value.trim();
+        const clientId = clientIdInput.value.trim();
+
+        if (!name) {
+          showAlert('Display name is required.');
+          nameInput.focus();
+          return;
+        }
+        if (!slug || !/^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/.test(slug)) {
+          showAlert('Slug must use lowercase letters, numbers and hyphens.');
+          slugInput.focus();
+          return;
+        }
+        if (
+          !isEdit &&
+          (providers[currentRealm] || []).some((entry) => entry.slug === slug)
+        ) {
+          showAlert('A provider with this slug already exists in the realm.');
+          slugInput.focus();
+          return;
+        }
+        if (!issuer.startsWith('https://')) {
+          showAlert('Issuer must start with https://.');
+          issuerInput.focus();
+          return;
+        }
+        if (issuer.endsWith('/')) {
+          showAlert('Issuer must not end with a slash.');
+          issuerInput.focus();
+          return;
+        }
+        if (!issuer.slice(8).includes('.')) {
+          showAlert('Issuer must include a complete hostname.');
+          issuerInput.focus();
+          return;
+        }
+        if (!clientId || /\s/.test(clientId)) {
+          showAlert('Client id is required and must not contain spaces.');
+          clientIdInput.focus();
+          return;
+        }
+
+        window.location.href = listUrl(`saved=${encodeURIComponent(isEdit ? provider.slug : slug)}`);
+      });
+
+      setRole(currentRole);
+      applyChrome();
+      syncDomainOptions();
+    </script>
+    <script src="./shell.js"></script>
+  </body>
+</html>

@@ -336,10 +336,11 @@
 
             <section class="panel">
               <h2>Realm access</h2>
-              <p class="note">Configure the hostnames and email domains that route to this realm.</p>
+              <p class="note">Configure the hostnames, email domains and identity providers that route to this realm.</p>
               <div class="u-cluster">
                 <a id="settings-hosts-link" class="button button-secondary" href="./admin-realm-hosts.html?realm=acme">Hosts <span class="realm-access-count">2</span></a>
                 <a id="settings-domains-link" class="button button-secondary" href="./admin-realm-email-domains.html?realm=acme">Email domains <span class="realm-access-count">3</span></a>
+                <a id="settings-providers-link" class="button button-secondary" href="./admin-realm-providers.html?realm=acme">Providers <span class="realm-access-count">2</span></a>
               </div>
             </section>
           </div>
@@ -556,6 +557,7 @@
 
       const hostsLink = document.getElementById('settings-hosts-link');
       const domainsLink = document.getElementById('settings-domains-link');
+      const providersLink = document.getElementById('settings-providers-link');
 
       function subpageParams(realm) {
         const params = new URLSearchParams();
@@ -568,6 +570,7 @@
       function syncAccessLinks() {
         if (hostsLink) hostsLink.href = `./admin-realm-hosts.html?${subpageParams(currentRealm)}`;
         if (domainsLink) domainsLink.href = `./admin-realm-email-domains.html?${subpageParams(currentRealm)}`;
+        if (providersLink) providersLink.href = `./admin-realm-providers.html?${subpageParams(currentRealm)}`;
       }
 
       function setRole(role) {
