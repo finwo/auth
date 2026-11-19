@@ -31,9 +31,9 @@ export const MobileNavAccount: m.Component<UserMenuAttrs> = {
   view({ attrs }) {
     return (
       <section class="mobile-nav-account" aria-label="Account">
-        <div class="user-summary">
-          <span class="user-name">{attrs.name}</span>
-          <span class="user-meta">{attrs.meta}</span>
+        <div class="menu-heading">
+          <span class="menu-heading-title">{attrs.name}</span>
+          <span class="menu-heading-meta">{attrs.meta}</span>
         </div>
         <AccountActions
           accountHref={attrs.accountHref}
@@ -116,7 +116,7 @@ export const MobileNav: m.Component<MobileNavAttrs> = {
         onclick={(event: MouseEvent) => {
           const target = event.target as Element | null;
           if (!target?.closest('.nav-item')) {
-            if (!target?.closest('.user-menu-item, button, a')) attrs.onClose();
+            if (!target?.closest('.menu-item, button, a')) attrs.onClose();
           }
         }}
       >

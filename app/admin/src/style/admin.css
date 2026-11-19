@@ -1,0 +1,117 @@
+@layer apps {
+  /* block stack where the grid gap owns all rhythm: form columns,
+     panel interiors, and runs of members that carry their own margins */
+  .stack-tight {
+    display: grid;
+    gap: var(--space-4);
+    min-width: 0;
+  }
+
+  .stack-tight > * {
+    margin-block-start: 0;
+    margin-block-end: 0;
+  }
+
+  /* borderless grouping fieldset: the legend is a .field-label */
+  .fieldset {
+    min-inline-size: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+  }
+
+  /* a row of panel actions, kept together under one label */
+  .action-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+    margin-block-start: var(--space-4);
+  }
+
+  /* logo / glyph tile in list tables */
+  .table-icon {
+    display: grid;
+    place-items: center;
+    width: var(--space-8);
+    height: var(--space-8);
+    overflow: hidden;
+    background: var(--line);
+    color: var(--muted);
+  }
+
+  .table-icon img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+
+  .table-icon svg {
+    width: var(--font-xl);
+    height: var(--font-xl);
+  }
+
+  .secret-value {
+    display: block;
+    padding: var(--space-3);
+    background: var(--line-strong);
+    color: inherit;
+    font-family: var(--font-mono);
+    font-size: var(--font-sm);
+    line-height: var(--lh-base);
+    overflow-wrap: anywhere;
+    white-space: pre-wrap;
+  }
+
+  .danger-zone h2 { color: var(--danger-text); }
+
+  .branding-preview {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-3);
+  }
+
+  .branding-logo-preview,
+  .branding-color-preview {
+    width: 2rem;
+    height: 2rem;
+    overflow: hidden;
+    background: var(--line-strong);
+  }
+
+  .branding-logo-preview {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--muted);
+  }
+
+  .branding-logo-preview img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+
+  .branding-color-preview {
+    border-radius: var(--radius-sm);
+    background: var(--field-line);
+  }
+
+  .branding-logo-preview.is-empty,
+  .branding-color-preview.is-empty {
+    border-bottom: 1pt solid var(--field-line);
+  }
+
+  .verify-record-name,
+  .verify-record-value {
+    font-family: var(--font-mono);
+    font-size: var(--font-sm);
+  }
+
+  .verify-copy-row {
+    display: flex;
+    justify-content: flex-end;
+    margin-block-start: var(--space-2);
+  }
+}

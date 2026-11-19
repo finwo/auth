@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>misaligned baseline control fixture</title>
+    <link rel="stylesheet" href="../../../app/shared/style/global.css">
+  </head>
+  <body>
+    <!-- negative control: row 2 sets font-size on the td and vertical-align: top beside a two-line cell -->
+    <main class="content">
+      <section class="card" aria-label="Alignment control">
+        <table class="table">
+          <thead>
+            <tr>
+              <th scope="col">Name</th>
+              <th scope="col">Status</th>
+              <th scope="col">Added</th>
+              <th scope="col">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td data-label="Name"><span class="table-mono">aligned.test</span></td>
+              <td data-label="Status">
+                <span class="status">
+                  <span class="status-dot" aria-hidden="true"></span>
+                  Verified
+                </span>
+              </td>
+              <td data-label="Added">2026-01-02</td>
+              <td data-label="Actions">
+                <button class="button-inline" type="button">Edit</button>
+              </td>
+            </tr>
+            <tr>
+              <td data-label="Name" style="font-size: .75rem"><span class="table-mono">shrunk-strut.test</span></td>
+              <td data-label="Status">
+                <span class="status">
+                  <span class="status-dot" aria-hidden="true"></span>
+                  Verified
+                </span>
+              </td>
+              <td data-label="Added" style="vertical-align: top">2026-01-02</td>
+              <td data-label="Actions">
+                <span class="table-title">row-height-driver</span>
+                <span class="table-sub">a second line makes the row taller</span>
+                <button class="button-inline" type="button">Edit</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+    </main>
+  </body>
+</html>

@@ -1,0 +1,28 @@
+@layer components {
+  .user-menu {
+    display: none;
+  }
+
+  @media (min-width: 60em) {
+    .user-menu {
+      display: block;
+    }
+  }
+
+  .user-menu .menu-trigger svg {
+    width: 1.5rem;
+    height: 1.5rem;
+  }
+
+  .mobile-nav-account {
+    margin: 0 var(--space-6) calc(var(--space-4) + env(safe-area-inset-bottom));
+  }
+
+  .mobile-nav-account .menu-heading {
+    padding-inline: 0;
+  }
+
+  .mobile-nav-account .menu-list {
+    padding: 0;
+  }
+}

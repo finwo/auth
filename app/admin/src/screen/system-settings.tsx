@@ -136,7 +136,7 @@ export const SystemSettingsPage: m.Component<SystemSettingsAttrs> = {
         {this.error ? (
           <div class="alert" role="alert">
             <p>{this.error.message}</p>
-            <button class="button-secondary" type="button" onclick={() => this.load()}>
+            <button class="button button-secondary" type="button" onclick={() => this.load()}>
               Try again
             </button>
           </div>
@@ -161,7 +161,7 @@ export const SystemSettingsPage: m.Component<SystemSettingsAttrs> = {
               Used as the system fallback. Realm branding overrides these values, and client
               branding overrides realm branding.
             </p>
-            <div class="settings-form">
+            <div class="stack-tight">
               {this.formError ? (
                 <div class="alert" role="alert">
                   {typeof this.formError === 'string' ? this.formError : this.formError.message}
@@ -169,7 +169,7 @@ export const SystemSettingsPage: m.Component<SystemSettingsAttrs> = {
               ) : null}
 
               <div class="field-grid">
-                <div class="form-field">
+                <div class="field">
                   <span class="field-label">Logo URL</span>
                   <input
                     class="field-control"
@@ -186,7 +186,7 @@ export const SystemSettingsPage: m.Component<SystemSettingsAttrs> = {
                   />
                 </div>
 
-                <div class="form-field">
+                <div class="field">
                   <span class="field-label">Primary color</span>
                   <input
                     class="field-control"
@@ -222,9 +222,9 @@ export const SystemSettingsPage: m.Component<SystemSettingsAttrs> = {
                 ></span>
               </div>
 
-              <div class="settings-actions">
+              <div class="action-row">
                 <button
-                  class="button"
+                  class="button button-primary"
                   type="button"
                   disabled={this.pending}
                   onclick={() => this.submit()}

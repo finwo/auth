@@ -190,7 +190,7 @@ export const ClientHostsPanel: m.Component<ClientHostsAttrs> = {
     const visible = hosts ? hosts.filter((entry) => !term || entry.host.includes(term)) : [];
 
     return (
-      <section class="panel" aria-label="Client hosts">
+      <section class="panel stack-tight" aria-label="Client hosts">
         <h2>Hosts</h2>
         <p class="note">Hostnames that resolve to this client.</p>
 
@@ -204,7 +204,7 @@ export const ClientHostsPanel: m.Component<ClientHostsAttrs> = {
           <div class="alert" role="alert">
             <p>{this.error.message}</p>
             <button
-              class="button-secondary"
+              class="button button-secondary"
               type="button"
               onclick={() => this.load(this.attrs.realmSlug, this.attrs.clientId)}
             >
@@ -221,8 +221,8 @@ export const ClientHostsPanel: m.Component<ClientHostsAttrs> = {
           </div>
         ) : (
           <div>
-            <div class="table-toolbar">
-              <div class="table-search">
+            <div class="toolbar toolbar-panel">
+              <div class="toolbar-search">
                 <input
                   type="search"
                   value={this.search}
@@ -234,59 +234,53 @@ export const ClientHostsPanel: m.Component<ClientHostsAttrs> = {
                 />
               </div>
               {canEdit ? (
-                <div class="table-actions">
-                  <button class="button" type="button" onclick={() => this.openAdd()}>
+                <div class="toolbar-actions">
+                  <button class="button button-primary" type="button" onclick={() => this.openAdd()}>
                     Add host
                   </button>
                 </div>
               ) : null}
             </div>
 
-            <div class="data-table-wrap">
-              <table class="data-table data-table-static host-table">
-                <thead>
+            <table class="table">
+              <thead>
+                <tr>
+                  <th scope="col">Hostname</th>
+                  <th scope="col">Added</th>
+                  {canEdit ? <th scope="col">Actions</th> : null}
+                </tr>
+              </thead>
+              <tbody>
+                {visible.map((entry: AdminClientHost) => (
                   <tr>
-                    <th class="data-table-primary host-name-column" scope="col">Hostname</th>
-                    <th class="host-added-column" scope="col">Added</th>
-                    {canEdit ? <th class="host-action-column" scope="col">Actions</th> : null}
+                    <td data-label="Hostname">
+                      <span class="table-mono">{entry.host}</span>
+                    </td>
+                    <td data-label="Added" class="table-meta u-nowrap">{formatDate(entry.created_at)}</td>
+                    {canEdit ? (
+                      <td data-label="Actions">
+                        <button
+                          class="button-inline button-danger"
+                          type="button"
+                          onclick={() => this.openRemove(entry.host)}
+                        >
+                          Remove
+                        </button>
+                      </td>
+                    ) : null}
                   </tr>
-                </thead>
-                <tbody>
-                  {visible.map((entry: AdminClientHost) => (
-                    <tr>
-                      <td class="data-table-primary host-name-column" data-label="Hostname">
-                        <span class="host-name">{entry.host}</span>
-                      </td>
-                      <td class="host-added-column" data-label="Added">
-                        <span class="host-added">{formatDate(entry.created_at)}</span>
-                      </td>
-                      {canEdit ? (
-                        <td class="host-action-column" data-label="Actions">
-                          <div class="host-row-action">
-                            <button
-                              class="action-button is-danger"
-                              type="button"
-                              onclick={() => this.openRemove(entry.host)}
-                            >
-                              Remove
-                            </button>
-                          </div>
-                        </td>
-                      ) : null}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              {hosts.length > 0 && visible.length === 0 ? (
-                <div class="empty">
-                  <p>No hosts match this search.</p>
-                </div>
-              ) : hosts.length === 0 ? (
-                <div class="empty">
-                  <p>No hosts are assigned to this client.</p>
-                </div>
-              ) : null}
-            </div>
+                ))}
+              </tbody>
+            </table>
+            {hosts.length > 0 && visible.length === 0 ? (
+              <div class="empty">
+                <p>No hosts match this search.</p>
+              </div>
+            ) : hosts.length === 0 ? (
+              <div class="empty">
+                <p>No hosts are assigned to this client.</p>
+              </div>
+            ) : null}
           </div>
         )}
 
@@ -304,7 +298,7 @@ export const ClientHostsPanel: m.Component<ClientHostsAttrs> = {
                 </div>
               ) : null}
 
-              <div class="form-field">
+              <div class="field">
                 <span class="field-label">Hostname</span>
                 <input
                   class="field-control"
@@ -330,14 +324,14 @@ export const ClientHostsPanel: m.Component<ClientHostsAttrs> = {
 
               <div class="modal-actions">
                 <button
-                  class="button-secondary"
+                  class="button button-secondary"
                   type="button"
                   disabled={this.creating}
                   onclick={() => this.resetAdd()}
                 >
                   Cancel
                 </button>
-                <button class="button" type="submit" disabled={this.creating}>
+                <button class="button button-primary" type="submit" disabled={this.creating}>
                   {this.creating ? 'Adding' : 'Add host'}
                 </button>
               </div>
@@ -358,7 +352,7 @@ export const ClientHostsPanel: m.Component<ClientHostsAttrs> = {
               </div>
             ) : null}
 
-            <div class="form-field">
+            <div class="field">
               <span class="field-label">Confirm hostname</span>
               <input
                 class="field-control"
@@ -380,7 +374,7 @@ export const ClientHostsPanel: m.Component<ClientHostsAttrs> = {
 
             <div class="modal-actions">
               <button
-                class="button-secondary"
+                class="button button-secondary"
                 type="button"
                 disabled={this.removing}
                 onclick={() => this.resetRemove()}
@@ -388,7 +382,7 @@ export const ClientHostsPanel: m.Component<ClientHostsAttrs> = {
                 Cancel
               </button>
               <button
-                class="button-danger"
+                class="button button-danger"
                 type="button"
                 disabled={
                   this.removing ||

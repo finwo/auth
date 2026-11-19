@@ -168,7 +168,7 @@ export const SessionsPage: m.Component<SessionsAttrs> = {
             <p>{this.error.message}</p>
             {this.attrs.realmSlug ? (
               <button
-                class="button-secondary"
+                class="button button-secondary"
                 type="button"
                 onclick={() => this.load(this.attrs.realmSlug)}
               >
@@ -185,13 +185,13 @@ export const SessionsPage: m.Component<SessionsAttrs> = {
         ) : null}
 
         {!realms ? (
-          <div class="loading">Loading realms</div>
+          <p class="note">Loading realms</p>
         ) : realms.length === 0 ? (
           <div class="empty">
             <p>No realms are available for this account.</p>
           </div>
         ) : this.loading || this.redirecting ? (
-          <div class="session-stack" aria-busy="true">
+          <div class="stack" aria-busy="true">
             <div class="panel">
               <div class="skeleton skeleton-title"></div>
               <div class="skeleton"></div>
@@ -204,7 +204,7 @@ export const SessionsPage: m.Component<SessionsAttrs> = {
             </div>
           </div>
         ) : this.sessions && this.sessions.length > 0 ? (
-          <div class="session-stack">
+          <div class="stack">
             {this.sessions.map((session: AdminSession) => {
               const realmKey = actionKey('realm', session);
               const terminateKey = actionKey('terminate', session);
@@ -213,25 +213,25 @@ export const SessionsPage: m.Component<SessionsAttrs> = {
               const terminatePending = pending === terminateKey;
 
               return (
-                <article class="panel">
-                  <div class="session-header">
+                <article class="panel stack-tight">
+                  <div class="section-header">
                     <div>
                       <h2>{session.user.display_name || session.user.username}</h2>
-                      <p class="session-user">
+                      <p class="note">
                         {session.user.username}
                         {session.user.status !== 'active'
-                          ? ` · ${session.user.status}`
+                          ? ` \u00B7 ${session.user.status}`
                           : ''}
                       </p>
                     </div>
                     {session.revoked_at ? (
-                      <span class="session-badge">
+                      <span class="status">
                         Realm access revoked {formatTime(session.revoked_at)}
                       </span>
                     ) : null}
                   </div>
 
-                  <dl class="details session-details">
+                  <dl class="details">
                     <div>
                       <dt>Scope</dt>
                       <dd>{scopeLabel(session.scope.type)}</dd>
@@ -259,15 +259,15 @@ export const SessionsPage: m.Component<SessionsAttrs> = {
                   </dl>
 
                   {session.user_agent ? (
-                    <p class="session-agent">{session.user_agent}</p>
+                    <p class="note">{session.user_agent}</p>
                   ) : null}
 
-                  <div class="session-actions">
+                  <div class="action-row">
                     {session.revoked_at ? null : this.confirmKey === realmKey ? (
-                      <div class="confirm">
-                        <span>Revoke this realm’s access?</span>
+                      <div class="action-row">
+                        <span class="note">Revoke this realm's access?</span>
                         <button
-                          class="button"
+                          class="button button-primary"
                           type="button"
                           disabled={Boolean(pending)}
                           onclick={() => this.act(session, 'realm')}
@@ -275,7 +275,7 @@ export const SessionsPage: m.Component<SessionsAttrs> = {
                           {revokePending ? 'Revoking' : 'Confirm'}
                         </button>
                         <button
-                          class="button-secondary"
+                          class="button button-secondary"
                           type="button"
                           disabled={Boolean(pending)}
                           onclick={() => {
@@ -288,7 +288,7 @@ export const SessionsPage: m.Component<SessionsAttrs> = {
                       </div>
                     ) : (
                       <button
-                        class="button-secondary"
+                        class="button button-secondary"
                         type="button"
                         disabled={Boolean(pending)}
                         onclick={() => {
@@ -302,8 +302,8 @@ export const SessionsPage: m.Component<SessionsAttrs> = {
 
                     {session.can_terminate ? (
                       this.confirmKey === terminateKey ? (
-                        <div class="confirm">
-                          <span>Terminate this session?</span>
+                        <div class="action-row">
+                          <span class="note">Terminate this session?</span>
                           <button
                             class="button button-danger"
                             type="button"
@@ -313,7 +313,7 @@ export const SessionsPage: m.Component<SessionsAttrs> = {
                             {terminatePending ? 'Terminating' : 'Confirm'}
                           </button>
                           <button
-                            class="button-secondary"
+                            class="button button-secondary"
                             type="button"
                             disabled={Boolean(pending)}
                             onclick={() => {
@@ -326,7 +326,7 @@ export const SessionsPage: m.Component<SessionsAttrs> = {
                         </div>
                       ) : (
                         <button
-                          class="button-danger"
+                          class="button button-danger"
                           type="button"
                           disabled={Boolean(pending)}
                           onclick={() => {

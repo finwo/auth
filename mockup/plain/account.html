@@ -4,186 +4,9 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>Account mockup</title>
-    <link rel="stylesheet" href="./global.css" />
-    <style>
-      .summary-list {
-        display: grid;
-        gap: 0.25rem;
-        margin: 0;
-        padding: 0;
-        list-style: none;
-      }
-
-      .summary-row {
-        display: grid;
-        grid-template-columns: 1.5rem minmax(0, 1fr);
-        align-items: center;
-        gap: 1rem;
-        min-height: 2.75rem;
-        padding: 0.875rem 0.75rem;
-        color: inherit;
-        text-decoration: none;
-        cursor: pointer;
-        touch-action: manipulation;
-        user-select: none;
-      }
-
-      .summary-row:hover,
-      .summary-row:active {
-        background: var(--row-hover);
-      }
-
-      .summary-row svg {
-        width: 1.25rem;
-        height: 1.25rem;
-      }
-
-      .summary-body {
-        display: grid;
-        gap: 0.125rem;
-        min-width: 0;
-      }
-
-      .summary-title {
-        font-size: 0.9375rem;
-        font-weight: 500;
-        line-height: 1.4;
-      }
-
-      .summary-meta {
-        color: var(--muted);
-        font-size: 0.8125rem;
-        line-height: 1.4;
-      }
-
-      .summary-arrow {
-        display: none;
-        color: var(--muted);
-        font-size: 1.125rem;
-        line-height: 1;
-      }
-
-      .security-stack,
-      .apps-stack {
-        display: grid;
-        gap: 1rem;
-        max-width: 56rem;
-        margin: 0 auto;
-      }
-
-      .surface-row {
-        display: grid;
-        grid-template-columns: 1.5rem minmax(0, 1fr);
-        align-items: center;
-        gap: 1rem;
-        min-height: 2.75rem;
-        padding: 1rem 0.75rem;
-        background: var(--row);
-        touch-action: manipulation;
-      }
-
-      .surface-row svg {
-        width: 1.25rem;
-        height: 1.25rem;
-      }
-
-      .surface-row strong {
-        display: block;
-        font-size: 0.9375rem;
-        font-weight: 500;
-        line-height: 1.4;
-      }
-
-      .surface-row span {
-        color: var(--muted);
-        font-size: 0.8125rem;
-        line-height: 1.4;
-      }
-
-      .status {
-        display: none;
-        color: var(--muted);
-        font-size: 0.8125rem;
-        line-height: 1.4;
-      }
-
-      .danger-link {
-        display: inline-flex;
-        align-items: center;
-        min-height: 2.75rem;
-        padding: 0.5rem 0;
-        border: 0;
-        background: none;
-        color: var(--danger-text, var(--danger));
-        font: inherit;
-        font-size: 0.875rem;
-        cursor: pointer;
-        touch-action: manipulation;
-      }
-
-      .danger-link:hover {
-        filter: brightness(1.1);
-      }
-
-      .details + .note {
-        margin-top: 1rem;
-      }
-
-      .note + .note {
-        margin-top: 1rem;
-      }
-
-      .panel-heading {
-        display: flex;
-        align-items: center;
-        gap: 0.75rem;
-        margin-bottom: 1rem;
-      }
-
-      .panel-heading svg {
-        flex: none;
-        width: 1.25rem;
-        height: 1.25rem;
-      }
-
-      .panel-heading h2 {
-        margin: 0;
-      }
-
-      .skeleton {
-        height: 0.75rem;
-        background: var(--skeleton);
-      }
-
-      .skeleton + .skeleton {
-        margin-top: 0.75rem;
-      }
-
-      .skeleton-title {
-        width: 8rem;
-        height: 1rem;
-      }
-
-      .skeleton-short {
-        width: 35%;
-      }
-
-      .skeleton-medium {
-        width: 62%;
-      }
-
-      @media (min-width: 40em) {
-        .summary-row,
-        .surface-row {
-          grid-template-columns: 1.5rem minmax(0, 1fr) auto;
-        }
-
-        .summary-arrow,
-        .status {
-          display: inline;
-        }
-      }
-    </style>
+    <link rel="stylesheet" href="../../app/shared/style/global.css" />
+    <link rel="stylesheet" href="../../app/shared/component/user-menu.css" />
+    <link rel="stylesheet" href="./mockups.css" />
   </head>
   <body>
     <div class="mockup-controls" aria-label="Mockup state">
@@ -210,21 +33,21 @@
         <button class="mobile-nav-toggle" type="button" id="mobile-nav-toggle" aria-controls="mobile-navigation" aria-expanded="false" aria-label="Open navigation">
           <span class="mobile-nav-toggle-bars" aria-hidden="true"></span>
         </button>
-        <details class="user-menu" open>
-          <summary aria-label="Account menu">
+        <details class="menu user-menu" open>
+          <summary class="menu-trigger" aria-label="Account menu">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <circle cx="12" cy="12" r="10" />
               <circle cx="12" cy="10" r="3" />
               <path d="M7 20.662V19a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v1.662" />
             </svg>
           </summary>
-          <div class="user-panel">
-            <div class="user-summary">
-              <span class="user-name">Demo User</span>
-              <span class="user-meta">demo@example.com</span>
+          <div class="menu-panel">
+            <div class="menu-heading">
+              <span class="menu-heading-title">Demo User</span>
+              <span class="menu-heading-meta">demo@example.com</span>
             </div>
-            <div class="user-menu-list">
-              <button class="user-menu-item" type="button" data-user-theme>
+            <div class="menu-list">
+              <button class="menu-item" type="button" data-user-theme>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                   <circle cx="12" cy="12" r="4" />
                   <path d="M12 2v2" />
@@ -237,9 +60,9 @@
                   <path d="m19.07 4.93-1.41 1.41" />
                 </svg>
                 <span>Theme</span>
-                <span class="user-menu-value" data-user-theme-value>Auto</span>
+                <span class="menu-value" data-user-theme-value>Auto</span>
               </button>
-              <a class="user-menu-item" href="#">
+              <a class="menu-item" href="#">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                   <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
                   <path d="m16 17 5-5-5-5" />
@@ -284,12 +107,12 @@
       </nav>
       <div class="mobile-nav-divider" aria-hidden="true"></div>
       <section class="mobile-nav-account" aria-label="Account">
-        <div class="user-summary">
-          <span class="user-name">Demo User</span>
-          <span class="user-meta">demo@example.com</span>
+        <div class="menu-heading">
+          <span class="menu-heading-title">Demo User</span>
+          <span class="menu-heading-meta">demo@example.com</span>
         </div>
-        <div class="user-menu-list">
-          <button class="user-menu-item" type="button" data-user-theme>
+        <div class="menu-list">
+          <button class="menu-item" type="button" data-user-theme>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <circle cx="12" cy="12" r="4" />
               <path d="M12 2v2" />
@@ -302,9 +125,9 @@
               <path d="m19.07 4.93-1.41 1.41" />
             </svg>
             <span>Theme</span>
-            <span class="user-menu-value" data-user-theme-value>Auto</span>
+            <span class="menu-value" data-user-theme-value>Auto</span>
           </button>
-          <a class="user-menu-item" href="#">
+          <a class="menu-item" href="#">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
               <path d="m16 17 5-5-5-5" />
@@ -404,36 +227,32 @@
 
             <section class="panel panel-wide">
               <h2>Manage</h2>
-              <ul class="summary-list">
-                <li>
-                  <a class="summary-row" href="#" data-go="security">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                      <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" />
-                    </svg>
-                    <span class="summary-body">
-                      <span class="summary-title">Security</span>
-                      <span class="summary-meta">Password, multi-factor authentication and sessions.</span>
-                    </span>
-                    <span class="summary-arrow" aria-hidden="true">›</span>
-                  </a>
-                </li>
-                <li>
-                  <a class="summary-row" href="#" data-go="apps">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                      <rect x="3" y="3" width="7" height="7" />
-                      <rect x="14" y="3" width="7" height="7" />
-                      <rect x="3" y="14" width="7" height="7" />
-                      <path d="M14 17.5h7" />
-                      <path d="M17.5 14v7" />
-                    </svg>
-                    <span class="summary-body">
-                      <span class="summary-title">Apps</span>
-                      <span class="summary-meta">Applications with access to this account.</span>
-                    </span>
-                    <span class="summary-arrow" aria-hidden="true">›</span>
-                  </a>
-                </li>
-              </ul>
+              <div class="stack">
+                <a class="card summary-row" href="#" data-go="security">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" />
+                  </svg>
+                  <span class="summary-body">
+                    <span class="summary-title">Security</span>
+                    <span class="summary-meta">Password, multi-factor authentication and sessions.</span>
+                  </span>
+                  <span class="summary-arrow" aria-hidden="true">&rsaquo;</span>
+                </a>
+                <a class="card summary-row" href="#" data-go="apps">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <rect x="3" y="3" width="7" height="7" />
+                    <rect x="14" y="3" width="7" height="7" />
+                    <rect x="3" y="14" width="7" height="7" />
+                    <path d="M14 17.5h7" />
+                    <path d="M17.5 14v7" />
+                  </svg>
+                  <span class="summary-body">
+                    <span class="summary-title">Apps</span>
+                    <span class="summary-meta">Applications with access to this account.</span>
+                  </span>
+                  <span class="summary-arrow" aria-hidden="true">&rsaquo;</span>
+                </a>
+              </div>
             </section>
           </section>
 
@@ -443,7 +262,7 @@
               <p>Manage how you sign in and where this account is active.</p>
             </div>
 
-            <div class="security-stack">
+            <div class="stack reading-column">
               <section class="panel">
                 <div class="panel-heading">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -506,10 +325,10 @@
                     <path d="M12 17v4" />
                   </svg>
                   <span>
-                    <strong>Current session</strong>
-                    <span>account · This device · Active</span>
+                    <strong class="surface-title">Current session</strong>
+                    <span class="surface-meta">account &middot; This device &middot; Active</span>
                   </span>
-                  <span class="status">Read-only</span>
+                  <span class="status surface-state">Read-only</span>
                 </div>
                 <p class="note">Session revocation arrives in a later slice.</p>
               </section>
@@ -522,7 +341,7 @@
               <p>Applications with access to this account.</p>
             </div>
 
-            <div class="apps-stack">
+            <div class="stack reading-column">
               <section class="panel">
                 <h2>Authorized apps</h2>
                 <p class="note">App permission management arrives in a later slice.</p>
@@ -606,34 +425,34 @@
 
             <section class="panel panel-wide">
               <h2>Access</h2>
-              <dl class="details">
-                <div>
-                  <dt>Consent</dt>
-                  <dd>Granted</dd>
-                </div>
-                <div>
-                  <dt>Session</dt>
-                  <dd>Active</dd>
-                </div>
-              </dl>
-              <p class="note">
-                Revoking access removes Acme Portal's consent. The app must ask
-                again the next time it signs you in.
-              </p>
-              <p class="note">
-                <button class="danger-link" type="button">Revoke access</button>
-              </p>
+              <div class="stack">
+                <dl class="details">
+                  <div>
+                    <dt>Consent</dt>
+                    <dd>Granted</dd>
+                  </div>
+                  <div>
+                    <dt>Session</dt>
+                    <dd>Active</dd>
+                  </div>
+                </dl>
+                <p class="note">
+                  Revoking access removes Acme Portal's consent. The app must ask
+                  again the next time it signs you in.
+                </p>
+                <button class="button-inline button-danger" type="button">Revoke access</button>
+              </div>
             </section>
 
             <section class="panel panel-wide">
               <h2>Full account management</h2>
-              <p class="note">
-                Manage your identity, security and app permissions on the Acme
-                account host.
-              </p>
-              <p class="note">
-                <a class="button" href="#">Open full account</a>
-              </p>
+              <div class="stack">
+                <p class="note">
+                  Manage your identity, security and app permissions on the Acme
+                  account host.
+                </p>
+                <a class="button button-primary" href="#">Open full account</a>
+              </div>
             </section>
           </section>
         </main>

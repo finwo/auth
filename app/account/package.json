@@ -3,7 +3,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "node esbuild.cjs"
+    "build": "node esbuild.cjs",
+    "verify:css": "node ../../tools/css-check/check.mjs --scope app --app account"
   },
   "dependencies": {
     "lucide": "^1.61.0",

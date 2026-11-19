@@ -261,22 +261,22 @@ export const UsersPage: m.Component<UsersAttrs> = {
         {this.error ? (
           <div class="alert" role="alert">
             <p>{this.error.message}</p>
-            <button class="button-secondary" type="button" onclick={() => this.load(this.loadedScope)}>
+            <button class="button button-secondary" type="button" onclick={() => this.load(this.loadedScope)}>
               Try again
             </button>
           </div>
         ) : null}
 
         {!realms ? (
-          <div class="loading">Loading realms</div>
+          <p class="note">Loading realms</p>
         ) : !isGlobal && realms.length === 0 ? (
           <div class="empty">
             <p>No realms are available for this account.</p>
           </div>
         ) : (
-          <div class="table-panel">
-            <div class="table-toolbar">
-              <div class="table-search">
+          <section class="card" aria-label="Realm users">
+            <div class="toolbar toolbar-panel">
+              <div class="toolbar-search">
                 <input
                   type="search"
                   value={this.search}
@@ -288,9 +288,9 @@ export const UsersPage: m.Component<UsersAttrs> = {
                 />
               </div>
               {!isGlobal ? (
-                <div class="table-actions">
+                <div class="toolbar-actions">
                   <button
-                    class="button"
+                    class="button button-primary"
                     type="button"
                     onclick={() => {
                       this.resetAdd();
@@ -317,92 +317,93 @@ export const UsersPage: m.Component<UsersAttrs> = {
                 <p>{isGlobal ? 'No users exist yet.' : 'No users are members of this realm.'}</p>
               </div>
             ) : (
-              <div class="data-table-wrap">
-                <table class="data-table">
-                  <thead>
-                    <tr>
-                      <th class="table-icon-column" scope="col">
-                        <span class="sr-only">User</span>
-                      </th>
-                      <th class="data-table-primary" scope="col">User</th>
-                      <th scope="col">{isGlobal ? 'Home realm' : 'Membership'}</th>
-                      {isGlobal ? <th scope="col">Realms</th> : null}
-                      <th scope="col">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {visibleUsers.map((user: AnyUser) => {
-                      const href = userHref(isGlobal, realmSlug, user.id);
-                      return (
-                        <tr
-                          tabindex="0"
-                          onclick={() => m.route.set(href)}
-                          onkeydown={(event: KeyboardEvent) => {
-                            if (event.target !== event.currentTarget) return;
-                            if (event.key !== 'Enter' && event.key !== ' ') return;
-                            event.preventDefault();
-                            m.route.set(href);
-                          }}
-                        >
-                          <td class="table-icon-column">
-                            <span class="table-icon" aria-hidden="true">
-                              {Icon(Users)}
-                            </span>
+              <>
+              <table class="table table-linkable">
+                <thead>
+                  <tr>
+                    <th scope="col">
+                      <span class="sr-only">User</span>
+                    </th>
+                    <th scope="col">User</th>
+                    <th scope="col">{isGlobal ? 'Home realm' : 'Membership'}</th>
+                    {isGlobal ? <th scope="col">Realms</th> : null}
+                    <th scope="col">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {visibleUsers.map((user: AnyUser) => {
+                    const href = userHref(isGlobal, realmSlug, user.id);
+                    return (
+                      <tr
+                        tabindex="0"
+                        role="link"
+                        onclick={() => m.route.set(href)}
+                        onkeydown={(event: KeyboardEvent) => {
+                          if (event.target !== event.currentTarget) return;
+                          if (event.key !== 'Enter' && event.key !== ' ') return;
+                          event.preventDefault();
+                          m.route.set(href);
+                        }}
+                      >
+                        <td>
+                          <span class="table-icon" aria-hidden="true">
+                            {Icon(Users)}
+                          </span>
+                        </td>
+                        <td data-label="User">
+                          <a
+                            class="table-title link"
+                            href={appUrl(href)}
+                            onclick={(event: MouseEvent) => {
+                              event.preventDefault();
+                              event.stopPropagation();
+                              m.route.set(href);
+                            }}
+                          >
+                            {user.display_name || user.username}
+                          </a>
+                          <span class="table-sub">{user.email || user.username}</span>
+                          {user.email ? <span class="table-sub">{user.username}</span> : null}
+                        </td>
+                        {isGlobal ? (
+                          <td data-label="Home realm">
+                            {(user as AdminGlobalUser).home_realm_slug || 'None'}
+                            {(user as AdminGlobalUser).is_system_admin ? (
+                              <span class="status-muted"> System admin</span>
+                            ) : null}
                           </td>
-                          <td class="data-table-primary">
-                            <a
-                              class="user-title"
-                              href={appUrl(href)}
-                              onclick={(event: MouseEvent) => {
-                                event.preventDefault();
-                                event.stopPropagation();
-                                m.route.set(href);
-                              }}
-                            >
-                              <strong>{user.display_name || user.username}</strong>
-                            </a>
-                            <span class="data-table-sub">{user.email || user.username}</span>
-                            {user.email ? <span class="data-table-sub">{user.username}</span> : null}
+                        ) : (
+                          <td data-label="Membership">
+                            {relationshipLabel(user as AdminRealmUser)}
+                            {(user as AdminRealmUser).roles.includes('realm-admin') ? (
+                              <span class="status-muted"> Realm admin</span>
+                            ) : null}
+                            {(user as AdminRealmUser).is_system_admin ? (
+                              <span class="status-muted"> System admin</span>
+                            ) : null}
                           </td>
-                          {isGlobal ? (
-                            <td data-label="Home realm">
-                              {(user as AdminGlobalUser).home_realm_slug || 'None'}
-                              {(user as AdminGlobalUser).is_system_admin ? (
-                                <span class="data-table-status">System admin</span>
-                              ) : null}
-                            </td>
-                          ) : (
-                            <td data-label="Membership">
-                              {relationshipLabel(user as AdminRealmUser)}
-                              {(user as AdminRealmUser).roles.includes('realm-admin') ? (
-                                <span class="data-table-status">Realm admin</span>
-                              ) : null}
-                              {(user as AdminRealmUser).is_system_admin ? (
-                                <span class="data-table-status">System admin</span>
-                              ) : null}
-                            </td>
-                          )}
-                          {isGlobal ? (
-                            <td data-label="Realms">{(user as AdminGlobalUser).membership_count}</td>
-                          ) : null}
-                          <td data-label="Status">
-                            {isGlobal
-                              ? globalStatusLabel(user as AdminGlobalUser)
-                              : realmStatus(user as AdminRealmUser)}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-                {visibleUsers.length === 0 ? (
-                  <div class="empty">
-                    <p>No users match this search.</p>
-                  </div>
-                ) : null}
-              </div>
+                        )}
+                        {isGlobal ? (
+                          <td data-label="Realms">{(user as AdminGlobalUser).membership_count}</td>
+                        ) : null}
+                        <td data-label="Status">
+                          {isGlobal
+                            ? globalStatusLabel(user as AdminGlobalUser)
+                            : realmStatus(user as AdminRealmUser)}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+              {visibleUsers.length === 0 ? (
+                <div class="empty">
+                  <p>No users match this search.</p>
+                </div>
+              ) : null}
+              </>
             )}
-          </div>
+          </section>
         )}
 
         {this.addOpen && realmSlug ? (
@@ -413,7 +414,7 @@ export const UsersPage: m.Component<UsersAttrs> = {
                 this.searchAdd();
               }}
             >
-              <div class="form-field">
+              <div class="field">
                 <label class="field-label" for="add-user-identifier">
                   Email or username
                 </label>
@@ -429,14 +430,14 @@ export const UsersPage: m.Component<UsersAttrs> = {
               </div>
               <div class="modal-actions">
                 <button
-                  class="button-secondary"
+                  class="button button-secondary"
                   type="button"
                   disabled={this.addPending}
                   onclick={() => this.resetAdd()}
                 >
                   Cancel
                 </button>
-                <button class="button" type="submit" disabled={this.addPending}>
+                <button class="button button-primary" type="submit" disabled={this.addPending}>
                   {this.addPending ? 'Searching' : 'Search'}
                 </button>
               </div>
@@ -453,15 +454,15 @@ export const UsersPage: m.Component<UsersAttrs> = {
                 <div class="notice">
                   <strong>{this.addResult.display_name || this.addResult.username}</strong>
                   {this.addResult.email ? (
-                    <span class="data-table-sub">{this.addResult.email}</span>
+                    <span class="table-sub">{this.addResult.email}</span>
                   ) : null}
-                  <span class="data-table-sub">{this.addResult.username}</span>
-                  <span class="data-table-sub">{lookupReason(this.addResult)}</span>
+                  <span class="table-sub">{this.addResult.username}</span>
+                  <p class="note">{lookupReason(this.addResult)}</p>
                 </div>
                 <div class="modal-actions">
                   {this.addResult.can_add ? (
                     <button
-                      class="button"
+                      class="button button-primary"
                       type="button"
                       disabled={this.addPending}
                       onclick={() => this.submitAdd()}
@@ -470,7 +471,7 @@ export const UsersPage: m.Component<UsersAttrs> = {
                     </button>
                   ) : (
                     <button
-                      class="button-secondary"
+                      class="button button-secondary"
                       type="button"
                       onclick={() =>
                         m.route.set(userHref(false, realmSlug, this.addResult.id))

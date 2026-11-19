@@ -24,14 +24,14 @@ export const StatusPage: m.Component<StatusPageAttrs> = {
           )}
           <h1>{attrs.title}</h1>
           <p
-            class={attrs.error ? 'status-error' : 'status-note'}
+            class={attrs.error ? 'alert' : 'note'}
             role={attrs.error ? 'alert' : undefined}
           >
             {attrs.message}
           </p>
           {attrs.action ? (
             <div class="status-actions">
-              <a class="button" href={attrs.action.href}>
+              <a class="button button-primary" href={attrs.action.href}>
                 {attrs.action.label}
               </a>
             </div>

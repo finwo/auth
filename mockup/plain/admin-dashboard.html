@@ -4,42 +4,9 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>Admin dashboard mockup</title>
-    <link rel="stylesheet" href="./global.css" />
-    <style>
-      .stats {
-        display: grid;
-        grid-template-columns: minmax(0, 1fr);
-        gap: 1rem;
-        margin-bottom: 1rem;
-      }
-
-      .stat {
-        padding: 1.25rem 1.5rem;
-        background: var(--surface);
-        box-shadow: var(--shadow);
-      }
-
-      .stat-label {
-        display: block;
-        color: var(--muted);
-        font-size: 0.8125rem;
-        line-height: 1.4;
-      }
-
-      .stat-value {
-        display: block;
-        margin-top: 0.5rem;
-        font-size: 1.75rem;
-        font-weight: 300;
-        line-height: 1.2;
-      }
-
-      @media (min-width: 60em) {
-        .stats {
-          grid-template-columns: repeat(4, minmax(0, 1fr));
-        }
-      }
-    </style>
+    <link rel="stylesheet" href="../../app/shared/style/global.css" />
+    <link rel="stylesheet" href="../../app/shared/component/user-menu.css" />
+    <link rel="stylesheet" href="./mockups.css" />
   </head>
   <body>
     <header class="topbar">
@@ -53,28 +20,28 @@
         <button class="mobile-nav-toggle" type="button" id="mobile-nav-toggle" aria-controls="mobile-navigation" aria-expanded="false" aria-label="Open navigation">
           <span class="mobile-nav-toggle-bars" aria-hidden="true"></span>
         </button>
-        <details class="user-menu" open>
-          <summary aria-label="Account menu">
+        <details class="menu user-menu" open>
+          <summary class="menu-trigger" aria-label="Account menu">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <circle cx="12" cy="12" r="10" />
               <circle cx="12" cy="10" r="3" />
               <path d="M7 20.662V19a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v1.662" />
             </svg>
           </summary>
-          <div class="user-panel">
-            <div class="user-summary">
-              <span class="user-name">System Admin</span>
-              <span class="user-meta">admin@system.test</span>
+          <div class="menu-panel">
+            <div class="menu-heading">
+              <span class="menu-heading-title">System Admin</span>
+              <span class="menu-heading-meta">admin@system.test</span>
             </div>
-            <div class="user-menu-list">
-              <a class="user-menu-item" href="#">
+            <div class="menu-list">
+              <a class="menu-item" href="#">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                   <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
                   <circle cx="12" cy="12" r="3" />
                 </svg>
                 <span>Account settings</span>
               </a>
-              <button class="user-menu-item" type="button" data-user-theme>
+              <button class="menu-item" type="button" data-user-theme>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                   <circle cx="12" cy="12" r="4" />
                   <path d="M12 2v2" />
@@ -87,9 +54,9 @@
                   <path d="m19.07 4.93-1.41 1.41" />
                 </svg>
                 <span>Theme</span>
-                <span class="user-menu-value" data-user-theme-value>Auto</span>
+                <span class="menu-value" data-user-theme-value>Auto</span>
               </button>
-              <a class="user-menu-item" href="#">
+              <a class="menu-item" href="#">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                   <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
                   <path d="m16 17 5-5-5-5" />
@@ -159,19 +126,19 @@
       </nav>
       <div class="mobile-nav-divider" aria-hidden="true"></div>
       <section class="mobile-nav-account" aria-label="Account">
-        <div class="user-summary">
-          <span class="user-name">System Admin</span>
-          <span class="user-meta">admin@system.test</span>
+        <div class="menu-heading">
+          <span class="menu-heading-title">System Admin</span>
+          <span class="menu-heading-meta">admin@system.test</span>
         </div>
-        <div class="user-menu-list">
-          <a class="user-menu-item" href="#">
+        <div class="menu-list">
+          <a class="menu-item" href="#">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
               <circle cx="12" cy="12" r="3" />
             </svg>
             <span>Account settings</span>
           </a>
-          <button class="user-menu-item" type="button" data-user-theme>
+          <button class="menu-item" type="button" data-user-theme>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <circle cx="12" cy="12" r="4" />
               <path d="M12 2v2" />
@@ -184,9 +151,9 @@
               <path d="m19.07 4.93-1.41 1.41" />
             </svg>
             <span>Theme</span>
-            <span class="user-menu-value" data-user-theme-value>Auto</span>
+            <span class="menu-value" data-user-theme-value>Auto</span>
           </button>
-          <a class="user-menu-item" href="#">
+          <a class="menu-item" href="#">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
               <path d="m16 17 5-5-5-5" />
@@ -258,28 +225,28 @@
       <div class="main">
         <main class="content">
           <div class="page-header">
-            <div class="client-breadcrumb">
+            <div class="breadcrumb">
               <span aria-current="page">Overview</span>
             </div>
             <h1>Overview</h1>
             <p>Provider summary and administration.</p>
           </div>
 
-          <section class="stats" aria-label="Provider summary">
-            <article class="stat">
-              <span class="stat-label">Realms</span>
+          <section class="grid stats" aria-label="Provider summary">
+            <article class="card">
+              <span class="field-label">Realms</span>
               <strong class="stat-value">2</strong>
             </article>
-            <article class="stat">
-              <span class="stat-label">Users</span>
+            <article class="card">
+              <span class="field-label">Users</span>
               <strong class="stat-value">6</strong>
             </article>
-            <article class="stat">
-              <span class="stat-label">OIDC clients</span>
+            <article class="card">
+              <span class="field-label">OIDC clients</span>
               <strong class="stat-value">6</strong>
             </article>
-            <article class="stat">
-              <span class="stat-label">Active sessions</span>
+            <article class="card">
+              <span class="field-label">Active sessions</span>
               <strong class="stat-value">3</strong>
             </article>
           </section>

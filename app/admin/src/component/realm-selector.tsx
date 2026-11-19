@@ -21,8 +21,8 @@ export const RealmSelector: m.Component<RealmSelectorAttrs> = {
       ];
 
       return (
-        <div class="realm-select">
-          <span>Realm</span>
+        <div class="field">
+          <span class="field-label">Realm</span>
           <SelectMenu
             autoWidth
             ariaLabel="Realm"
@@ -35,11 +35,11 @@ export const RealmSelector: m.Component<RealmSelectorAttrs> = {
     }
 
     if (selected) {
-      return <span class="realm-current">{selected.display_name}</span>;
+      return <span class="u-muted">{selected.display_name}</span>;
     }
 
     if (selectedAll) {
-      return <span class="realm-current">All realms</span>;
+      return <span class="u-muted">All realms</span>;
     }
 
     return null;

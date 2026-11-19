@@ -4,103 +4,9 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>Admin client detail mockup</title>
-    <link rel="stylesheet" href="./global.css" />
-    <style>
-      .host-name {
-        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-        font-size: 0.8125rem;
-        overflow-wrap: anywhere;
-      }
-
-      .host-added {
-        color: var(--muted);
-        font-size: 0.8125rem;
-      }
-
-      .host-row-action {
-        display: flex;
-        align-items: center;
-      }
-
-      .action-button {
-        display: inline-flex;
-        align-items: center;
-        min-height: 2rem;
-        padding: 0.25rem 0.625rem;
-        border: 0;
-        border-radius: 0.25rem;
-        background: transparent;
-        color: var(--muted);
-        font: inherit;
-        font-size: 0.8125rem;
-        font-weight: 500;
-        line-height: 1.4;
-        white-space: nowrap;
-        cursor: pointer;
-      }
-
-      .action-button:hover {
-        background: var(--row-hover);
-        color: var(--text);
-      }
-
-      .action-button:first-child {
-        margin-left: -0.625rem;
-      }
-
-      .action-button.is-danger {
-        color: var(--danger-text);
-      }
-
-      .action-button.is-danger:hover {
-        background: color-mix(in oklch, var(--danger) 12%, transparent);
-        color: var(--danger-text);
-      }
-
-      .host-table td.host-action-column {
-        padding-bottom: 0.75rem;
-      }
-
-      .empty {
-        padding: 2rem;
-        color: var(--muted);
-        font-size: 0.875rem;
-      }
-
-      .empty p {
-        margin: 0;
-      }
-
-      @media (max-width: 39.999em) {
-        .table-actions {
-          width: 100%;
-          flex-direction: column;
-          align-items: stretch;
-        }
-
-        .table-actions .button {
-          width: 100%;
-        }
-      }
-
-      @media (min-width: 40em) {
-        .host-table {
-          table-layout: fixed;
-        }
-
-        .host-table .host-added-column {
-          width: 10rem;
-        }
-
-        .host-table .host-action-column {
-          width: 9rem;
-        }
-
-        .host-row-action {
-          justify-content: flex-start;
-        }
-      }
-    </style>
+    <link rel="stylesheet" href="../../app/shared/style/global.css" />
+    <link rel="stylesheet" href="../../app/shared/component/user-menu.css" />
+    <link rel="stylesheet" href="./mockups.css" />
   </head>
   <body>
     <header class="topbar">
@@ -114,28 +20,28 @@
         <button class="mobile-nav-toggle" type="button" id="mobile-nav-toggle" aria-controls="mobile-navigation" aria-expanded="false" aria-label="Open navigation">
           <span class="mobile-nav-toggle-bars" aria-hidden="true"></span>
         </button>
-        <details class="user-menu">
-          <summary aria-label="Account menu">
+        <details class="menu user-menu">
+          <summary class="menu-trigger" aria-label="Account menu">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <circle cx="12" cy="12" r="10" />
               <circle cx="12" cy="10" r="3" />
               <path d="M7 20.662V19a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v1.662" />
             </svg>
           </summary>
-          <div class="user-panel">
-            <div class="user-summary">
-              <span class="user-name">System Admin</span>
-              <span class="user-meta">admin@system.test</span>
+          <div class="menu-panel">
+            <div class="menu-heading">
+              <span class="menu-heading-title">System Admin</span>
+              <span class="menu-heading-meta">admin@system.test</span>
             </div>
-            <div class="user-menu-list">
-              <a class="user-menu-item" href="#">
+            <div class="menu-list">
+              <a class="menu-item" href="#">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                   <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
                   <circle cx="12" cy="12" r="3" />
                 </svg>
                 <span>Account settings</span>
               </a>
-              <button class="user-menu-item" type="button" data-user-theme>
+              <button class="menu-item" type="button" data-user-theme>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                   <circle cx="12" cy="12" r="4" />
                   <path d="M12 2v2" />
@@ -148,9 +54,9 @@
                   <path d="m19.07 4.93-1.41 1.41" />
                 </svg>
                 <span>Theme</span>
-                <span class="user-menu-value" data-user-theme-value>Auto</span>
+                <span class="menu-value" data-user-theme-value>Auto</span>
               </button>
-              <a class="user-menu-item" href="#">
+              <a class="menu-item" href="#">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                   <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
                   <path d="m16 17 5-5-5-5" />
@@ -220,19 +126,19 @@
       </nav>
       <div class="mobile-nav-divider" aria-hidden="true"></div>
       <section class="mobile-nav-account" aria-label="Account">
-        <div class="user-summary">
-          <span class="user-name">System Admin</span>
-          <span class="user-meta">admin@system.test</span>
+        <div class="menu-heading">
+          <span class="menu-heading-title">System Admin</span>
+          <span class="menu-heading-meta">admin@system.test</span>
         </div>
-        <div class="user-menu-list">
-          <a class="user-menu-item" href="#">
+        <div class="menu-list">
+          <a class="menu-item" href="#">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
               <circle cx="12" cy="12" r="3" />
             </svg>
             <span>Account settings</span>
           </a>
-          <button class="user-menu-item" type="button" data-user-theme>
+          <button class="menu-item" type="button" data-user-theme>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <circle cx="12" cy="12" r="4" />
               <path d="M12 2v2" />
@@ -245,9 +151,9 @@
               <path d="m19.07 4.93-1.41 1.41" />
             </svg>
             <span>Theme</span>
-            <span class="user-menu-value" data-user-theme-value>Auto</span>
+            <span class="menu-value" data-user-theme-value>Auto</span>
           </button>
-          <a class="user-menu-item" href="#">
+          <a class="menu-item" href="#">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
               <path d="m16 17 5-5-5-5" />
@@ -320,7 +226,7 @@
         <main class="content">
           <div class="page-header page-header-row">
             <div>
-              <div class="client-breadcrumb">
+              <div class="breadcrumb">
                 <a href="./admin-clients.html">Clients</a>
                 <span aria-hidden="true">/</span>
                 <span>Internal App</span>
@@ -328,10 +234,10 @@
               <h1>Internal App</h1>
               <p>internal-app</p>
             </div>
-            <button class="button" type="button">Save changes</button>
+            <button class="button button-primary" type="button">Save changes</button>
           </div>
 
-          <div class="client-stack">
+          <div class="stack">
             <section class="panel">
               <h2>Settings</h2>
               <dl class="details">
@@ -365,8 +271,8 @@
             <section class="panel">
               <h2>Secret</h2>
               <p class="note">No client secret is configured. Creating one switches this client to confidential authentication.</p>
-              <div class="client-actions">
-                <button class="button" type="button">Create secret</button>
+              <div class="action-row">
+                <button class="button button-primary" type="button">Create secret</button>
               </div>
             </section>
 
@@ -376,40 +282,34 @@
 
               <div id="client-hosts-notice" class="notice" role="status" hidden></div>
 
-              <div class="table-toolbar">
-                <div class="table-search">
+              <div class="toolbar toolbar-panel">
+                <div class="toolbar-search">
                   <input id="client-hosts-search" type="search" aria-label="Search hosts" placeholder="Search hosts" />
                 </div>
-                <div class="table-actions">
-                  <button id="client-hosts-add-button" class="button" type="button">Add host</button>
+                <div class="toolbar-actions">
+                  <button id="client-hosts-add-button" class="button button-primary" type="button">Add host</button>
                 </div>
               </div>
 
-              <div class="data-table-wrap">
-                <table class="data-table data-table-static host-table">
-                  <thead>
-                    <tr>
-                      <th class="data-table-primary host-name-column" scope="col">Hostname</th>
-                      <th class="host-added-column" scope="col">Added</th>
-                      <th class="host-action-column" scope="col">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody id="client-hosts-rows"></tbody>
-                </table>
-                <div id="client-hosts-search-empty" class="empty" hidden>
-                  <p>No hosts match this search.</p>
-                </div>
-                <div id="client-hosts-empty" class="empty" hidden>
-                  <p>No hosts are assigned to this client.</p>
-                </div>
-              </div>
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th scope="col">Hostname</th>
+                    <th scope="col">Added</th>
+                    <th scope="col">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="client-hosts-rows"></tbody>
+              </table>
+              <p id="client-hosts-search-empty" class="empty" hidden>No hosts match this search.</p>
+              <p id="client-hosts-empty" class="empty" hidden>No hosts are assigned to this client.</p>
             </section>
 
             <section class="panel danger-zone">
               <h2>Danger zone</h2>
               <p class="note">Deleting removes the client registration and related authorization state.</p>
-              <div class="client-actions">
-                <button class="button-danger" type="button" data-dialog-open="client-delete-dialog">Delete client</button>
+              <div class="action-row">
+                <button class="button button-danger" type="button" data-dialog-open="client-delete-dialog">Delete client</button>
               </div>
             </section>
           </div>
@@ -417,7 +317,7 @@
       </div>
     </div>
 
-    <div id="client-delete-dialog" class="modal-overlay" hidden>
+    <div id="client-delete-dialog" class="overlay" hidden>
       <div class="modal" role="dialog" aria-modal="true" aria-labelledby="client-delete-title">
         <div class="modal-header">
           <h2 id="client-delete-title">Delete client</h2>
@@ -433,14 +333,14 @@
             Delete Internal App (internal-app) from acme? This cannot be undone.
           </p>
           <div class="modal-actions">
-            <button class="button-secondary" type="button" data-dialog-close>Cancel</button>
-            <button class="button-danger" type="button" data-dialog-close>Delete client</button>
+            <button class="button button-secondary" type="button" data-dialog-close>Cancel</button>
+            <button class="button button-danger" type="button" data-dialog-close>Delete client</button>
           </div>
         </div>
       </div>
     </div>
 
-    <div id="client-hosts-create-dialog" class="modal-overlay" hidden>
+    <div id="client-hosts-create-dialog" class="overlay" hidden>
       <form id="client-hosts-create-form" class="modal" role="dialog" aria-modal="true" aria-labelledby="client-hosts-create-title" novalidate>
         <div class="modal-header">
           <h2 id="client-hosts-create-title">Add host</h2>
@@ -454,21 +354,21 @@
         <div class="modal-body">
           <div id="client-hosts-create-alert" class="alert" role="alert" hidden></div>
 
-          <label class="form-field" for="client-hosts-host-input">
+          <label class="field" for="client-hosts-host-input">
             <span class="field-label">Hostname</span>
             <input id="client-hosts-host-input" class="field-control" type="text" maxlength="253" placeholder="app.acme.test" autocomplete="off" spellcheck="false" />
           </label>
           <p class="modal-note">Lowercase hostname. Do not include a scheme, port, path or wildcard.</p>
 
           <div class="modal-actions">
-            <button class="button-secondary" type="button" data-dialog-close>Cancel</button>
-            <button class="button" type="submit">Add host</button>
+            <button class="button button-secondary" type="button" data-dialog-close>Cancel</button>
+            <button class="button button-primary" type="submit">Add host</button>
           </div>
         </div>
       </form>
     </div>
 
-    <div id="client-hosts-remove-dialog" class="modal-overlay" hidden>
+    <div id="client-hosts-remove-dialog" class="overlay" hidden>
       <div class="modal" role="dialog" aria-modal="true" aria-labelledby="client-hosts-remove-title">
         <div class="modal-header">
           <h2 id="client-hosts-remove-title">Remove host</h2>
@@ -481,14 +381,14 @@
         </div>
         <div class="modal-body">
           <p id="client-hosts-remove-message" class="modal-note"></p>
-          <label class="form-field" for="client-hosts-remove-confirm">
+          <label class="field" for="client-hosts-remove-confirm">
             <span class="field-label">Confirm hostname</span>
             <input id="client-hosts-remove-confirm" class="field-control" type="text" maxlength="253" autocomplete="off" spellcheck="false" />
           </label>
           <p class="modal-note">Type the hostname exactly to confirm.</p>
           <div class="modal-actions">
-            <button class="button-secondary" type="button" data-dialog-close>Cancel</button>
-            <button id="client-hosts-remove-confirm-button" class="button-danger" type="button" disabled>Remove host</button>
+            <button class="button button-secondary" type="button" data-dialog-close>Cancel</button>
+            <button id="client-hosts-remove-confirm-button" class="button button-danger" type="button" disabled>Remove host</button>
           </div>
         </div>
       </div>
@@ -542,7 +442,7 @@
       });
 
       function visibleDialogs() {
-        return [...document.querySelectorAll('.modal-overlay:not([hidden])')];
+        return [...document.querySelectorAll('.overlay:not([hidden])')];
       }
 
       document.querySelectorAll('[data-dialog-open]').forEach((button) => {
@@ -556,11 +456,11 @@
 
       document.querySelectorAll('[data-dialog-close]').forEach((button) => {
         button.addEventListener('click', () => {
-          button.closest('.modal-overlay').hidden = true;
+          button.closest('.overlay').hidden = true;
         });
       });
 
-      document.querySelectorAll('.modal-overlay').forEach((overlay) => {
+      document.querySelectorAll('.overlay').forEach((overlay) => {
         overlay.addEventListener('mousedown', (event) => {
           if (event.target === overlay) overlay.hidden = true;
         });
@@ -631,13 +531,11 @@
               row.className = 'host-row';
               row.dataset.search = entry.host.toLowerCase();
               row.innerHTML =
-                '<td class="data-table-primary host-name-column" data-label="Hostname">' +
-                  '<span class="host-name">' + escapeHtml(entry.host) + '</span>' +
-                '</td>' +
-                '<td class="host-added-column" data-label="Added"><span class="host-added">' + escapeHtml(entry.added) + '</span></td>' +
-                '<td class="host-action-column" data-label="Actions"><div class="host-row-action">' +
-                  '<button class="action-button is-danger" type="button" data-remove-host="' + escapeHtml(entry.host) + '">Remove</button>' +
-                '</div></td>';
+                '<td data-label="Hostname"><span class="table-mono">' + escapeHtml(entry.host) + '</span></td>' +
+                '<td data-label="Added"><span class="table-meta">' + escapeHtml(entry.added) + '</span></td>' +
+                '<td data-label="Actions">' +
+                  '<button class="button-inline button-danger" type="button" data-remove-host="' + escapeHtml(entry.host) + '">Remove</button>' +
+                '</td>';
               return row;
             })
           );

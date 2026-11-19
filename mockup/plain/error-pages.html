@@ -4,159 +4,8 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>Error pages mockup</title>
-    <link rel="stylesheet" href="./global.css" />
-    <style>
-      .status-page {
-        display: grid;
-        place-items: center;
-        min-height: 100vh;
-        min-height: 100svh;
-        padding: env(safe-area-inset-top) env(safe-area-inset-right)
-                 calc(1rem + env(safe-area-inset-bottom)) env(safe-area-inset-left);
-        background-color: var(--surface);
-      }
-
-      .status-panel,
-      .login-card {
-        width: min(calc(100% - 2rem), 28rem);
-        padding: 2rem;
-        background: var(--surface);
-      }
-
-      .status-panel {
-        position: relative;
-      }
-
-      .login-card {
-        width: min(calc(100% - 2rem), 24rem);
-      }
-
-      .status-panel h1,
-      .login-card h1 {
-        margin: 0 0 1rem;
-        font-size: 1.5rem;
-        font-weight: 400;
-        line-height: 1.3;
-      }
-
-      .status-panel h1 {
-        padding-right: 3rem;
-      }
-
-      .status-icon {
-        position: absolute;
-        top: 2rem;
-        right: 2rem;
-        width: 2rem;
-        height: 2rem;
-        color: currentColor;
-      }
-
-      .spinner {
-        position: absolute;
-        top: 2rem;
-        right: 2rem;
-        width: 2rem;
-        height: 2rem;
-        border: 0.1875rem solid var(--skeleton);
-        border-top-color: var(--text);
-        border-radius: 50%;
-        animation: spin 1s linear infinite;
-      }
-
-      @keyframes spin {
-        to {
-          transform: rotate(360deg);
-        }
-      }
-
-      .status-note,
-      .login-note {
-        margin: 0;
-        color: var(--muted);
-        font-size: 0.875rem;
-        line-height: 1.6;
-      }
-
-      .status-error {
-        margin: 0;
-        color: var(--danger);
-        font-size: 0.875rem;
-        line-height: 1.6;
-      }
-
-      .login-note {
-        margin-bottom: 0.5rem;
-      }
-
-      .status-actions {
-        display: grid;
-        gap: 1rem;
-        margin-top: 1.5rem;
-      }
-
-      .status-actions > .button,
-      .status-actions > .button-secondary,
-      .status-actions > .button-danger {
-        justify-content: center;
-        min-height: 2.75rem;
-        text-align: center;
-      }
-
-      .field {
-        display: grid;
-        gap: 0.125rem;
-        padding: 0.75rem 0;
-        border-bottom: 1pt solid var(--field-line);
-      }
-
-      .field-label {
-        color: var(--muted);
-        font-size: 0.75rem;
-        line-height: 1.4;
-      }
-
-      .field-value {
-        font-size: 1rem;
-        line-height: 1.5;
-      }
-
-      @media (min-width: 35em) {
-        .status-page {
-          background-color: var(--page);
-          background-image: var(--hex);
-          background-position: center;
-          background-repeat: no-repeat;
-          background-size: cover;
-        }
-
-        .status-panel,
-        .login-card {
-          box-shadow: var(--shadow);
-        }
-
-        .status-actions {
-          display: flex;
-          justify-content: flex-end;
-          align-items: center;
-          gap: 1rem;
-        }
-
-        .status-actions > .button,
-        .status-actions > .button-secondary,
-        .status-actions > .button-danger {
-          flex: 0 auto;
-          width: auto;
-        }
-      }
-
-      @media (prefers-reduced-motion: reduce) {
-        .spinner {
-          animation: none;
-        }
-      }
-
-    </style>
+    <link rel="stylesheet" href="../../app/shared/style/global.css" />
+    <link rel="stylesheet" href="./mockups.css" />
   </head>
   <body>
     <div class="mockup-controls" aria-label="Mockup state">
@@ -175,34 +24,36 @@
 
     <section class="status-page" data-view="login-error">
       <div class="status-panel">
-        <svg class="status-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <svg class="status-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <circle cx="12" cy="12" r="10" />
           <path d="M12 8v4" />
           <path d="M12 16h.01" />
         </svg>
         <h1>Sign-in unavailable</h1>
-        <p class="status-error" role="alert">The sign-in service could not be reached. Try again in a moment.</p>
+        <p class="alert" role="alert">The sign-in service could not be reached. Try again in a moment.</p>
         <div class="status-actions">
-          <a class="button" href="#">Try again</a>
+          <a class="button button-primary" href="#">Try again</a>
         </div>
       </div>
     </section>
 
     <section class="status-page" data-view="login-inline" hidden>
-      <div class="login-card">
-        <h1>Sign in</h1>
-        <p class="login-note">Continue to Acme.</p>
-        <div class="field">
-          <span class="field-label">Username</span>
-          <span class="field-value">demo</span>
-        </div>
-        <div class="field">
-          <span class="field-label">Password</span>
-          <span class="field-value">••••••••</span>
-        </div>
-        <p class="status-error" role="alert">The username or password is incorrect.</p>
-        <div class="status-actions">
-          <button class="button" type="button">Sign in</button>
+      <div class="status-panel">
+        <div class="stack">
+          <h1>Sign in</h1>
+          <p class="note">Continue to Acme.</p>
+          <div class="field">
+            <span class="field-label">Username</span>
+            <span class="field-control">demo</span>
+          </div>
+          <div class="field">
+            <span class="field-label">Password</span>
+            <span class="field-control">&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;</span>
+          </div>
+          <p class="alert" role="alert">The username or password is incorrect.</p>
+          <div class="status-actions">
+            <button class="button button-primary" type="button">Sign in</button>
+          </div>
         </div>
       </div>
     </section>
@@ -211,21 +62,21 @@
       <div class="status-panel">
         <div class="spinner" aria-hidden="true"></div>
         <h1>Completing sign-in</h1>
-        <p class="status-note">Establishing the account session.</p>
+        <p class="note">Establishing the account session.</p>
       </div>
     </section>
 
     <section class="status-page" data-view="account-error" hidden>
       <div class="status-panel">
-        <svg class="status-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <svg class="status-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <circle cx="12" cy="12" r="10" />
           <path d="M12 8v4" />
           <path d="M12 16h.01" />
         </svg>
         <h1>Sign-in failed</h1>
-        <p class="status-error" role="alert">The sign-in request is no longer valid.</p>
+        <p class="alert" role="alert">The sign-in request is no longer valid.</p>
         <div class="status-actions">
-          <a class="button" href="#">Return to account</a>
+          <a class="button button-primary" href="#">Return to account</a>
         </div>
       </div>
     </section>
@@ -234,21 +85,21 @@
       <div class="status-panel">
         <div class="spinner" aria-hidden="true"></div>
         <h1>Completing sign-in</h1>
-        <p class="status-note">Establishing the administrative session.</p>
+        <p class="note">Establishing the administrative session.</p>
       </div>
     </section>
 
     <section class="status-page" data-view="admin-error" hidden>
       <div class="status-panel">
-        <svg class="status-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <svg class="status-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <circle cx="12" cy="12" r="10" />
           <path d="M12 8v4" />
           <path d="M12 16h.01" />
         </svg>
         <h1>Sign-in failed</h1>
-        <p class="status-error" role="alert">The sign-in request is no longer valid.</p>
+        <p class="alert" role="alert">The sign-in request is no longer valid.</p>
         <div class="status-actions">
-          <a class="button" href="#">Return to administration</a>
+          <a class="button button-primary" href="#">Return to administration</a>
         </div>
       </div>
     </section>

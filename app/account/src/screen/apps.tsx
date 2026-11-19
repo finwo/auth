@@ -10,7 +10,7 @@ export const AppsPage: m.Component = {
           subtitle="Applications with access to this account."
         />
 
-        <div class="apps-stack">
+        <div class="stack reading-column">
           <section class="panel">
             <h2>Authorized apps</h2>
             <p class="note">App permission management arrives in a later slice.</p>

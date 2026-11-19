@@ -75,9 +75,9 @@ function applyAccent(branding?: { primary_color?: string }) {
 const TextField: m.Component<TextFieldAttrs> = {
   view({ attrs }) {
     return (
-      <div class="auth-field">
+      <div class="field auth-field">
         <input
-          class="auth-input"
+          class="field-control auth-input"
           id={attrs.id}
           type={attrs.type || 'text'}
           value={attrs.value}
@@ -87,7 +87,7 @@ const TextField: m.Component<TextFieldAttrs> = {
           oninput={(e: Event) => attrs.oninput((e.target as HTMLInputElement).value)}
           oncreate={attrs.autofocus ? ({ dom }: any) => dom.focus() : undefined}
         />
-        <label for={attrs.id}>{attrs.label}</label>
+        <label class="field-label auth-label" for={attrs.id}>{attrs.label}</label>
       </div>
     );
   },
@@ -282,13 +282,13 @@ export const Login: m.Component<{ clientId?: string }> = {
     if (!this.discovery) {
       if (this.error) {
         return (
-          <div class="auth-page">
-            <div class="auth-status-panel">
-              {Icon(CircleAlert, { class: 'auth-status-icon' })}
+          <div class="status-page auth-page">
+            <div class="card auth-card auth-card-wide">
+              {Icon(CircleAlert, { class: 'auth-icon' })}
               <h1>Sign-in unavailable</h1>
-              <p class="auth-error">{this.error.message}</p>
-              <div class="auth-actions">
-                <a class="button" href={window.location.href}>Try again</a>
+              <p class="alert auth-error" role="alert">{this.error.message}</p>
+              <div class="stack auth-actions">
+                <a class="button button-primary" href={window.location.href}>Try again</a>
               </div>
             </div>
           </div>
@@ -296,11 +296,11 @@ export const Login: m.Component<{ clientId?: string }> = {
       }
 
       return (
-        <div class="auth-page" aria-busy="true">
-          <div class="auth-card">
-            <div class="auth-spinner" aria-hidden="true"></div>
+        <div class="status-page auth-page" aria-busy="true">
+          <div class="card auth-card">
+            <div class="spinner auth-spinner" aria-hidden="true"></div>
             <h1>Signing in</h1>
-            <p class="auth-note">Loading your sign-in options.</p>
+            <p class="note">Loading your sign-in options.</p>
           </div>
         </div>
       );
@@ -316,8 +316,8 @@ export const Login: m.Component<{ clientId?: string }> = {
           : 'Sign in';
 
     return (
-      <div class="auth-page">
-        <div class={`auth-card${this.step === 'consent' ? ' auth-card-consent' : ''}`}>
+      <div class="status-page auth-page">
+        <div class={this.step === 'consent' ? 'card auth-card auth-card-wide' : 'card auth-card'}>
           {typeof branding.logo_url === 'string' && branding.logo_url ? (
             <img
               class="auth-logo"
@@ -345,8 +345,8 @@ export const Login: m.Component<{ clientId?: string }> = {
   renderAccounts(this: any) {
     return (
       <div>
-        <p class="auth-note">Choose an account to continue.</p>
-        <div class="auth-accounts">
+        <p class="note">Choose an account to continue.</p>
+        <div class="stack auth-accounts">
           {this.accounts.map((account: SessionAccount) => {
             const name = account.user.display_name || account.user.username;
             const secondary =
@@ -366,9 +366,9 @@ export const Login: m.Component<{ clientId?: string }> = {
             );
           })}
         </div>
-        {this.error ? <p class="auth-error">{this.error.message}</p> : null}
-        <div class="auth-actions">
-          <button class="auth-link" type="button" onclick={() => this.differentAccount()}>
+        {this.error ? <p class="alert auth-error" role="alert">{this.error.message}</p> : null}
+        <div class="stack auth-actions">
+          <button class="link" type="button" onclick={() => this.differentAccount()}>
             Different account
           </button>
         </div>
@@ -385,7 +385,7 @@ export const Login: m.Component<{ clientId?: string }> = {
         }}
       >
         {this.reauth ? (
-          <p class="auth-note">Confirm your password to continue.</p>
+          <p class="note">Confirm your password to continue.</p>
         ) : null}
         <TextField
           id="identifier"
@@ -398,14 +398,14 @@ export const Login: m.Component<{ clientId?: string }> = {
             this.identifier = value;
           }}
         />
-        {this.error ? <p class="auth-error">{this.error.message}</p> : null}
-        <div class="auth-actions">
+        {this.error ? <p class="alert auth-error" role="alert">{this.error.message}</p> : null}
+        <div class="stack auth-actions">
           {!this.reauth && this.accounts.length >= 2 ? (
-            <button class="auth-link auth-back" type="button" onclick={() => this.backToAccounts()}>
+            <button class="link auth-back" type="button" onclick={() => this.backToAccounts()}>
               Back to accounts
             </button>
           ) : null}
-          <button class="button" type="submit" disabled={this.pending || !this.identifier.trim()}>
+          <button class="button button-primary" type="submit" disabled={this.pending || !this.identifier.trim()}>
             {this.pending ? 'Checking' : 'Next'}
           </button>
         </div>
@@ -421,7 +421,7 @@ export const Login: m.Component<{ clientId?: string }> = {
           if (!this.pending) this.submitPassword();
         }}
       >
-        <p class="auth-identifier">{this.identifier}</p>
+        <p class="note">{this.identifier}</p>
         <TextField
           id="password"
           label="Password"
@@ -435,7 +435,7 @@ export const Login: m.Component<{ clientId?: string }> = {
           }}
         />
         {this.discovery?.allow_session_duration_choice !== false ? (
-          <label class="auth-choice">
+          <label class="checkbox auth-choice">
             <input
               type="checkbox"
               checked={this.longSession}
@@ -447,12 +447,12 @@ export const Login: m.Component<{ clientId?: string }> = {
             <span>Keep me signed in</span>
           </label>
         ) : null}
-        {this.error ? <p class="auth-error">{this.error.message}</p> : null}
-        <div class="auth-actions">
-          <button class="auth-link auth-back" type="button" onclick={() => this.back()}>
+        {this.error ? <p class="alert auth-error" role="alert">{this.error.message}</p> : null}
+        <div class="stack auth-actions">
+          <button class="link auth-back" type="button" onclick={() => this.back()}>
             Back
           </button>
-          <button class="button" type="submit" disabled={this.pending || !this.password}>
+          <button class="button button-primary" type="submit" disabled={this.pending || !this.password}>
             {this.pending ? 'Signing in' : 'Sign in'}
           </button>
         </div>
@@ -464,17 +464,17 @@ export const Login: m.Component<{ clientId?: string }> = {
     const provider = this.provider;
     return (
       <div>
-        <p class="auth-identifier">{this.identifier}</p>
-        <p class="auth-note">
+        <p class="note">{this.identifier}</p>
+        <p class="note">
           {provider
             ? `This account signs in with ${provider.display_name}.`
             : 'This account signs in with an identity provider.'}
         </p>
-        <div class="auth-actions">
-          <button class="auth-link auth-back" type="button" onclick={() => this.back()}>
+        <div class="stack auth-actions">
+          <button class="link auth-back" type="button" onclick={() => this.back()}>
             Back
           </button>
-          <button class="button" type="button" disabled>
+          <button class="button button-primary" type="button" disabled>
             Continue
           </button>
         </div>
@@ -485,7 +485,7 @@ export const Login: m.Component<{ clientId?: string }> = {
   renderConsent(this: any) {
     const request = this.consentRequest;
     if (!request) {
-      return <p class="auth-note">Loading request</p>;
+      return <p class="note">Loading request</p>;
     }
 
     const realmName = request.realm?.display_name || 'account';
@@ -497,18 +497,18 @@ export const Login: m.Component<{ clientId?: string }> = {
 
     return (
       <div>
-        <p class="auth-note">
+        <p class="note">
           {request.client.name} is requesting access to your {realmName} account.
         </p>
 
         <div class="auth-consent-account">
           {Icon(CircleUserRound)}
-          <span class="auth-consent-account-body">
+          <span class="stack auth-consent-account-body">
             <span class="auth-consent-account-name">{name}</span>
             <span class="auth-consent-account-meta">{secondary}</span>
           </span>
           <button
-            class="auth-link"
+            class="link auth-not-you"
             type="button"
             disabled={this.pending}
             onclick={() => this.differentConsentAccount()}
@@ -520,7 +520,7 @@ export const Login: m.Component<{ clientId?: string }> = {
         <p class="auth-consent-title">
           This will allow {request.client.name} to:
         </p>
-        <ul class="auth-consent-scopes">
+        <ul class="stack auth-consent-scopes">
           {request.scopes.map((scope: string) => (
             <li class="auth-consent-scope">
           {Icon(Check)}
@@ -529,14 +529,14 @@ export const Login: m.Component<{ clientId?: string }> = {
           ))}
         </ul>
 
-        <p class="auth-consent-footer">
+        <p class="note auth-consent-footer">
           You can revoke access at any time from your account settings.
         </p>
-        {this.error ? <p class="auth-error">{this.error.message}</p> : null}
+        {this.error ? <p class="alert auth-error" role="alert">{this.error.message}</p> : null}
 
-        <div class="auth-actions">
+        <div class="stack auth-actions">
           <button
-            class="auth-link"
+            class="link"
             type="button"
             disabled={this.pending}
             onclick={() => this.decideConsent('deny')}
@@ -544,7 +544,7 @@ export const Login: m.Component<{ clientId?: string }> = {
             Deny
           </button>
           <button
-            class="button"
+            class="button button-primary"
             type="button"
             disabled={this.pending}
             onclick={() => this.decideConsent('allow')}
@@ -560,7 +560,7 @@ export const Login: m.Component<{ clientId?: string }> = {
     const user = this.signedIn;
     return (
       <div>
-        <p class="auth-note">Signed in as {user?.display_name || user?.username}</p>
+        <p class="note">Signed in as {user?.display_name || user?.username}</p>
       </div>
     );
   },

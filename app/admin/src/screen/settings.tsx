@@ -253,7 +253,7 @@ export const SettingsPage: m.Component<SettingsAttrs> = {
           <div class="alert" role="alert">
             <p>{this.error.message}</p>
             <button
-              class="button-secondary"
+              class="button button-secondary"
               type="button"
               onclick={() => {
                 if (realmSlug) {
@@ -273,7 +273,7 @@ export const SettingsPage: m.Component<SettingsAttrs> = {
         ) : null}
 
         {!realms ? (
-          <div class="loading">Loading realms</div>
+          <p class="note">Loading realms</p>
         ) : realms.length === 0 ? (
           <div class="empty">
             <p>No realms are available for this account.</p>
@@ -285,10 +285,10 @@ export const SettingsPage: m.Component<SettingsAttrs> = {
             <div class="skeleton skeleton-short"></div>
           </div>
         ) : this.settings ? (
-          <div class="settings-stack">
+          <div class="stack">
             <section class="panel">
               <h2>Realm details</h2>
-              <form class="settings-form" onsubmit={(event: Event) => {
+              <form class="stack-tight" onsubmit={(event: Event) => {
                 event.preventDefault();
                 this.submit();
               }}>
@@ -298,12 +298,12 @@ export const SettingsPage: m.Component<SettingsAttrs> = {
                   </div>
                 ) : null}
 
-                <div class="form-field">
+                <div class="field">
                   <span class="field-label">Realm ID</span>
                   <input class="field-control" value={this.settings.slug} disabled />
                 </div>
 
-                <div class="form-field">
+                <div class="field">
                   <span class="field-label">Display name</span>
                   <input
                     class="field-control"
@@ -318,7 +318,7 @@ export const SettingsPage: m.Component<SettingsAttrs> = {
                   />
                 </div>
 
-                <label class="checkbox-row">
+                <label class="checkbox">
                   <input
                     type="checkbox"
                     checked={this.form.allow_session_duration_choice}
@@ -337,9 +337,9 @@ export const SettingsPage: m.Component<SettingsAttrs> = {
             <section class="panel">
               <h2>Realm branding</h2>
               <p class="note">Shown on login and consent for clients in this realm.</p>
-              <div class="settings-form">
+              <div class="stack-tight">
                 <div class="field-grid">
-                  <div class="form-field">
+                  <div class="field">
                     <span class="field-label">Logo URL</span>
                     <input
                       class="field-control"
@@ -356,7 +356,7 @@ export const SettingsPage: m.Component<SettingsAttrs> = {
                     />
                   </div>
 
-                  <div class="form-field">
+                  <div class="field">
                     <span class="field-label">Primary color</span>
                     <input
                       class="field-control"
@@ -392,9 +392,9 @@ export const SettingsPage: m.Component<SettingsAttrs> = {
                   ></span>
                 </div>
 
-                <div class="settings-actions">
+                <div class="action-row">
                   <button
-                    class="button"
+                    class="button button-primary"
                     type="button"
                     disabled={this.pending}
                     onclick={() => this.submit()}
@@ -408,9 +408,9 @@ export const SettingsPage: m.Component<SettingsAttrs> = {
             <section class="panel">
               <h2>Realm access</h2>
               <p class="note">Manage hostnames and email domains for this realm.</p>
-              <div class="settings-actions">
+              <div class="action-row">
                 <a
-                  class="button-secondary"
+                  class="button button-secondary"
                   href={appUrl(`/hosts/${encodeURIComponent(realmSlug || '')}`)}
                   onclick={(event: MouseEvent) => {
                     event.preventDefault();
@@ -420,7 +420,7 @@ export const SettingsPage: m.Component<SettingsAttrs> = {
                   Hosts
                 </a>
                 <a
-                  class="button-secondary"
+                  class="button button-secondary"
                   href={appUrl(`/email-domains/${encodeURIComponent(realmSlug || '')}`)}
                   onclick={(event: MouseEvent) => {
                     event.preventDefault();

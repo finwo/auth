@@ -72,7 +72,7 @@ export const GlobalUserPage: m.Component<GlobalUserAttrs> = {
       <div>
         <Breadcrumb items={[{ label: 'Users', path: '/users/global' }, { label: displayName }]} />
         <PageHeader row title="User" subtitle="Global identity and realm memberships.">
-          <a class="button-secondary" href={appUrl('/users/global')} onclick={(event: Event) => {
+          <a class="button button-secondary" href={appUrl('/users/global')} onclick={(event: Event) => {
             event.preventDefault();
             m.route.set('/users/global');
           }}>
@@ -90,7 +90,7 @@ export const GlobalUserPage: m.Component<GlobalUserAttrs> = {
           <div class="alert" role="alert">
             <p>{this.error.message}</p>
             {userId ? (
-              <button class="button-secondary" type="button" onclick={() => this.load(userId)}>
+              <button class="button button-secondary" type="button" onclick={() => this.load(userId)}>
                 Try again
               </button>
             ) : null}
@@ -104,9 +104,9 @@ export const GlobalUserPage: m.Component<GlobalUserAttrs> = {
             <div class="skeleton skeleton-short"></div>
           </div>
         ) : (
-          <div class="client-stack">
+          <div class="stack">
             <section class="panel">
-              <div class="panel-header">
+              <div class="section-header">
                 <h2>Account</h2>
               </div>
               <dl class="details">
@@ -146,7 +146,7 @@ export const GlobalUserPage: m.Component<GlobalUserAttrs> = {
             </section>
 
             <section class="panel">
-              <div class="panel-header">
+              <div class="section-header">
                 <div>
                   <h2>Realm memberships</h2>
                   <p class="note">App access is managed in the realm where the user is a member.</p>
@@ -157,56 +157,54 @@ export const GlobalUserPage: m.Component<GlobalUserAttrs> = {
                   <p>This user is not currently a member of any realm.</p>
                 </div>
               ) : (
-                <div class="data-table-wrap">
-                  <table class="data-table data-table-static">
-                    <thead>
-                      <tr>
-                        <th class="data-table-primary" scope="col">Realm</th>
-                        <th scope="col">Relationship</th>
-                        <th scope="col">Membership</th>
-                        <th scope="col">Roles</th>
-                        <th scope="col">Action</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {detail.memberships.map((membership: AdminGlobalUserMembership) => {
-                        const href = `/users/${encodeURIComponent(membership.slug)}/${encodeURIComponent(detail.user.id)}`;
-                        return (
-                          <tr>
-                            <td class="data-table-primary">
-                              <strong>{membership.display_name}</strong>
-                              <span class="data-table-sub">{membership.slug}</span>
-                            </td>
-                            <td data-label="Relationship">
-                              {membership.relationship === 'home' ? 'Home' : 'Guest'}
-                            </td>
-                            <td data-label="Membership">
-                              {membership.membership_status}
-                              {membership.banned ? (
-                                <span class="data-table-status">Banned</span>
-                              ) : null}
-                            </td>
-                            <td data-label="Roles">
-                              {membership.roles.length ? membership.roles.join(', ') : 'None'}
-                            </td>
-                            <td data-label="Action">
-                              <a
-                                class="button-secondary"
-                                href={appUrl(href)}
-                                onclick={(event: Event) => {
-                                  event.preventDefault();
-                                  m.route.set(href);
-                                }}
-                              >
-                                Manage access
-                              </a>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
+                <table class="table">
+                  <thead>
+                    <tr>
+                      <th scope="col">Realm</th>
+                      <th scope="col">Relationship</th>
+                      <th scope="col">Membership</th>
+                      <th scope="col">Roles</th>
+                      <th scope="col">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {detail.memberships.map((membership: AdminGlobalUserMembership) => {
+                      const href = `/users/${encodeURIComponent(membership.slug)}/${encodeURIComponent(detail.user.id)}`;
+                      return (
+                        <tr>
+                          <td data-label="Realm">
+                            <span class="table-title">{membership.display_name}</span>
+                            <span class="table-sub">{membership.slug}</span>
+                          </td>
+                          <td data-label="Relationship">
+                            {membership.relationship === 'home' ? 'Home' : 'Guest'}
+                          </td>
+                          <td data-label="Membership">
+                            {membership.membership_status}
+                            {membership.banned ? (
+                              <span class="status-muted"> Banned</span>
+                            ) : null}
+                          </td>
+                          <td data-label="Roles">
+                            {membership.roles.length ? membership.roles.join(', ') : 'None'}
+                          </td>
+                          <td data-label="Action">
+                            <a
+                              class="link"
+                              href={appUrl(href)}
+                              onclick={(event: Event) => {
+                                event.preventDefault();
+                                m.route.set(href);
+                              }}
+                            >
+                              Manage access
+                            </a>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
               )}
             </section>
           </div>

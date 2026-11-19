@@ -4,7 +4,8 @@
   "type": "module",
   "scripts": {
     "build": "node esbuild.cjs",
-    "assets:hex": "node scripts/generate-hex-grid.js"
+    "assets:hex": "node scripts/generate-hex-grid.js",
+    "verify:css": "node ../../tools/css-check/check.mjs --scope app --app login"
   },
   "dependencies": {
     "lucide": "^1.61.0",

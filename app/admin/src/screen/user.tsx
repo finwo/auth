@@ -363,7 +363,7 @@ export const UserPage: m.Component<UserAttrs> = {
           <div class="alert" role="alert">
             <p>{this.error.message}</p>
             <button
-              class="button-secondary"
+              class="button button-secondary"
               type="button"
               onclick={() => {
                 if (realmSlug && userId) this.load(realmSlug, userId);
@@ -381,7 +381,7 @@ export const UserPage: m.Component<UserAttrs> = {
         ) : null}
 
         {!realms ? (
-          <div class="loading">Loading realms</div>
+          <p class="note">Loading realms</p>
         ) : this.loading || this.redirecting ? (
           <div class="panel" aria-busy="true">
             <div class="skeleton skeleton-title"></div>
@@ -389,7 +389,7 @@ export const UserPage: m.Component<UserAttrs> = {
             <div class="skeleton skeleton-short"></div>
           </div>
         ) : detail ? (
-          <div class="client-stack">
+          <div class="stack">
             <section class="panel">
               <h2>Account</h2>
               <dl class="details">
@@ -420,8 +420,8 @@ export const UserPage: m.Component<UserAttrs> = {
               </dl>
             </section>
 
-            <section class="panel">
-              <div class="panel-header">
+            <section class="panel stack-tight">
+              <div class="section-header">
                 <div>
                   <h2>Realm access</h2>
                   <p class="note">Manage membership and roles in this realm.</p>
@@ -430,7 +430,9 @@ export const UserPage: m.Component<UserAttrs> = {
                 detail.permissions.can_reactivate_membership ? (
                   <button
                     class={
-                      detail.permissions.can_suspend_membership ? 'button-danger' : 'button-secondary'
+                      detail.permissions.can_suspend_membership
+                        ? 'button button-danger'
+                        : 'button button-secondary'
                     }
                     type="button"
                     disabled={this.membershipPending}
@@ -465,12 +467,12 @@ export const UserPage: m.Component<UserAttrs> = {
                   this access.
                 </div>
               ) : null}
-              <fieldset class="role-field">
-                <legend>Realm roles</legend>
+              <fieldset class="fieldset stack-tight">
+                <legend class="field-label">Realm roles</legend>
                 {this.roles.length === 0 ? (
                   <p class="note">No realm roles are available.</p>
                 ) : (
-                  <div class="checkbox-list">
+                  <div class="stack-tight">
                     {this.roles.map((role: AdminRole) => {
                       const checked = this.selectedRoles.includes(role.slug);
                       const protectedRole =
@@ -480,7 +482,7 @@ export const UserPage: m.Component<UserAttrs> = {
                           role.slug === 'realm-admin' &&
                           detail.user.roles.includes(role.slug));
                       return (
-                        <label class="checkbox-row">
+                        <label class="checkbox">
                           <input
                             type="checkbox"
                             checked={checked}
@@ -504,9 +506,9 @@ export const UserPage: m.Component<UserAttrs> = {
                 )}
               </fieldset>
               {detail.permissions.can_edit_roles ? (
-                <div class="modal-actions">
+                <div class="action-row">
                   <button
-                    class="button"
+                    class="button button-primary"
                     type="button"
                     disabled={
                       this.rolePending ||
@@ -520,8 +522,8 @@ export const UserPage: m.Component<UserAttrs> = {
               ) : null}
             </section>
 
-            <section class="panel">
-              <div class="panel-header">
+            <section class="panel stack-tight">
+              <div class="section-header">
                 <h2>Application consents</h2>
               </div>
               {detail.consents.length === 0 ? (
@@ -529,80 +531,75 @@ export const UserPage: m.Component<UserAttrs> = {
                   <p>No consents have been recorded for this realm.</p>
                 </div>
               ) : (
-                <div class="data-table-wrap">
-                  <table class="data-table data-table-static">
-                    <thead>
+                <table class="table">
+                  <thead>
+                    <tr>
+                      <th scope="col">Application</th>
+                      <th scope="col">Scopes</th>
+                      <th scope="col">Granted</th>
+                      <th scope="col">Status</th>
+                      <th scope="col">Updated</th>
+                      <th scope="col">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {detail.consents.map((consent: AdminUserConsent) => (
                       <tr>
-                        <th class="data-table-primary" scope="col">Application</th>
-                        <th scope="col">Scopes</th>
-                        <th scope="col">Granted</th>
-                        <th scope="col">Status</th>
-                        <th scope="col">Updated</th>
-                        <th scope="col">Action</th>
+                        <td data-label="Application">
+                          <span class="table-title">{consent.client_name || 'Unknown client'}</span>
+                          <span class="table-sub">{consent.client_id}</span>
+                        </td>
+                        <td data-label="Scopes">
+                          {consent.scopes.length ? consent.scopes.join(', ') : 'None'}
+                        </td>
+                        <td data-label="Granted">
+                          {grantedLabel(consent)}
+                          {consent.client_consent_mode ? (
+                            <span class="table-sub">
+                              {consent.client_consent_mode}
+                            </span>
+                          ) : null}
+                        </td>
+                        <td data-label="Status">
+                          {consent.active ? 'Active' : 'Revoked'}
+                        </td>
+                        <td data-label="Updated">{formatTime(consent.updated_at)}</td>
+                        <td data-label="Action">
+                          {consent.active ? (
+                            <button
+                              class="button-inline button-danger"
+                              type="button"
+                              disabled={Boolean(this.pendingAction)}
+                              onclick={() => {
+                                this.confirm = {
+                                  type: 'revoke',
+                                  clientId: consent.client_id,
+                                  label: consent.client_name || consent.client_id,
+                                };
+                                m.redraw();
+                              }}
+                            >
+                              Revoke
+                            </button>
+                          ) : (
+                            'None'
+                          )}
+                        </td>
                       </tr>
-                    </thead>
-                    <tbody>
-                      {detail.consents.map((consent: AdminUserConsent) => (
-                        <tr>
-                          <td class="data-table-primary">
-                            <strong>{consent.client_name || 'Unknown client'}</strong>
-                            <span class="data-table-sub">{consent.client_id}</span>
-                          </td>
-                          <td data-label="Scopes">
-                            {consent.scopes.length ? consent.scopes.join(', ') : 'None'}
-                          </td>
-                          <td data-label="Granted">
-                            {grantedLabel(consent)}
-                            {consent.client_consent_mode ? (
-                              <span class="data-table-sub">
-                                {consent.client_consent_mode}
-                              </span>
-                            ) : null}
-                          </td>
-                          <td data-label="Status">
-                            {consent.active ? 'Active' : 'Revoked'}
-                            {!consent.active ? (
-                              <span class="data-table-status">Revoked</span>
-                            ) : null}
-                          </td>
-                          <td data-label="Updated">{formatTime(consent.updated_at)}</td>
-                          <td data-label="Action">
-                            {consent.active ? (
-                              <button
-                                class="button-secondary"
-                                type="button"
-                                disabled={Boolean(this.pendingAction)}
-                                onclick={() => {
-                                  this.confirm = {
-                                    type: 'revoke',
-                                    clientId: consent.client_id,
-                                    label: consent.client_name || consent.client_id,
-                                  };
-                                  m.redraw();
-                                }}
-                              >
-                                Revoke
-                              </button>
-                            ) : (
-                              'None'
-                            )}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                    ))}
+                  </tbody>
+                </table>
               )}
             </section>
 
-            <section class="panel">
-              <div class="panel-header">
+            <section class="panel stack-tight">
+              <div class="section-header">
                 <div>
                   <h2>Application bans</h2>
                   <p class="note">Bans persist independently of consent.</p>
                 </div>
                 <button
-                  class="button-danger"
+                  class="button button-danger"
                   id="open-ban-dialog"
                   type="button"
                   onclick={() => {
@@ -620,51 +617,49 @@ export const UserPage: m.Component<UserAttrs> = {
                   <p>This user is not banned from any app.</p>
                 </div>
               ) : (
-                <div class="data-table-wrap">
-                  <table class="data-table data-table-static">
-                    <thead>
+                <table class="table">
+                  <thead>
+                    <tr>
+                      <th scope="col">Application</th>
+                      <th scope="col">Banned by</th>
+                      <th scope="col">Created</th>
+                      <th scope="col">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {detail.bans.map((ban: AdminUserBan) => (
                       <tr>
-                        <th class="data-table-primary" scope="col">Application</th>
-                        <th scope="col">Banned by</th>
-                        <th scope="col">Created</th>
-                        <th scope="col">Action</th>
+                        <td data-label="Application">
+                          <span class="table-title">{banLabel(ban)}</span>
+                          {ban.client_id !== '*' ? (
+                            <span class="table-sub">{ban.client_id}</span>
+                          ) : null}
+                        </td>
+                        <td data-label="Banned by">
+                          {ban.created_by_username || 'Unknown'}
+                        </td>
+                        <td data-label="Created">{formatTime(ban.created_at)}</td>
+                        <td data-label="Action">
+                          <button
+                            class="button-inline"
+                            type="button"
+                            disabled={Boolean(this.pendingAction)}
+                            onclick={() => {
+                              this.confirm = {
+                                type: 'unban',
+                                clientId: ban.client_id,
+                                label: banLabel(ban),
+                              };
+                              m.redraw();
+                            }}
+                          >
+                            Unban
+                          </button>
+                        </td>
                       </tr>
-                    </thead>
-                    <tbody>
-                      {detail.bans.map((ban: AdminUserBan) => (
-                        <tr>
-                          <td class="data-table-primary">
-                            <strong>{banLabel(ban)}</strong>
-                            {ban.client_id !== '*' ? (
-                              <span class="data-table-sub">{ban.client_id}</span>
-                            ) : null}
-                          </td>
-                          <td data-label="Banned by">
-                            {ban.created_by_username || 'Unknown'}
-                          </td>
-                          <td data-label="Created">{formatTime(ban.created_at)}</td>
-                          <td data-label="Action">
-                            <button
-                              class="button-secondary"
-                              type="button"
-                              disabled={Boolean(this.pendingAction)}
-                              onclick={() => {
-                                this.confirm = {
-                                  type: 'unban',
-                                  clientId: ban.client_id,
-                                  label: banLabel(ban),
-                                };
-                                m.redraw();
-                              }}
-                            >
-                              Unban
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                    ))}
+                  </tbody>
+                </table>
               )}
             </section>
           </div>
@@ -691,7 +686,7 @@ export const UserPage: m.Component<UserAttrs> = {
             )}
             <div class="modal-actions">
               <button
-                class="button-secondary"
+                class="button button-secondary"
                 type="button"
                 disabled={this.pendingAction}
                 onclick={() => this.cancelAction()}
@@ -699,7 +694,7 @@ export const UserPage: m.Component<UserAttrs> = {
                 Cancel
               </button>
               <button
-                class={this.confirm.type === 'revoke' ? 'button' : 'button-danger'}
+                class={this.confirm.type === 'revoke' ? 'button button-primary' : 'button button-danger'}
                 type="button"
                 disabled={this.pendingAction}
                 onclick={() => this.submitAction()}
@@ -714,7 +709,7 @@ export const UserPage: m.Component<UserAttrs> = {
 
         {this.banOpen && detail ? (
           <Modal title="Ban from app" onClose={() => this.cancelAction()}>
-            <div class="form-field">
+            <div class="field">
               <span class="field-label" id="ban-application-label">Application</span>
               <SelectMenu
                 labelledBy="ban-application-label"
@@ -738,7 +733,7 @@ export const UserPage: m.Component<UserAttrs> = {
             </p>
             <div class="modal-actions">
               <button
-                class="button-secondary"
+                class="button button-secondary"
                 type="button"
                 disabled={this.banPending}
                 onclick={() => this.cancelAction()}
@@ -746,7 +741,7 @@ export const UserPage: m.Component<UserAttrs> = {
                 Cancel
               </button>
               <button
-                class="button-danger"
+                class="button button-danger"
                 type="button"
                 disabled={this.banPending}
                 onclick={() => this.submitBan()}
@@ -765,7 +760,7 @@ export const UserPage: m.Component<UserAttrs> = {
             </p>
             <div class="modal-actions">
               <button
-                class="button-secondary"
+                class="button button-secondary"
                 type="button"
                 disabled={this.membershipPending}
                 onclick={() => this.cancelAccessActions()}
@@ -773,7 +768,7 @@ export const UserPage: m.Component<UserAttrs> = {
                 Cancel
               </button>
               <button
-                class="button-danger"
+                class="button button-danger"
                 type="button"
                 disabled={this.membershipPending}
                 onclick={() => this.submitMembership()}
@@ -792,7 +787,7 @@ export const UserPage: m.Component<UserAttrs> = {
             </p>
             <div class="modal-actions">
               <button
-                class="button-secondary"
+                class="button button-secondary"
                 type="button"
                 disabled={this.rolePending}
                 onclick={() => this.cancelAccessActions()}
@@ -800,7 +795,7 @@ export const UserPage: m.Component<UserAttrs> = {
                 Cancel
               </button>
               <button
-                class="button"
+                class="button button-primary"
                 type="button"
                 disabled={this.rolePending}
                 onclick={() => this.submitRoles()}

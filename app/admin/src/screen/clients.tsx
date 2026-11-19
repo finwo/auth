@@ -254,7 +254,7 @@ export const ClientsPage: m.Component<ClientsAttrs> = {
             <p>{this.error.message}</p>
             {this.attrs.realmSlug ? (
               <button
-                class="button-secondary"
+                class="button button-secondary"
                 type="button"
                 onclick={() => this.load(this.attrs.realmSlug)}
               >
@@ -273,15 +273,15 @@ export const ClientsPage: m.Component<ClientsAttrs> = {
 
 
         {!realms ? (
-          <div class="loading">Loading realms</div>
+          <p class="note">Loading realms</p>
         ) : realms.length === 0 ? (
           <div class="empty">
             <p>No realms are available for this account.</p>
           </div>
         ) : (
-          <div class="table-panel">
-            <div class="table-toolbar">
-              <div class="table-search">
+          <section class="card" aria-label="Realm clients">
+            <div class="toolbar toolbar-panel">
+              <div class="toolbar-search">
                 <input
                   type="search"
                   value={this.search}
@@ -292,9 +292,9 @@ export const ClientsPage: m.Component<ClientsAttrs> = {
                   }}
                 />
               </div>
-              <div class="table-actions">
+              <div class="toolbar-actions">
                 <button
-                  class="button"
+                  class="button button-primary"
                   type="button"
                   disabled={!this.attrs.realmSlug}
                   onclick={() => this.openCreate()}
@@ -317,78 +317,79 @@ export const ClientsPage: m.Component<ClientsAttrs> = {
                 <p>No OIDC clients are registered in this realm.</p>
               </div>
             ) : (
-              <div class="data-table-wrap">
-                <table class="data-table">
-                  <thead>
-                    <tr>
-                      <th class="table-icon-column" scope="col">
-                        <span class="sr-only">Icon</span>
-                      </th>
-                      <th class="data-table-primary" scope="col">Application</th>
-                      <th scope="col">Access</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {visibleClients.map((client: AdminClient) => {
-                      const href = clientPath(this.attrs.realmSlug || '', client.client_id);
-                      return (
-                        <tr
-                          tabindex="0"
-                          onclick={() => {
-                            if (this.attrs.realmSlug) m.route.set(href);
-                          }}
-                          onkeydown={(event: KeyboardEvent) => {
-                            if (
-                              event.target !== event.currentTarget ||
-                              !this.attrs.realmSlug
-                            ) {
-                              return;
-                            }
-                            if (event.key !== 'Enter' && event.key !== ' ') return;
-                            event.preventDefault();
-                            m.route.set(href);
-                          }}
-                        >
-                          <td class="table-icon-column">
-                            <span class="table-icon" aria-hidden="true">
-                              {client.logo_url ? (
-                                <img src={client.logo_url} alt="" />
-                              ) : (
-                                Icon(AppWindow)
-                              )}
-                            </span>
-                          </td>
-                          <td class="data-table-primary">
-                            <a
-                              class="client-title"
-                              href={appUrl(href)}
-                              onclick={(event: MouseEvent) => {
-                                event.preventDefault();
-                                event.stopPropagation();
-                                if (this.attrs.realmSlug) m.route.set(href);
-                              }}
-                            >
-                              <strong>{client.name}</strong>
-                            </a>
-                            <span class="data-table-sub">{client.client_id}</span>
-                            {client.enabled ? null : (
-                              <span class="data-table-status">Disabled</span>
+              <>
+              <table class="table table-linkable">
+                <thead>
+                  <tr>
+                    <th scope="col">
+                      <span class="sr-only">Icon</span>
+                    </th>
+                    <th scope="col">Application</th>
+                    <th scope="col">Access</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {visibleClients.map((client: AdminClient) => {
+                    const href = clientPath(this.attrs.realmSlug || '', client.client_id);
+                    return (
+                      <tr
+                        tabindex="0"
+                        role="link"
+                        onclick={() => {
+                          if (this.attrs.realmSlug) m.route.set(href);
+                        }}
+                        onkeydown={(event: KeyboardEvent) => {
+                          if (
+                            event.target !== event.currentTarget ||
+                            !this.attrs.realmSlug
+                          ) {
+                            return;
+                          }
+                          if (event.key !== 'Enter' && event.key !== ' ') return;
+                          event.preventDefault();
+                          m.route.set(href);
+                        }}
+                      >
+                        <td>
+                          <span class="table-icon" aria-hidden="true">
+                            {client.logo_url ? (
+                              <img src={client.logo_url} alt="" />
+                            ) : (
+                              Icon(AppWindow)
                             )}
-                          </td>
-                          <td data-label="Access">{ACCESS_MODE_LABELS[client.access_mode]}</td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-                {visibleClients.length === 0 ? (
-                  <div class="empty">
-                    <p>No clients match this search.</p>
-                  </div>
-                ) : null}
-              </div>
+                          </span>
+                        </td>
+                        <td data-label="Application">
+                          <a
+                            class="table-title link"
+                            href={appUrl(href)}
+                            onclick={(event: MouseEvent) => {
+                              event.preventDefault();
+                              event.stopPropagation();
+                              if (this.attrs.realmSlug) m.route.set(href);
+                            }}
+                          >
+                            {client.name}
+                          </a>
+                          <span class="table-sub">{client.client_id}</span>
+                          {client.enabled ? null : (
+                            <span class="status-muted">Disabled</span>
+                          )}
+                        </td>
+                        <td data-label="Access">{ACCESS_MODE_LABELS[client.access_mode]}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+              {visibleClients.length === 0 ? (
+                <div class="empty">
+                  <p>No clients match this search.</p>
+                </div>
+              ) : null}
+              </>
             )}
-          </div>
+          </section>
         )}
 
         {this.createOpen ? (
@@ -425,7 +426,7 @@ export const ClientsPage: m.Component<ClientsAttrs> = {
             <code class="secret-value">{this.secret.secret}</code>
             <div class="modal-actions">
               <button
-                class="button"
+                class="button button-primary"
                 type="button"
                 onclick={() => {
                   this.secret = null;
