@@ -237,10 +237,10 @@ export async function getAdminProviderRow(realmDb, slug) {
 
 async function loadProviderDomains(realmDb, providerId) {
   const rows = await realmDb.all(
-    'SELECT domain FROM email_domain_providers WHERE provider_id = {providerId} ORDER BY domain ASC',
+    'SELECT domain, created_at FROM email_domain_providers WHERE provider_id = {providerId} ORDER BY domain ASC',
     { providerId }
   );
-  return rows.map((row) => row.domain);
+  return rows.map((row) => ({ domain: row.domain, created_at: row.created_at }));
 }
 
 export async function listAdminRealmProviders({ realmDb }) {
@@ -248,13 +248,13 @@ export async function listAdminRealmProviders({ realmDb }) {
     `SELECT ${PROVIDER_COLUMNS} FROM identity_providers ORDER BY display_name ASC, slug ASC`
   );
   const mappings = await realmDb.all(
-    'SELECT provider_id, domain FROM email_domain_providers ORDER BY domain ASC'
+    'SELECT provider_id, domain, created_at FROM email_domain_providers ORDER BY domain ASC'
   );
 
   const domainsByProvider = new Map();
   for (const mapping of mappings) {
     const current = domainsByProvider.get(mapping.provider_id) || [];
-    current.push(mapping.domain);
+    current.push({ domain: mapping.domain, created_at: mapping.created_at });
     domainsByProvider.set(mapping.provider_id, current);
   }
 

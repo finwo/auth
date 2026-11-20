@@ -5349,7 +5349,11 @@ test('HTTP realm, login, OIDC and logout flows', async (t) => {
         assert.equal(seeded.scopes, 'openid email profile');
         assert.equal(seeded.has_secret, true);
         assert.equal(seeded.enabled, true);
-        assert.deepEqual(seeded.domains, ['sso.acme.test']);
+        assert.deepEqual(
+          seeded.domains.map((entry) => entry.domain),
+          ['sso.acme.test']
+        );
+        assert.equal(typeof seeded.domains[0].created_at, 'number');
         assert.ok(!('client_secret' in seeded), 'no client_secret field in payload');
         assert.ok(!list.text.includes('demo-secret'), 'stored secret never serialized');
 
@@ -5531,7 +5535,10 @@ test('HTTP realm, login, OIDC and logout flows', async (t) => {
 
         const single = await adminRequest(acmeAdmin, { path: providerPath('example-sso') });
         assert.equal(single.status, 200);
-        assert.deepEqual(single.json.provider.domains, ['sso.acme.test']);
+        assert.deepEqual(
+          single.json.provider.domains.map((entry) => entry.domain),
+          ['sso.acme.test']
+        );
 
         const connect = await adminRequest(acmeAdmin, {
           method: 'POST',
