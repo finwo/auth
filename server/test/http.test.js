@@ -5315,6 +5315,406 @@ test('HTTP realm, login, OIDC and logout flows', async (t) => {
       }
     });
 
+    await t.test('admin realm identity provider management', async () => {
+      const systemAdmin = await adminToken();
+      const acmeAdmin = await adminToken('it@acme.test');
+
+      const providersBase = '/api/v1/admin/realms/acme/providers';
+      const createdSlugs = [];
+      const connectedDomains = [];
+      const createdEmailDomains = [];
+
+      const providerPath = (slug) => `${providersBase}/${encodeURIComponent(slug)}`;
+      const domainPath = (slug, domain) =>
+        `${providerPath(slug)}/domains/${encodeURIComponent(domain)}`;
+      const deleteProvider = (admin, slug) =>
+        adminRequest(admin, { method: 'DELETE', path: providerPath(slug) });
+      const disconnectDomain = (admin, slug, domain) =>
+        adminRequest(admin, { method: 'DELETE', path: domainPath(slug, domain) });
+      const deleteEmailDomain = (domain) =>
+        adminRequest(systemAdmin, {
+          method: 'DELETE',
+          path: `/api/v1/admin/realms/acme/email-domains/${encodeURIComponent(domain)}`,
+        });
+
+      try {
+        const list = await adminRequest(systemAdmin, { path: providersBase });
+        assert.equal(list.status, 200);
+        assert.ok(Array.isArray(list.json.providers));
+        const seeded = list.json.providers.find((entry) => entry.slug === 'example-sso');
+        assert.ok(seeded, 'seeded example-sso present');
+        assert.equal(seeded.display_name, 'Example SSO');
+        assert.equal(seeded.issuer, 'https://idp.example.com');
+        assert.equal(seeded.client_id, 'demo');
+        assert.equal(seeded.scopes, 'openid email profile');
+        assert.equal(seeded.has_secret, true);
+        assert.equal(seeded.enabled, true);
+        assert.deepEqual(seeded.domains, ['sso.acme.test']);
+        assert.ok(!('client_secret' in seeded), 'no client_secret field in payload');
+        assert.ok(!list.text.includes('demo-secret'), 'stored secret never serialized');
+
+        const crossList = await adminRequest(acmeAdmin, {
+          path: '/api/v1/admin/realms/globex/providers',
+        });
+        assert.equal(crossList.status, 403);
+        assert.equal(crossList.json.error.code, 'forbidden');
+        const unknownRealm = await adminRequest(systemAdmin, {
+          path: '/api/v1/admin/realms/does-not-exist/providers',
+        });
+        assert.equal(unknownRealm.status, 404);
+        const anonymous = await identity({ path: providersBase });
+        assert.equal(anonymous.status, 401);
+
+        const created = await adminRequest(acmeAdmin, {
+          method: 'POST',
+          path: providersBase,
+          body: {
+            slug: ' PADDLED-SSO ',
+            display_name: '  Paddled SSO  ',
+            issuer: 'https://idp.paddled.test',
+            client_id: 'paddled',
+          },
+        });
+        assert.equal(created.status, 200);
+        assert.equal(created.json.ok, true);
+        assert.equal(created.json.provider.slug, 'paddled-sso');
+        assert.equal(created.json.provider.display_name, 'Paddled SSO');
+        assert.equal(created.json.provider.enabled, true);
+        assert.equal(created.json.provider.scopes, 'openid profile email');
+        assert.equal(created.json.provider.has_secret, false);
+        assert.deepEqual(created.json.provider.domains, []);
+        assert.equal(typeof created.json.provider.id, 'string');
+        createdSlugs.push('paddled-sso');
+
+        for (const slug of ['', 'Bad Slug', '-lead', 'trail-', 'a'.repeat(64)]) {
+          const bad = await adminRequest(acmeAdmin, {
+            method: 'POST',
+            path: providersBase,
+            body: { slug, display_name: 'X', issuer: 'https://x.test', client_id: 'x' },
+          });
+          assert.equal(bad.status, 400, `slug ${JSON.stringify(slug)} rejected`);
+        }
+        const duplicate = await adminRequest(acmeAdmin, {
+          method: 'POST',
+          path: providersBase,
+          body: {
+            slug: 'example-sso',
+            display_name: 'Duplicate',
+            issuer: 'https://dup.example.test',
+            client_id: 'dup',
+          },
+        });
+        assert.equal(duplicate.status, 409);
+        assert.equal(duplicate.json.error.code, 'provider_slug_exists');
+
+        const unknownField = await adminRequest(acmeAdmin, {
+          method: 'POST',
+          path: providersBase,
+          body: {
+            slug: 'field-test',
+            display_name: 'Field Test',
+            issuer: 'https://fields.example.test',
+            client_id: 'ft',
+            extra: true,
+          },
+        });
+        assert.equal(unknownField.status, 400);
+        assert.equal(unknownField.json.error.message, 'Unknown field: extra');
+
+        for (const issuer of [
+          'http://idp.example.test',
+          'https://idp.example.test/',
+          'https://user:pw@idp.example.test',
+          'https://idp.example.test?x=1',
+          'https://idp.example.test#frag',
+          'https://singlelabel',
+          'not-a-url',
+        ]) {
+          const bad = await adminRequest(acmeAdmin, {
+            method: 'POST',
+            path: providersBase,
+            body: { slug: 'issuer-test', display_name: 'Issuer Test', issuer, client_id: 'it' },
+          });
+          assert.equal(bad.status, 400, `issuer ${JSON.stringify(issuer)} rejected`);
+        }
+        const badClientId = await adminRequest(acmeAdmin, {
+          method: 'POST',
+          path: providersBase,
+          body: {
+            slug: 'client-id-test',
+            display_name: 'Client Id Test',
+            issuer: 'https://cid.example.test',
+            client_id: 'has space',
+          },
+        });
+        assert.equal(badClientId.status, 400);
+
+        const withSecret = await adminRequest(acmeAdmin, {
+          method: 'POST',
+          path: providersBase,
+          body: {
+            slug: 'secret-sso',
+            display_name: 'Secret SSO',
+            issuer: 'https://idp.secret.test',
+            client_id: 'sec',
+            client_secret: 's3cr3t value',
+          },
+        });
+        assert.equal(withSecret.status, 200);
+        assert.equal(withSecret.json.provider.has_secret, true);
+        assert.ok(!withSecret.text.includes('s3cr3t'), 'create response hides the secret');
+        createdSlugs.push('secret-sso');
+
+        const replaced = await adminRequest(acmeAdmin, {
+          method: 'PATCH',
+          path: providerPath('secret-sso'),
+          body: { client_secret: 'rotated-secret' },
+        });
+        assert.equal(replaced.status, 200);
+        assert.equal(replaced.json.provider.has_secret, true);
+        assert.ok(!replaced.text.includes('rotated-secret'), 'patch response hides the secret');
+
+        const cleared = await adminRequest(acmeAdmin, {
+          method: 'PATCH',
+          path: providerPath('secret-sso'),
+          body: { client_secret: null },
+        });
+        assert.equal(cleared.status, 200);
+        assert.equal(cleared.json.provider.has_secret, false);
+
+        const emptySecret = await adminRequest(acmeAdmin, {
+          method: 'PATCH',
+          path: providerPath('secret-sso'),
+          body: { client_secret: '' },
+        });
+        assert.equal(emptySecret.status, 400);
+
+        const slugPatch = await adminRequest(acmeAdmin, {
+          method: 'PATCH',
+          path: providerPath('paddled-sso'),
+          body: { slug: 'other-slug' },
+        });
+        assert.equal(slugPatch.status, 400);
+        assert.equal(slugPatch.json.error.message, 'slug cannot be updated');
+
+        const emptyPatch = await adminRequest(acmeAdmin, {
+          method: 'PATCH',
+          path: providerPath('paddled-sso'),
+          body: {},
+        });
+        assert.equal(emptyPatch.status, 400);
+
+        const ghostPatch = await adminRequest(acmeAdmin, {
+          method: 'PATCH',
+          path: providerPath('ghost-sso'),
+          body: { display_name: 'Ghost' },
+        });
+        assert.equal(ghostPatch.status, 404);
+        assert.equal(ghostPatch.json.error.code, 'provider_not_found');
+
+        const ghostGet = await adminRequest(acmeAdmin, { path: providerPath('ghost-sso') });
+        assert.equal(ghostGet.status, 404);
+
+        const disabled = await adminRequest(acmeAdmin, {
+          method: 'PATCH',
+          path: providerPath('example-sso'),
+          body: { enabled: false },
+        });
+        assert.equal(disabled.status, 200);
+        assert.equal(disabled.json.provider.enabled, false);
+        const reEnabled = await adminRequest(acmeAdmin, {
+          method: 'PATCH',
+          path: providerPath('example-sso'),
+          body: { enabled: true },
+        });
+        assert.equal(reEnabled.json.provider.enabled, true);
+
+        const single = await adminRequest(acmeAdmin, { path: providerPath('example-sso') });
+        assert.equal(single.status, 200);
+        assert.deepEqual(single.json.provider.domains, ['sso.acme.test']);
+
+        const connect = await adminRequest(acmeAdmin, {
+          method: 'POST',
+          path: `${providerPath('paddled-sso')}/domains`,
+          body: { domain: 'Acme.Test' },
+        });
+        assert.equal(connect.status, 200);
+        assert.equal(connect.json.domain, 'acme.test');
+        connectedDomains.push({ slug: 'paddled-sso', domain: 'acme.test' });
+
+        const reConnect = await adminRequest(acmeAdmin, {
+          method: 'POST',
+          path: `${providerPath('paddled-sso')}/domains`,
+          body: { domain: 'acme.test' },
+        });
+        assert.equal(reConnect.status, 200);
+        assert.equal(reConnect.json.already_connected, true);
+
+        const connectUnknown = await adminRequest(acmeAdmin, {
+          method: 'POST',
+          path: `${providerPath('paddled-sso')}/domains`,
+          body: { domain: 'nowhere.example.test' },
+        });
+        assert.equal(connectUnknown.status, 409);
+        assert.equal(connectUnknown.json.error.code, 'domain_unavailable');
+
+        const connectBadDomain = await adminRequest(acmeAdmin, {
+          method: 'POST',
+          path: `${providerPath('paddled-sso')}/domains`,
+          body: { domain: 'not a domain' },
+        });
+        assert.equal(connectBadDomain.status, 400);
+
+        const connectExtraField = await adminRequest(acmeAdmin, {
+          method: 'POST',
+          path: `${providerPath('paddled-sso')}/domains`,
+          body: { domain: 'acme.test', extra: 1 },
+        });
+        assert.equal(connectExtraField.status, 400);
+
+        const pending = await adminRequest(acmeAdmin, {
+          method: 'POST',
+          path: '/api/v1/admin/realms/acme/email-domains',
+          body: { domain: 'prov-pending.acme.test' },
+        });
+        assert.equal(pending.status, 200);
+        createdEmailDomains.push('prov-pending.acme.test');
+
+        const connectPending = await adminRequest(acmeAdmin, {
+          method: 'POST',
+          path: `${providerPath('paddled-sso')}/domains`,
+          body: { domain: 'prov-pending.acme.test' },
+        });
+        assert.equal(connectPending.status, 409);
+        assert.equal(connectPending.json.error.code, 'domain_unavailable');
+
+        const verifyPending = await adminRequest(acmeAdmin, {
+          method: 'PATCH',
+          path: '/api/v1/admin/realms/acme/email-domains/prov-pending.acme.test',
+          body: { verified: true },
+        });
+        assert.equal(verifyPending.status, 200);
+
+        const connectNowVerified = await adminRequest(acmeAdmin, {
+          method: 'POST',
+          path: `${providerPath('paddled-sso')}/domains`,
+          body: { domain: 'prov-pending.acme.test' },
+        });
+        assert.equal(connectNowVerified.status, 200);
+        connectedDomains.push({ slug: 'paddled-sso', domain: 'prov-pending.acme.test' });
+
+        const conflictConnect = await adminRequest(acmeAdmin, {
+          method: 'POST',
+          path: `${providerPath('secret-sso')}/domains`,
+          body: { domain: 'acme.test' },
+        });
+        assert.equal(conflictConnect.status, 409);
+        assert.equal(conflictConnect.json.error.code, 'domain_in_use');
+
+        const ghostConnect = await adminRequest(acmeAdmin, {
+          method: 'POST',
+          path: `${providerPath('ghost-sso')}/domains`,
+          body: { domain: 'acme.test' },
+        });
+        assert.equal(ghostConnect.status, 404);
+        assert.equal(ghostConnect.json.error.code, 'provider_not_found');
+
+        const disconnected = await adminRequest(acmeAdmin, {
+          method: 'DELETE',
+          path: domainPath('paddled-sso', 'prov-pending.acme.test'),
+        });
+        assert.equal(disconnected.status, 200);
+        assert.equal(disconnected.json.removed, true);
+        assert.equal(disconnected.json.domain, 'prov-pending.acme.test');
+
+        const disconnectAgain = await adminRequest(acmeAdmin, {
+          method: 'DELETE',
+          path: domainPath('paddled-sso', 'prov-pending.acme.test'),
+        });
+        assert.equal(disconnectAgain.status, 404);
+        assert.equal(disconnectAgain.json.error.code, 'domain_not_found');
+
+        const disconnectGhostProvider = await adminRequest(acmeAdmin, {
+          method: 'DELETE',
+          path: domainPath('ghost-sso', 'acme.test'),
+        });
+        assert.equal(disconnectGhostProvider.status, 404);
+        assert.equal(disconnectGhostProvider.json.error.code, 'provider_not_found');
+
+        const cascadeProvider = await adminRequest(acmeAdmin, {
+          method: 'POST',
+          path: providersBase,
+          body: {
+            slug: 'cascade-sso',
+            display_name: 'Cascade SSO',
+            issuer: 'https://idp.cascade.test',
+            client_id: 'cas',
+          },
+        });
+        assert.equal(cascadeProvider.status, 200);
+        const cascadeDomain = await adminRequest(acmeAdmin, {
+          method: 'POST',
+          path: '/api/v1/admin/realms/acme/email-domains',
+          body: { domain: 'cascade.acme.test' },
+        });
+        assert.equal(cascadeDomain.status, 200);
+        createdEmailDomains.push('cascade.acme.test');
+        const verifyCascade = await adminRequest(acmeAdmin, {
+          method: 'PATCH',
+          path: '/api/v1/admin/realms/acme/email-domains/cascade.acme.test',
+          body: { verified: true },
+        });
+        assert.equal(verifyCascade.status, 200);
+        const cascadeConnect = await adminRequest(acmeAdmin, {
+          method: 'POST',
+          path: `${providerPath('cascade-sso')}/domains`,
+          body: { domain: 'cascade.acme.test' },
+        });
+        assert.equal(cascadeConnect.status, 200);
+
+        const deleted = await adminRequest(acmeAdmin, {
+          method: 'DELETE',
+          path: providerPath('cascade-sso'),
+        });
+        assert.equal(deleted.status, 200);
+        assert.equal(deleted.json.removed, true);
+        assert.deepEqual(deleted.json.unlinked_domains, ['cascade.acme.test']);
+        const mappingRows = withRealmDatabase(env, 'acme', (database) =>
+          database
+            .prepare('SELECT COUNT(*) AS count FROM email_domain_providers WHERE domain = ?')
+            .get('cascade.acme.test').count
+        );
+        assert.equal(mappingRows, 0, 'cascade removed the mapping row');
+
+        const deletedAgain = await adminRequest(acmeAdmin, {
+          method: 'DELETE',
+          path: providerPath('cascade-sso'),
+        });
+        assert.equal(deletedAgain.status, 404);
+
+        const finalList = await adminRequest(systemAdmin, { path: providersBase });
+        assert.ok(
+          !finalList.json.providers.some((entry) => entry.slug === 'cascade-sso'),
+          'deleted provider is gone from the list'
+        );
+      } finally {
+        for (const entry of connectedDomains) {
+          await disconnectDomain(systemAdmin, entry.slug, entry.domain);
+        }
+        for (const slug of createdSlugs) {
+          await deleteProvider(systemAdmin, slug);
+        }
+        for (const domain of createdEmailDomains) {
+          await deleteEmailDomain(domain);
+        }
+        await adminRequest(systemAdmin, {
+          method: 'PATCH',
+          path: providerPath('example-sso'),
+          body: { enabled: true },
+        });
+      }
+    });
+
     await t.test('system branding updates Admin settings and discovery precedence', async () => {
       const systemAdmin = await adminToken();
       const acmeAdmin = await adminToken('it@acme.test');
