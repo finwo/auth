@@ -61,6 +61,18 @@ const routes: m.RouteDefs = {
   '/email-domains/:realm': {
     render: () => m(Admin, {}),
   },
+  '/providers': {
+    render: () => m(Admin, {}),
+  },
+  '/providers/:realm': {
+    render: () => m(Admin, {}),
+  },
+  '/providers/:realm/new': {
+    render: () => m(Admin, {}),
+  },
+  '/providers/:realm/edit/:provider': {
+    render: () => m(Admin, {}),
+  },
   '/system-settings': {
     render: () => m(Admin, {}),
   },

@@ -13,6 +13,14 @@ import {
   type AdminClientHostCreateResponse,
   type AdminClientHostDeleteResponse,
   type AdminClientHostListResponse,
+  type AdminIdentityProvider,
+  type AdminIdentityProviderCreateInput,
+  type AdminIdentityProviderDeleteResponse,
+  type AdminIdentityProviderListResponse,
+  type AdminIdentityProviderPatchInput,
+  type AdminIdentityProviderResponse,
+  type AdminProviderDomainConnectResponse,
+  type AdminProviderDomainDisconnectResponse,
   type AdminGlobalUser,
   type AdminGlobalUserDetail,
   type AdminMeUser,
@@ -212,6 +220,91 @@ export async function deleteAdminRealmEmailDomain(
   const encoded = encodeURIComponent(domain);
   return adminJson<AdminRealmEmailDomainDeleteResponse>(
     `/api/v1/admin/realms/${realm}/email-domains/${encoded}`,
+    { method: 'DELETE' }
+  );
+}
+
+export async function loadAdminRealmProviders(
+  realmSlug: string
+): Promise<AdminIdentityProvider[]> {
+  const realm = encodeURIComponent(realmSlug);
+  const response = await adminJson<AdminIdentityProviderListResponse>(
+    `/api/v1/admin/realms/${realm}/providers`
+  );
+  return response.providers;
+}
+
+export async function loadAdminRealmProvider(
+  realmSlug: string,
+  slug: string
+): Promise<AdminIdentityProvider> {
+  const realm = encodeURIComponent(realmSlug);
+  const provider = encodeURIComponent(slug);
+  const response = await adminJson<AdminIdentityProviderResponse>(
+    `/api/v1/admin/realms/${realm}/providers/${provider}`
+  );
+  return response.provider;
+}
+
+export async function createAdminRealmProvider(
+  realmSlug: string,
+  input: AdminIdentityProviderCreateInput
+): Promise<AdminIdentityProviderResponse> {
+  const realm = encodeURIComponent(realmSlug);
+  return adminJson<AdminIdentityProviderResponse>(
+    `/api/v1/admin/realms/${realm}/providers`,
+    { method: 'POST', body: JSON.stringify(input) }
+  );
+}
+
+export async function updateAdminRealmProvider(
+  realmSlug: string,
+  slug: string,
+  patch: AdminIdentityProviderPatchInput
+): Promise<AdminIdentityProviderResponse> {
+  const realm = encodeURIComponent(realmSlug);
+  const provider = encodeURIComponent(slug);
+  return adminJson<AdminIdentityProviderResponse>(
+    `/api/v1/admin/realms/${realm}/providers/${provider}`,
+    { method: 'PATCH', body: JSON.stringify(patch) }
+  );
+}
+
+export async function deleteAdminRealmProvider(
+  realmSlug: string,
+  slug: string
+): Promise<AdminIdentityProviderDeleteResponse> {
+  const realm = encodeURIComponent(realmSlug);
+  const provider = encodeURIComponent(slug);
+  return adminJson<AdminIdentityProviderDeleteResponse>(
+    `/api/v1/admin/realms/${realm}/providers/${provider}`,
+    { method: 'DELETE' }
+  );
+}
+
+export async function connectAdminProviderDomain(
+  realmSlug: string,
+  slug: string,
+  domain: string
+): Promise<AdminProviderDomainConnectResponse> {
+  const realm = encodeURIComponent(realmSlug);
+  const provider = encodeURIComponent(slug);
+  return adminJson<AdminProviderDomainConnectResponse>(
+    `/api/v1/admin/realms/${realm}/providers/${provider}/domains`,
+    { method: 'POST', body: JSON.stringify({ domain }) }
+  );
+}
+
+export async function disconnectAdminProviderDomain(
+  realmSlug: string,
+  slug: string,
+  domain: string
+): Promise<AdminProviderDomainDisconnectResponse> {
+  const realm = encodeURIComponent(realmSlug);
+  const provider = encodeURIComponent(slug);
+  const encoded = encodeURIComponent(domain);
+  return adminJson<AdminProviderDomainDisconnectResponse>(
+    `/api/v1/admin/realms/${realm}/providers/${provider}/domains/${encoded}`,
     { method: 'DELETE' }
   );
 }

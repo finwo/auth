@@ -113,6 +113,72 @@ export interface AdminRealmEmailDomainDeleteResponse {
   domain: string;
 }
 
+export interface AdminIdentityProviderDomain {
+  domain: string;
+  created_at: number;
+}
+
+export interface AdminIdentityProvider {
+  id: string;
+  slug: string;
+  display_name: string;
+  issuer: string;
+  client_id: string;
+  scopes: string;
+  enabled: boolean;
+  has_secret: boolean;
+  domains: AdminIdentityProviderDomain[];
+  created_at: number;
+  updated_at: number;
+}
+
+export interface AdminIdentityProviderCreateInput {
+  slug: string;
+  display_name: string;
+  issuer: string;
+  client_id: string;
+  client_secret?: string;
+  scopes?: string;
+  enabled?: boolean;
+}
+
+export interface AdminIdentityProviderPatchInput {
+  display_name?: string;
+  issuer?: string;
+  client_id?: string;
+  client_secret?: string | null;
+  scopes?: string;
+  enabled?: boolean;
+}
+
+export interface AdminIdentityProviderListResponse {
+  providers: AdminIdentityProvider[];
+}
+
+export interface AdminIdentityProviderResponse {
+  ok: boolean;
+  provider: AdminIdentityProvider;
+}
+
+export interface AdminIdentityProviderDeleteResponse {
+  ok: boolean;
+  removed: boolean;
+  slug: string;
+  unlinked_domains: string[];
+}
+
+export interface AdminProviderDomainConnectResponse {
+  ok: boolean;
+  domain: string;
+  already_connected?: boolean;
+}
+
+export interface AdminProviderDomainDisconnectResponse {
+  ok: boolean;
+  removed: boolean;
+  domain: string;
+}
+
 export interface AdminRealmSettings {
   slug: string;
   display_name: string;

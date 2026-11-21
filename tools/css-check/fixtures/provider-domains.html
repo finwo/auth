@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>provider domains table fixture</title>
+    <link rel="stylesheet" href="../../../app/shared/style/global.css">
+  </head>
+  <body>
+    <main class="content">
+      <section class="panel" aria-label="Connected domains">
+        <h2>Connected domains</h2>
+        <p class="note">Verified email domains that route sign-in through this provider.</p>
+
+        <div class="toolbar toolbar-panel">
+          <div class="field">
+            <span class="field-label" id="provider-domain-select-label">Email domain</span>
+            <button class="select-trigger" type="button" aria-labelledby="provider-domain-select-label">
+              <span class="select-value">Select a domain</span>
+            </button>
+          </div>
+          <div class="toolbar-actions">
+            <button class="button button-primary" type="button">Connect</button>
+          </div>
+        </div>
+
+        <table class="table">
+          <thead>
+            <tr>
+              <th scope="col">Domain</th>
+              <th scope="col">Added</th>
+              <th scope="col">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td data-label="Domain">
+                <span class="table-mono">sso.acme.test</span>
+              </td>
+              <td data-label="Added" class="table-meta u-nowrap">12 Mar 2026</td>
+              <td data-label="Actions">
+                <button class="button-inline button-danger" type="button">Disconnect</button>
+              </td>
+            </tr>
+            <tr>
+              <td data-label="Domain">
+                <span class="table-mono">a-really-long-domain-name-for-boundary-checking.enterprise.test</span>
+              </td>
+              <td data-label="Added" class="table-meta u-nowrap">1 December 2025</td>
+              <td data-label="Actions">
+                <button class="button-inline button-danger" type="button">Disconnect</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+    </main>
+  </body>
+</html>

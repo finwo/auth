@@ -407,7 +407,7 @@ export const SettingsPage: m.Component<SettingsAttrs> = {
 
             <section class="panel">
               <h2>Realm access</h2>
-              <p class="note">Manage hostnames and email domains for this realm.</p>
+              <p class="note">Manage hostnames, email domains and identity providers for this realm.</p>
               <div class="action-row">
                 <a
                   class="button button-secondary"
@@ -428,6 +428,16 @@ export const SettingsPage: m.Component<SettingsAttrs> = {
                   }}
                 >
                   Email domains
+                </a>
+                <a
+                  class="button button-secondary"
+                  href={appUrl(`/providers/${encodeURIComponent(realmSlug || '')}`)}
+                  onclick={(event: MouseEvent) => {
+                    event.preventDefault();
+                    m.route.set(`/providers/${encodeURIComponent(realmSlug || '')}`);
+                  }}
+                >
+                  Providers
                 </a>
               </div>
             </section>

@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>providers table fixture</title>
+    <link rel="stylesheet" href="../../../app/shared/style/global.css">
+  </head>
+  <body>
+    <main class="content">
+      <section class="card" aria-label="Realm identity providers">
+        <div class="toolbar toolbar-panel">
+          <div class="toolbar-search">
+            <input
+              type="search"
+              aria-label="Search providers"
+              placeholder="Search providers"
+            >
+          </div>
+          <div class="toolbar-actions">
+            <button class="button button-primary" type="button">Add provider</button>
+          </div>
+        </div>
+
+        <table class="table">
+          <thead>
+            <tr>
+              <th scope="col">Provider</th>
+              <th scope="col">Issuer</th>
+              <th scope="col">Status</th>
+              <th scope="col">Domains</th>
+              <th scope="col">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td data-label="Provider">Example SSO</td>
+              <td data-label="Issuer">
+                <span class="table-mono">https://idp.example.com</span>
+              </td>
+              <td data-label="Status" class="u-nowrap">
+                <span class="status">
+                  <span class="status-dot" aria-hidden="true"></span>
+                  Enabled
+                </span>
+              </td>
+              <td data-label="Domains">1</td>
+              <td data-label="Actions" class="u-nowrap">
+                <a class="button-inline" href="#">Edit</a>
+                <button class="button-inline" type="button">Disable</button>
+                <button class="button-inline button-danger" type="button">Delete</button>
+              </td>
+            </tr>
+            <tr>
+              <td data-label="Provider">Legacy SSO</td>
+              <td data-label="Issuer">
+                <span class="table-mono">https://old-idp.example.net</span>
+              </td>
+              <td data-label="Status" class="u-nowrap">
+                <span class="status">
+                  <span class="status-dot" aria-hidden="true"></span>
+                  Disabled
+                </span>
+              </td>
+              <td data-label="Domains">0</td>
+              <td data-label="Actions" class="u-nowrap">
+                <a class="button-inline" href="#">Edit</a>
+                <button class="button-inline" type="button">Enable</button>
+                <button class="button-inline button-danger" type="button">Delete</button>
+              </td>
+            </tr>
+            <tr>
+              <td data-label="Provider">A Really Long Provider Display Name For Boundary Checking</td>
+              <td data-label="Issuer">
+                <span class="table-mono">https://a-really-long-issuer-hostname-for-boundary-checking.enterprise.test</span>
+              </td>
+              <td data-label="Status" class="u-nowrap">
+                <span class="status">
+                  <span class="status-dot" aria-hidden="true"></span>
+                  Enabled
+                </span>
+              </td>
+              <td data-label="Domains">12</td>
+              <td data-label="Actions" class="u-nowrap">
+                <a class="button-inline" href="#">Edit</a>
+                <button class="button-inline" type="button">Disable</button>
+                <button class="button-inline button-danger" type="button">Delete</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+    </main>
+  </body>
+</html>

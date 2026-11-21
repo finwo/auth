@@ -27,6 +27,8 @@ import { ClientsPage } from './clients';
 import { GlobalUserPage } from './global-user';
 import { HostsPage } from './hosts';
 import { EmailDomainsPage } from './email-domains';
+import { ProvidersPage } from './providers';
+import { ProviderEditPage } from './provider-edit';
 import { UserPage } from './user';
 import { UsersPage } from './users';
 import { SettingsPage } from './settings';
@@ -146,6 +148,41 @@ function emailDomainsRealm() {
   const slug = suffix.split('/')[0];
   try {
     return decodeURIComponent(slug);
+  } catch {
+    return null;
+  }
+}
+
+function providersRealm() {
+  const path = currentPath();
+  if (path !== '/providers' && !path.startsWith('/providers/')) return null;
+  const suffix = path.slice('/providers/'.length);
+  if (!suffix) return null;
+  const slug = suffix.split('/')[0];
+  try {
+    return decodeURIComponent(slug);
+  } catch {
+    return null;
+  }
+}
+
+function providerEditPath() {
+  const path = currentPath();
+  const create = /^\/providers\/([^/]+)\/new$/.exec(path);
+  if (create) {
+    try {
+      return { realmSlug: decodeURIComponent(create[1]), providerSlug: null };
+    } catch {
+      return null;
+    }
+  }
+  const match = /^\/providers\/([^/]+)\/edit\/(.+)$/.exec(path);
+  if (!match) return null;
+  try {
+    return {
+      realmSlug: decodeURIComponent(match[1]),
+      providerSlug: decodeURIComponent(match[2]),
+    };
   } catch {
     return null;
   }
@@ -348,6 +385,7 @@ export const Admin: m.Component = {
     const realmSettings = path === '/settings' || path.startsWith('/settings/');
     const hosts = path === '/hosts' || path.startsWith('/hosts/');
     const emailDomains = path === '/email-domains' || path.startsWith('/email-domains/');
+    const providers = path === '/providers' || path.startsWith('/providers/');
     const title = realmsPath
       ? 'Realms | Administration'
       : clients
@@ -366,9 +404,15 @@ export const Admin: m.Component = {
               ? 'Hosts | Administration'
               : emailDomains
                 ? 'Email domains | Administration'
-                : realmSettings
-                  ? 'Realm settings | Administration'
-                  : 'Administration';
+                : providers
+                  ? path.endsWith('/new')
+                    ? 'Add provider | Administration'
+                    : path.includes('/edit/')
+                      ? 'Edit provider | Administration'
+                      : 'Identity providers | Administration'
+                  : realmSettings
+                    ? 'Realm settings | Administration'
+                    : 'Administration';
     document.title = title;
   },
 
@@ -396,12 +440,15 @@ export const Admin: m.Component = {
     const realmSettings = path === '/settings' || path.startsWith('/settings/');
     const hosts = path === '/hosts' || path.startsWith('/hosts/');
     const emailDomains = path === '/email-domains' || path.startsWith('/email-domains/');
+    const providers = path === '/providers' || path.startsWith('/providers/');
     const realmSlug = sessionsRealm();
     const clientRealmSlug = clientsRealm();
     const userRealmSlug = usersRealm();
     const settingsRealmSlug = settingsRealm();
     const hostsRealmSlug = hostsRealm();
     const emailDomainsRealmSlug = emailDomainsRealm();
+    const providersRealmSlug = providersRealm();
+    const providerEdit = providerEditPath();
     const clientEdit = clientEditPath();
     const userDetail = userDetailPath();
     const globalUser = globalUserDetailPath();
@@ -434,7 +481,7 @@ export const Admin: m.Component = {
         href: appUrl(realmNav.href),
         label: realmNav.label,
         icon: LibraryBig,
-        active: realmsPath || realmSettings || hosts || emailDomains,
+        active: realmsPath || realmSettings || hosts || emailDomains || providers,
         onclick: (event: Event) => {
           event.preventDefault();
           m.route.set(realmNav.href);
@@ -612,6 +659,23 @@ export const Admin: m.Component = {
         ) : emailDomains ? (
           <EmailDomainsPage
             realmSlug={emailDomainsRealmSlug}
+            realms={this.realms}
+            realmsError={this.realmsError}
+            canCreateRealm={Boolean(this.canCreateRealm)}
+            onAuthExpired={() => this.authExpired()}
+          />
+        ) : providers && providerEdit ? (
+          <ProviderEditPage
+            realmSlug={providerEdit.realmSlug}
+            providerSlug={providerEdit.providerSlug}
+            realms={this.realms}
+            realmsError={this.realmsError}
+            canCreateRealm={Boolean(this.canCreateRealm)}
+            onAuthExpired={() => this.authExpired()}
+          />
+        ) : providers ? (
+          <ProvidersPage
+            realmSlug={providersRealmSlug}
             realms={this.realms}
             realmsError={this.realmsError}
             canCreateRealm={Boolean(this.canCreateRealm)}
