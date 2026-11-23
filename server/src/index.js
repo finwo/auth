@@ -9,6 +9,7 @@ import scandir from '@finwo/scandir';
 import { app } from './app.js';
 import { loadConfig } from './lib/config.js';
 import { closeRealms, initRealms } from './lib/realm.js';
+import { migrateProviderSecrets } from './lib/secrets.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 
@@ -99,6 +100,11 @@ for (const route of routes) {
 }
 
 await initRealms(cfg);
+
+const migratedSecrets = await migrateProviderSecrets();
+if (migratedSecrets > 0) {
+  console.log(`encrypted ${migratedSecrets} provider client secret(s)`);
+}
 
 const server = http.createServer((req, res) => {
   app(req, res, (err) => {

@@ -7,6 +7,7 @@
 
 import fs from 'node:fs';
 import YAML from 'yaml';
+import { parseSecretKey } from './secrets.js';
 
 const SUPPORTED_DIALECTS = ['sqlite'];
 
@@ -25,6 +26,9 @@ const DEFAULTS = {
     admin: null,
     account: null,
   },
+  secrets: {
+    encryption_key: null,
+  },
 };
 
 // [environment variable, dotted config path, parser]
@@ -37,6 +41,7 @@ const ENV_MAP = [
   ['AUTH_REALMS_PATH', 'database.realms', String],
   ['AUTH_ADMIN_APP_URL', 'apps.admin', String],
   ['AUTH_ACCOUNT_APP_URL', 'apps.account', String],
+  ['AUTH_SECRETS_KEY', 'secrets.encryption_key', String],
 ];
 
 function lower(v) {
@@ -109,6 +114,15 @@ function validate(cfg) {
     }
     if (!cfg.database.realms) {
       errors.push('database.realms is required for sqlite (set database.realms or AUTH_REALMS_PATH)');
+    }
+  }
+
+  const encryptionKey = cfg.secrets?.encryption_key;
+  if (encryptionKey) {
+    try {
+      parseSecretKey(encryptionKey);
+    } catch (e) {
+      errors.push(`secrets.encryption_key ${e.message}`);
     }
   }
 

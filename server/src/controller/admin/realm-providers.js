@@ -49,7 +49,11 @@ export default [
         realmSlug: req.params.realm,
       });
       const input = normalizeCreateProviderInput(req.body || {});
-      const provider = await createAdminRealmProvider({ realmDb: auth.realmDb, input });
+      const provider = await createAdminRealmProvider({
+        realmDb: auth.realmDb,
+        realmId: auth.realm.id,
+        input,
+      });
 
       return new app.HttpOk({ ok: true, provider }, NO_STORE);
     },
@@ -81,6 +85,7 @@ export default [
       const input = normalizeUpdateProviderInput(req.body || {});
       const provider = await updateAdminRealmProvider({
         realmDb: auth.realmDb,
+        realmId: auth.realm.id,
         slug: req.params.provider,
         input,
       });

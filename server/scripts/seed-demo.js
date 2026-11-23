@@ -1,7 +1,9 @@
 import crypto from 'node:crypto';
+import { app } from '../src/app.js';
 import { loadConfig } from '../src/lib/config.js';
 import { hashPassword } from '../src/lib/password.js';
 import { hashClientSecret } from '../src/lib/oidc/clients.js';
+import { encryptSecret, hasSecretKey } from '../src/lib/secrets.js';
 import {
   addClientRealm,
   addOidcClientHost,
@@ -85,11 +87,19 @@ async function ensureUser({
   return id;
 }
 
-async function ensureProvider(db, { slug, displayName, issuer, clientId, clientSecret }) {
+async function ensureProvider(db, { realmId, slug, displayName, issuer, clientId, clientSecret }) {
   const existing = await db.get('SELECT id FROM identity_providers WHERE slug = {slug}', { slug });
   if (existing) return existing.id;
   const now = Date.now();
   const id = crypto.randomUUID();
+  let storedSecret = null;
+  if (clientSecret) {
+    if (hasSecretKey()) {
+      storedSecret = encryptSecret(clientSecret, { realmId, providerId: id });
+    } else {
+      console.log(`note: client secret for provider ${slug} not stored (AUTH_SECRETS_KEY not set)`);
+    }
+  }
   await db.run(
     `INSERT INTO identity_providers
       (id, slug, display_name, issuer, client_id, client_secret, scopes, enabled, created_at, updated_at)
@@ -101,7 +111,7 @@ async function ensureProvider(db, { slug, displayName, issuer, clientId, clientS
       displayName,
       issuer,
       clientId,
-      clientSecret: clientSecret || null,
+      clientSecret: storedSecret,
       createdAt: now,
       updatedAt: now,
     }
@@ -191,6 +201,7 @@ async function ensureClient(
 }
 
 const cfg = loadConfig();
+app.config = cfg;
 const publicUrl = new URL(cfg.server.public_url);
 const portSuffix = publicUrl.port ? `:${publicUrl.port}` : '';
 const clientOrigin = (host) => `${publicUrl.protocol}//${host}${portSuffix}`;
@@ -249,6 +260,7 @@ await ensureRealmUser('globex', contractor, ['realm-admin']);
 
 const acmeDb = await openRealmDatabase(acme);
 const providerId = await ensureProvider(acmeDb, {
+  realmId: acme.id,
   slug: 'example-sso',
   displayName: 'Example SSO',
   issuer: 'https://idp.example.com',

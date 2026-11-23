@@ -448,6 +448,7 @@ test('HTTP realm, login, OIDC and logout flows', async (t) => {
     AUTH_PUBLIC_URL: publicUrl,
     AUTH_ADMIN_APP_URL: `http://admin.test:${port}`,
     AUTH_ACCOUNT_APP_URL: `http://account.test:${port}`,
+    AUTH_SECRETS_KEY: 'ab'.repeat(32),
   };
 
   const origin = (host) => `http://${host}:${port}`;
@@ -5356,6 +5357,12 @@ test('HTTP realm, login, OIDC and logout flows', async (t) => {
         assert.equal(typeof seeded.domains[0].created_at, 'number');
         assert.ok(!('client_secret' in seeded), 'no client_secret field in payload');
         assert.ok(!list.text.includes('demo-secret'), 'stored secret never serialized');
+        const seededStored = withRealmDatabase(env, 'acme', (database) =>
+          database
+            .prepare('SELECT client_secret FROM identity_providers WHERE slug = ?')
+            .get('example-sso').client_secret
+        );
+        assert.ok(String(seededStored).startsWith('enc:v1:'), 'seeded secret encrypted at rest');
 
         const crossList = await adminRequest(acmeAdmin, {
           path: '/api/v1/admin/realms/globex/providers',
@@ -5468,6 +5475,15 @@ test('HTTP realm, login, OIDC and logout flows', async (t) => {
         assert.equal(withSecret.json.provider.has_secret, true);
         assert.ok(!withSecret.text.includes('s3cr3t'), 'create response hides the secret');
         createdSlugs.push('secret-sso');
+        const readStoredSecret = (slug) =>
+          withRealmDatabase(env, 'acme', (database) =>
+            database
+              .prepare('SELECT client_secret FROM identity_providers WHERE slug = ?')
+              .get(slug).client_secret
+          );
+        const secretStored = readStoredSecret('secret-sso');
+        assert.ok(String(secretStored).startsWith('enc:v1:'), 'secret encrypted at rest');
+        assert.ok(!String(secretStored).includes('s3cr3t'), 'plaintext absent from stored value');
 
         const replaced = await adminRequest(acmeAdmin, {
           method: 'PATCH',
@@ -5477,6 +5493,42 @@ test('HTTP realm, login, OIDC and logout flows', async (t) => {
         assert.equal(replaced.status, 200);
         assert.equal(replaced.json.provider.has_secret, true);
         assert.ok(!replaced.text.includes('rotated-secret'), 'patch response hides the secret');
+        const rotatedStored = readStoredSecret('secret-sso');
+        assert.ok(String(rotatedStored).startsWith('enc:v1:'), 'rotation re-encrypts');
+        assert.notEqual(rotatedStored, secretStored, 'rotation produces new ciphertext');
+
+        withRealmDatabase(env, 'acme', (database) => {
+          database
+            .prepare(
+              `INSERT INTO identity_providers
+                (id, slug, display_name, issuer, client_id, client_secret, scopes, enabled,
+                 created_at, updated_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+            )
+            .run(
+              crypto.randomUUID(),
+              'legacy-plain',
+              'Legacy Plain',
+              'https://idp.legacy.test',
+              'lp',
+              'plain-legacy-secret',
+              'openid',
+              1,
+              Date.now(),
+              Date.now()
+            );
+        });
+        createdSlugs.push('legacy-plain');
+        const legacyUpgrade = await adminRequest(acmeAdmin, {
+          method: 'PATCH',
+          path: providerPath('legacy-plain'),
+          body: { display_name: 'Legacy Plain 2' },
+        });
+        assert.equal(legacyUpgrade.status, 200);
+        assert.equal(legacyUpgrade.json.provider.has_secret, true);
+        const legacyStored = readStoredSecret('legacy-plain');
+        assert.ok(String(legacyStored).startsWith('enc:v1:'), 'legacy plaintext upgraded on save');
+        assert.ok(!String(legacyStored).includes('plain-legacy-secret'), 'legacy plaintext gone');
 
         const cleared = await adminRequest(acmeAdmin, {
           method: 'PATCH',

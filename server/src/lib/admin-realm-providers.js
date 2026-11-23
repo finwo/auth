@@ -2,6 +2,7 @@ import crypto from 'node:crypto';
 import { normalizeScopes } from './admin-clients.js';
 import { HttpError } from './http/http-error.js';
 import { getRealmEmailDomain, validateRealmEmailDomain } from './realm.js';
+import { encryptSecret, hasSecretKey, isEncrypted, secretStorageUnavailable } from './secrets.js';
 
 const SLUG_MAX_LENGTH = 63;
 const NAME_MAX_LENGTH = 120;
@@ -274,13 +275,20 @@ function mapProviderDatabaseError(error) {
   throw error;
 }
 
-export async function createAdminRealmProvider({ realmDb, input }) {
+export async function createAdminRealmProvider({ realmDb, realmId, input }) {
   const existing = await getAdminProviderRow(realmDb, input.slug);
   if (existing) {
     throw conflict('This slug is already used by a provider in the realm.', 'provider_slug_exists');
   }
+  if (input.clientSecret !== null && !hasSecretKey()) {
+    throw secretStorageUnavailable();
+  }
 
   const id = crypto.randomUUID();
+  const storedSecret =
+    input.clientSecret === null
+      ? null
+      : encryptSecret(input.clientSecret, { realmId, providerId: id });
   const now = Date.now();
   try {
     await realmDb.run(
@@ -294,7 +302,7 @@ export async function createAdminRealmProvider({ realmDb, input }) {
         displayName: input.displayName,
         issuer: input.issuer,
         clientId: input.clientId,
-        clientSecret: input.clientSecret,
+        clientSecret: storedSecret,
         scopes: input.scopes,
         enabled: input.enabled ? 1 : 0,
         createdAt: now,
@@ -312,7 +320,7 @@ export async function createAdminRealmProvider({ realmDb, input }) {
       display_name: input.displayName,
       issuer: input.issuer,
       client_id: input.clientId,
-      client_secret: input.clientSecret,
+      client_secret: storedSecret,
       scopes: input.scopes,
       enabled: input.enabled ? 1 : 0,
       created_at: now,
@@ -322,7 +330,7 @@ export async function createAdminRealmProvider({ realmDb, input }) {
   );
 }
 
-export async function updateAdminRealmProvider({ realmDb, slug, input }) {
+export async function updateAdminRealmProvider({ realmDb, realmId, slug, input }) {
   const row = await getAdminProviderRow(realmDb, slug);
   if (!row) {
     throw notFound();
@@ -337,7 +345,16 @@ export async function updateAdminRealmProvider({ realmDb, slug, input }) {
   };
   let clientSecret = row.client_secret;
   if (input.secret) {
-    clientSecret = input.secret.mode === 'clear' ? null : input.secret.value;
+    if (input.secret.mode === 'clear') {
+      clientSecret = null;
+    } else {
+      if (!hasSecretKey()) {
+        throw secretStorageUnavailable();
+      }
+      clientSecret = encryptSecret(input.secret.value, { realmId, providerId: row.id });
+    }
+  } else if (clientSecret && !isEncrypted(clientSecret) && hasSecretKey()) {
+    clientSecret = encryptSecret(clientSecret, { realmId, providerId: row.id });
   }
   const now = Date.now();
 
